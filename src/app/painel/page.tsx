@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { Brand } from "@/components/brand";
 import { createSupabaseClient } from "@/lib/supabase/server";
+import { getTenantContext } from "@/lib/tenancy";
 import { signOut } from "@/app/auth/actions";
 
 export const metadata: Metadata = { title: "Meu espaço" };
@@ -23,8 +24,11 @@ export default async function Dashboard({
 }) {
   const supabase = await createSupabaseClient();
   if (!supabase) redirect("/entrar");
-  const result = await supabase.auth.getUser().catch(() => null);
-  if (!result?.data.user || result.error) redirect("/entrar");
+  const context = await getTenantContext(supabase);
+  if (context.status === "unauthenticated") redirect("/entrar");
+  if (context.status !== "ready") {
+    throw new Error("Workspace initialization unavailable.");
+  }
   const { status } = await searchParams;
   return (
     <div className="dashboard-shell">
@@ -48,7 +52,7 @@ export default async function Dashboard({
       <main id="conteudo" className="dashboard-main">
         <header className="dashboard-header">
           <span>Seu espaço de trabalho</span>
-          <span className="user-email">{result.data.user.email}</span>
+          <span className="user-email">{context.user.email}</span>
         </header>
         <div className="dashboard-content">
           <span className="eyebrow">Primeiros passos</span>

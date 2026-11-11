@@ -5,8 +5,10 @@ O código Next.js está preparado no checkout. O usuário autorizou commit e pus
 ## Projetos informados pelo usuário
 
 - Supabase: `https://lcueompcxefjszkrtyyp.supabase.co`.
-- Aplicação Vercel: `https://emissor-nfse-lote-nuxi.vercel.app`.
-- Callback esperado na Vercel: `https://emissor-nfse-lote-nuxi.vercel.app/auth/callback`.
+- Origem pública da aplicação confirmada posteriormente: `https://emissor-nfse-lote-kjou.vercel.app`.
+- Callback esperado na Vercel: `https://emissor-nfse-lote-kjou.vercel.app/auth/callback`.
+
+O domínio `emissor-nfse-lote-nuxi.vercel.app` informado inicialmente retornou 404 na homologação. A URL longa de preview fornecida posteriormente exige autenticação da Vercel. Use a origem pública acima nas configurações de Production do projeto `emissor-nfse-lote-kjou`; o [registro de homologação](homologacao-autenticacao.md) descreve a divergência de callback encontrada.
 
 Em Production na Vercel, `NEXT_PUBLIC_SITE_URL` deve ser a origem HTTPS acima. No desenvolvimento local com `npm run dev`, manter `http://localhost:3000` e seu callback permitido. A publishable key continua fora do repositório. O usuário informou ter feito a configuração; confirmação operacional depende de conexão e testes reais, não apenas destas URLs.
 

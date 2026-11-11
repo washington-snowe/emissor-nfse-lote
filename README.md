@@ -17,17 +17,21 @@ Para habilitar acesso real, criar `.env.local` a partir de `.env.example`, confi
 npm run lint
 npm run typecheck
 npm test
+npm run test:db
 npm run build
 npm start
 ```
 
 Na Vercel: preset Next.js, raiz do repositório e saída padrão; não usar export estático. Nenhum serviço fiscal ou worker está ativo. As instruções detalhadas, limites e verificações estão no [guia](docs/fundacao.md).
 
+O painel agora exige contexto de cliente no banco. Antes de publicar essa alteração, aplicar a [migração de tenants](supabase/migrations/202611110001_tenants.sql) no projeto Supabase, conforme [guia de isolamento](docs/isolamento-clientes.md). `npm run test:db` usa um PostgreSQL descartável no Docker local e não altera o banco remoto.
+
 ## Documentação
 
 - [Decisão atual: Vercel e Supabase](docs/decisoes/0001-vercel-supabase.md).
 - [Fundação e configuração](docs/fundacao.md).
 - [Passo a passo Supabase e Vercel](docs/conectar-servicos.md).
+- [Isolamento de clientes e testes RLS](docs/isolamento-clientes.md).
 - [Especificação do usuário](docs/especificacao-mestra.md).
 - [Diagnóstico e pendências](docs/descoberta.md).
 - [Modelo de dados e arquitetura da descoberta](docs/arquitetura.md), cuja recomendação Django foi substituída pela decisão atual.

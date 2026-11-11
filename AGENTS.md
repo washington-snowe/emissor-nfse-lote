@@ -14,7 +14,7 @@ Módulos propostos: identity, tenancy, companies, certificates, imports, marketp
 
 TypeScript estrito, validação nas fronteiras e componentes de servidor por padrão. Client Components só para interação. Valores monetários futuros precisam de representação decimal explícita, nunca cálculos financeiros com float. Datas com fuso explícito; competência fiscal separada do instante UTC. Validação no backend. Mensagens do produto em pt-BR; nomes técnicos consistentes. Erros de domínio distintos dos de transporte. Dependências e ferramentas com versões fixadas e lockfile após aprovação.
 
-Comandos na raiz: `npm ci`, `npm run dev`, `npm run build`, `npm start`, `npm run lint`, `npm run typecheck`, `npm test`. Smoke contra servidor sem variáveis Supabase: `SMOKE_BASE_URL=http://localhost:3000 node --experimental-strip-types --test tests/smoke.test.ts`. Não há migrações de negócio ou worker nesta fatia. Usar lockfile e dependências exatas. Consultar `docs/fundacao.md` para limites dos testes. Nunca colocar chave secret/service_role em NEXT_PUBLIC_*.
+Comandos na raiz: `npm ci`, `npm run dev`, `npm run build`, `npm start`, `npm run lint`, `npm run typecheck`, `npm test`, `npm run test:db`. Smoke contra servidor sem variáveis Supabase: `SMOKE_BASE_URL=http://localhost:3000 node --experimental-strip-types --test tests/smoke.test.ts`. A primeira migração de tenants e seus testes PostgreSQL estão em `supabase/migrations/` e `tests/database/`; consultar `docs/isolamento-clientes.md`. Não há worker nesta fatia. Usar lockfile e dependências exatas. Consultar `docs/fundacao.md` para limites dos testes. Nunca colocar chave secret/service_role em NEXT_PUBLIC_*.
 
 As tarefas cloud já são isoladas: utilizar o checkout existente; não criar worktree sem pedido explícito do usuário. Não sobrescrever alterações existentes. Inspecionar Git e instruções antes de editar.
 
@@ -30,6 +30,8 @@ As tarefas cloud já são isoladas: utilizar o checkout existente; não criar wo
 ## Banco de dados
 
 Migrações versionadas e revisadas; nenhuma alteração destrutiva sem plano de preservação e autorização. Constraints únicas e chaves compostas devem impedir vínculos entre tenants. Mudanças monetárias, de consumo e estados fiscais precisam de transações e testes de concorrência. Testar em PostgreSQL real, sem substituir por SQLite nas garantias de isolamento. Política de RLS deve falhar fechada e usar conexão de aplicação sem privilégios de bypass.
+
+O painel resolve o tenant pela RPC `ensure_tenant()` somente após validar o usuário. A migração deve ser aplicada antes do deploy deste guard. Falha de bootstrap não libera dados nem gera tenant fictício. A conta inicial possui um dono; nenhum ID de tenant ou dono vindo do cliente pode escolher o contexto. Fixtures de `tests/database` são exclusivos do container descartável, nunca do projeto remoto.
 
 ## Integrações fiscais
 

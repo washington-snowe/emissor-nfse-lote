@@ -1,5 +1,7 @@
 # Fundação — primeira fatia
 
+> Evolução posterior: o painel passou a exigir tenant derivado da identidade validada. Existe uma migração de tenants testada em PostgreSQL local; veja [isolamento de clientes](isolamento-clientes.md) para a ordem de aplicação antes do deploy. As descrições abaixo registram a primeira fatia e não comprovam aplicação dessa migração no projeto remoto.
+
 ## O que existe
 
 Next.js/React/TypeScript, App Router e build compatível com Vercel; tipografia local; apresentação em português sem estatísticas ou notas fictícias; páginas de login/cadastro; Server Actions Supabase; callback PKCE com origem fixa configurada; refresh de sessão; logout; painel que valida o usuário no servidor e não expõe dados de negócio; páginas de erro; headers básicos de proteção.
