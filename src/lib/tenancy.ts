@@ -1,4 +1,4 @@
-type AuthUser = { id: string; email?: string };
+type AuthUser = { id: string; email?: string; factors?: { id: string; status: string; factor_type: string }[] };
 
 type TenantGateway = {
   auth: {

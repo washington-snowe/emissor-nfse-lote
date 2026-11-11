@@ -4,9 +4,13 @@
 
 O usuário aprovou iniciar a fundação com Next.js, React, TypeScript, Vercel e Supabase. A primeira fatia implementa apresentação, acesso Supabase preparado e painel protegido sem dados de negócio. Leia `docs/especificacao-mestra.md`, `docs/decisoes/0001-vercel-supabase.md` e `docs/fundacao.md`. Não confundir fundação parcial com Fase 1 completa. Não faça commits, push, deploy, contratação de serviços ou emissão real sem autorização.
 
+Autorização posterior: o usuário solicitou implementar o sistema completo, incluindo emissão, com Vercel/Supabase por enquanto e sem VPS. O histórico autoriza mudanças, testes e publicação das versões testadas no GitHub/Vercel. Não contratar serviços nem emitir documentos reais sem a configuração e a confirmação da operação correspondente. Consultar `docs/execucao-sistema.md`; não declarar sistema completo por entregar somente os módulos intermediários.
+
 ## Arquitetura proposta
 
 Next.js App Router com React e TypeScript na Vercel; Supabase Auth, PostgreSQL e Storage privado. Worker fiscal, fila e gerenciador de chaves serão definidos separadamente, sem processamento longo em requisições Vercel. A proposta Django/Celery em `docs/arquitetura.md` é histórica, substituída pela decisão `docs/decisoes/0001-vercel-supabase.md`. Não usar export estático: autenticação exige cookies e código de servidor.
+
+Decisão posterior do usuário: manter Vercel e Supabase, sem servidor residente. Jobs atuais são curtos, com fila transacional, token de reserva, `after()` e Cron de recuperação diário compatível com Hobby. CSVs até 512 KiB ficam privados no banco para atomicidade; arquivos grandes/OCR ainda não estão liberados. O Vault gerenciado protege chaves por certificado; não substituí-lo por chave mestra gravada em tabela ou em NEXT_PUBLIC. Limites e verificação real em `docs/importacoes-certificados-seguranca.md`.
 
 Módulos propostos: identity, tenancy, companies, certificates, imports, marketplaces, commissions, recipients, tax_configuration, invoicing, integrations, jobs, documents, notifications, billing, dashboard, administration e audit. Criar apenas o necessário em cada etapa aprovada.
 
@@ -38,6 +42,8 @@ Empresas em `public.companies` exigem a segunda migração antes do deploy. Ler 
 O contrato interno de importação está em `src/lib/imports.ts`; ler `docs/importacao-comissoes.md` e `docs/shopee-csv-mensal.md`. Um CSV real Shopee foi validado fora do Git; a fixture reduzida preserva o layout com dados substituídos. A prévia em `/painel/importacoes` lê somente no navegador, sem upload ou persistência. Preservar valores como strings decimais, ausência explícita como `null`, proveniência e separação de moedas. ID da loja não é ID de operação; mês de conclusão não define competência. Resumo financeiro não define agrupamento fiscal ou tomador. Não confiar em hash/payload do cliente para futura persistência; revalidar bytes e autorização no servidor/worker. Outros layouts e plataformas exigem amostras e validação real.
 
 ## Integrações fiscais
+
+Migrações 3–7 estão em `supabase/migrations`. O usuário confirmou sua aplicação, inclusive a correção do erro 42501 da quarta: não tentar alterar funções criptográficas nativas gerenciadas do Vault. Dados privados só por funções de servidor; chave service_role/secret nunca vai ao navegador. Cadastro/uso de A1 exige usuário validado e AAL2; MFA também é aplicado pelo helper de tenant no banco. Certificados sintéticos não provam ICP-Brasil ou homologação. `nfse_contract_status()` expõe somente estrutura de documentação oficial, sem registros de empresa/certificado. Uma consulta de acesso 2xx não é autorização fiscal.
 
 Consultar documentação oficial vigente e registrar URL, versão e evidência antes de implementar. Não inventar endpoint, XML, código tributário, regra de tomador, alíquota ou credenciamento. A1 não prova elegibilidade. HTTP 2xx não prova autorização. Timeout após envio bloqueia retransmissão e exige reconciliação oficial. Nunca misturar tomadores distintos, nem converter tomador estrangeiro em exportação automaticamente. Mocks devem estar claramente identificados e não provar homologação real.
 

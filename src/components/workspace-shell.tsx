@@ -1,7 +1,21 @@
 import Link from "next/link";
-import { Building2, FileSpreadsheet, LayoutDashboard, LogOut } from "lucide-react";
+import { Building2, FileSpreadsheet, LayoutDashboard, LogOut, ShieldCheck, KeyRound } from "lucide-react";
 import { Brand } from "@/components/brand";
 import { signOut } from "@/app/auth/actions";
+
+const destinations = [
+  { id: "overview", href: "/painel", label: "Visão geral", Icon: LayoutDashboard },
+  { id: "companies", href: "/painel/empresas", label: "Empresas", Icon: Building2 },
+  { id: "imports", href: "/painel/importacoes", label: "Relatórios", Icon: FileSpreadsheet },
+  { id: "certificates", href: "/painel/certificados", label: "Certificados A1", Icon: KeyRound },
+  { id: "security", href: "/painel/seguranca", label: "Segurança", Icon: ShieldCheck },
+] as const;
+
+function WorkspaceLinks({ active }: { active: string }) {
+  return destinations.map(({ id, href, label, Icon }) => <Link key={id} href={href} className={active === id ? "sidebar-active" : "sidebar-link"} aria-current={active === id ? "page" : undefined}>
+    <Icon size={19} aria-hidden="true" /> {label}
+  </Link>);
+}
 
 export function WorkspaceShell({
   email,
@@ -9,7 +23,7 @@ export function WorkspaceShell({
   children,
 }: {
   email?: string;
-  active?: "overview" | "companies" | "imports";
+  active?: "overview" | "companies" | "imports" | "security" | "certificates";
   children: React.ReactNode;
 }) {
   return (
@@ -18,27 +32,7 @@ export function WorkspaceShell({
         <Brand />
         <nav aria-label="Seu espaço">
           <span className="sidebar-label">Área de trabalho</span>
-          <Link
-            href="/painel"
-            className={
-              active === "overview" ? "sidebar-active" : "sidebar-link"
-            }
-            aria-current={active === "overview" ? "page" : undefined}
-          >
-            <LayoutDashboard size={19} aria-hidden="true" /> Visão geral
-          </Link>
-          <Link
-            href="/painel/empresas"
-            className={
-              active === "companies" ? "sidebar-active" : "sidebar-link"
-            }
-            aria-current={active === "companies" ? "page" : undefined}
-          >
-            <Building2 size={19} aria-hidden="true" /> Empresas
-          </Link>
-          <Link href="/painel/importacoes" className={active === "imports" ? "sidebar-active" : "sidebar-link"} aria-current={active === "imports" ? "page" : undefined}>
-            <FileSpreadsheet size={19} aria-hidden="true" /> Relatórios
-          </Link>
+          <WorkspaceLinks active={active} />
         </nav>
         <div className="sidebar-bottom">
           <span className="small-status">Versão inicial</span>
@@ -54,6 +48,7 @@ export function WorkspaceShell({
           <span>Seu espaço de trabalho</span>
           <span className="user-email">{email}</span>
         </header>
+        <details className="workspace-mobile-menu"><summary>Navegar no painel</summary><nav aria-label="Navegação móvel"><WorkspaceLinks active={active} /></nav></details>
         {children}
       </main>
     </div>

@@ -38,7 +38,7 @@ try:
     started = True
     env.pop("POSTGRES_PASSWORD", None)
     for attempt in range(30):
-        if not docker("exec", CONTAINER, "pg_isready", "-U", "postgres", check=False).returncode:
+        if not docker("exec", CONTAINER, "pg_isready", "-h", "127.0.0.1", "-U", "postgres", check=False).returncode:
             break
         time.sleep(1)
     else:
@@ -56,6 +56,22 @@ try:
     company_count = re.search(r"^COMPANY_ASSERTIONS=(\d+)$", companies, re.M)
     assert company_count and int(company_count[1]) >= 18, "Company isolation assertions did not complete"
     print(f"Companies/lookup quota: {company_count[1]} assertions passed")
+    imports = sql((ROOT / "tests/database/imports.sql").read_text())
+    import_count = re.search(r"^IMPORT_ASSERTIONS=(\d+)$", imports, re.M)
+    assert import_count and int(import_count[1]) >= 25, "Import workflow assertions did not complete"
+    print(f"Imports/queue/fencing: {import_count[1]} assertions passed")
+    certificates = sql((ROOT / "tests/database/certificates.sql").read_text())
+    certificate_count = re.search(r"^CERTIFICATE_ASSERTIONS=(\d+)$", certificates, re.M)
+    assert certificate_count and int(certificate_count[1]) >= 13, "Certificate privilege assertions did not complete"
+    print(f"Certificate metadata/privileges: {certificate_count[1]} assertions passed (live Vault not tested)")
+    fiscal_access = sql((ROOT / "tests/database/fiscal-access.sql").read_text())
+    access_count = re.search(r"^FISCAL_ACCESS_ASSERTIONS=(\d+)$", fiscal_access, re.M)
+    assert access_count and int(access_count[1]) >= 9, "Fiscal metadata privilege assertions did not complete"
+    print(f"Fiscal access metadata: {access_count[1]} assertions passed (no live fiscal request)")
+    mfa = sql((ROOT / "tests/database/mfa.sql").read_text())
+    mfa_count = re.search(r"^MFA_ASSERTIONS=(\d+)$", mfa, re.M)
+    assert mfa_count and int(mfa_count[1]) >= 10, "MFA policy assertions did not complete"
+    print(f"MFA policy: {mfa_count[1]} assertions passed (Auth gateway claims simulated)")
 
     # Only in the disposable test database: slow concurrent INSERTs to expose uniqueness races.
     sql("""
@@ -78,6 +94,34 @@ try:
     assert len(set(ids)) == 1 and re.fullmatch(r"[0-9a-f-]{36}", ids[0]), "Concurrent calls produced different tenants"
     assert sql("select count(*) from public.tenants where owner_user_id='00000000-0000-4000-8000-000000000003';").strip() == "1"
     print("Concurrency: 8 simultaneous bootstraps, 1 tenant")
+
+    company = sql("""
+      set role authenticated;
+      set request.jwt.claims = '{"sub":"00000000-0000-4000-8000-000000000003"}';
+      insert into public.companies(cnpj,legal_name,tax_regime) values('12ABC34501DE35','Import concurrency fixture','mei') returning id;
+    """, "tenant_test_client").strip()
+    assert re.fullmatch(r"[0-9a-f-]{36}", company)
+
+    def register_import(_):
+        return sql(f"""
+          set role service_role;
+          select public.register_report('00000000-0000-4000-8000-000000000003','{company}','concurrency.csv','Y29uY3VycmVudA==')->>'id';
+        """).strip()
+
+    with ThreadPoolExecutor(max_workers=8) as pool:
+        imported = list(pool.map(register_import, range(8)))
+    assert len(set(imported)) == 1 and re.fullmatch(r"[0-9a-f-]{36}", imported[0]), "Concurrent source registrations duplicated imports"
+    assert sql(f"select count(*) from public.work_jobs where import_id='{imported[0]}';").strip() == "1"
+    assert sql(f"select requests from private.operation_limits where tenant_id='{ids[0]}' and operation='register_report';").strip() == "1"
+    print("Import concurrency: 8 registrations, 1 source, 1 job, 1 quota unit")
+
+    def claim_import(_):
+        return sql(f"set role service_role; select count(*) from public.claim_report_jobs('{ids[0]}',1);").strip()
+
+    with ThreadPoolExecutor(max_workers=8) as pool:
+        claimed = list(pool.map(claim_import, range(8)))
+    assert claimed.count("1") == 1 and claimed.count("0") == 7, "Concurrent workers claimed the same active lease"
+    print("Queue concurrency: 8 workers, 1 exclusive lease")
 
     def lookup(_):
         return sql("""

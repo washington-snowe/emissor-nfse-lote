@@ -1,6 +1,6 @@
 # Emissor — NFS-e para afiliados
 
-Fundação em **Next.js + React + TypeScript**, preparada para Vercel e Supabase. Contas, painel protegido, cadastro de empresas com consulta de CNPJ pela BrasilAPI e prévia local de um layout CSV mensal por vendedor da Shopee. **Importação persistente, configuração fiscal e emissão ainda não estão implementadas.**
+Aplicação em **Next.js + React + TypeScript**, com Vercel e Supabase. Contas, MFA, cadastro com consulta de CNPJ, prévia Shopee, importação privada com histórico/fila e cadastro A1 protegido por Vault, condicionado à configuração. **Emissão fiscal e operação comercial completa ainda não estão implementadas/homologadas.**
 
 ## Desenvolvimento
 
@@ -28,7 +28,9 @@ O painel agora exige contexto de cliente no banco. Antes de publicar essa altera
 
 O cadastro de empresas requer também a [migração de empresas](supabase/migrations/202611110002_companies.sql). Em `/painel/empresas`, o CNPJ inicia o preenchimento automático para revisão. Há edição e preenchimento manual quando a fonte não possui dados. Fonte, limites, testes e ordem de aplicação estão no [guia de cadastro](docs/cadastro-empresas.md).
 
-A base interna de importação possui contrato versionado, rastreabilidade de linhas e resumo com decimais exatos separados por moeda. Em `/painel/importacoes`, a prévia lê localmente o [CSV mensal por vendedor da Shopee](docs/shopee-csv-mensal.md), com base na amostra real fornecida. O arquivo não é enviado nem salvo, e não há agrupamento ou emissão fiscal. Outros layouts dependem de amostras; veja [contrato e limites da importação](docs/importacao-comissoes.md).
+A base interna de importação possui contrato versionado, rastreabilidade de linhas e resumo com decimais exatos separados por moeda. Em `/painel/importacoes`, a prévia lê localmente o [CSV mensal por vendedor da Shopee](docs/shopee-csv-mensal.md), com base na amostra real fornecida. Durante a conferência local o arquivo não é enviado nem salvo; não há agrupamento ou emissão fiscal. Outros layouts dependem de amostras; veja [contrato e limites da importação](docs/importacao-comissoes.md).
+
+Quando configurado o serviço privado, o usuário pode escolher **Salvar importação**, enviando o original para sua conta e acompanhando o processamento em `/painel/importacoes/historico`. MFA está em `/painel/seguranca` e A1 em `/painel/certificados`. As migrações 3–7 e as variáveis privadas estão no [guia de configuração](docs/configurar-processamento.md). Fluxo, testes, modelo de segurança e limites estão em [importações/certificados/MFA](docs/importacoes-certificados-seguranca.md). Não usar chave privilegiada em variável pública.
 
 ## Documentação
 
@@ -39,6 +41,9 @@ A base interna de importação possui contrato versionado, rastreabilidade de li
 - [Cadastro de empresas e preenchimento automático](docs/cadastro-empresas.md).
 - [Contrato interno de importação e revisão](docs/importacao-comissoes.md).
 - [Layout Shopee CSV mensal e prévia local](docs/shopee-csv-mensal.md).
+- [Persistência, fila, MFA e certificados](docs/importacoes-certificados-seguranca.md).
+- [Configurar processamento Vercel/Supabase](docs/configurar-processamento.md).
+- [Execução do sistema completo e dependências](docs/execucao-sistema.md).
 - [Especificação do usuário](docs/especificacao-mestra.md).
 - [Diagnóstico e pendências](docs/descoberta.md).
 - [Modelo de dados e arquitetura da descoberta](docs/arquitetura.md), cuja recomendação Django foi substituída pela decisão atual.

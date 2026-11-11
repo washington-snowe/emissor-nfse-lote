@@ -1419,6 +1419,21 @@ strong {
 .report-seller-details dt { color: #52604f; font-size: 12px; margin-top: 10px; }
 .report-seller-details dd { white-space: pre-wrap; }
 .report-back { margin-top: 32px; }
+.mfa-enrollment { margin-top: 24px; }
+.mfa-enrollment img { display: block; max-width: 100%; margin-block: 16px; }
+.mfa-enrollment summary { cursor: pointer; min-height: 44px; padding-block: 10px; }
+.mfa-enrollment .mono { overflow-wrap: anywhere; }
+.certificate-card { flex-wrap: wrap; }
+.certificate-card > div:first-child { flex: 1 1 240px; }
+.certificate-card > div:last-child:not(:first-child) { flex: 0 1 auto; }
+.certificate-actions { display: grid; gap: 12px; max-width: 100%; }
+.certificate-actions .btn { white-space: normal; max-width: 100%; }
+.workspace-mobile-menu { display: none; }
+@media (max-width: 767px) {
+  .workspace-mobile-menu { display: block; margin: 12px 24px 0; border-bottom: 1px solid var(--line); }
+  .workspace-mobile-menu summary { min-height: 44px; padding-block: 10px; cursor: pointer; color: #245c35; }
+  .workspace-mobile-menu nav { padding-bottom: 12px; }
+}
 @media (max-width: 767px) {
   .report-form { padding: 20px; }
   .report-result-heading { flex-direction: column; align-items: flex-start; gap: 12px; }

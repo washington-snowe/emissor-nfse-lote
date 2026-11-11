@@ -2,6 +2,8 @@ import type { NextConfig } from "next";
 
 const config: NextConfig = {
   poweredByHeader: false,
+  serverExternalPackages: ["node-forge"],
+  outputFileTracingIncludes: { "/**/*": ["./server/certificate-worker.cjs", "./node_modules/node-forge/**/*"] },
   async headers() {
     return [
       {

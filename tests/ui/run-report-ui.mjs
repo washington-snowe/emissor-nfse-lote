@@ -20,6 +20,9 @@ try {
   await mkdir(path.join(root, "shots/reports"), { recursive: true });
   await build({ entryPoints: [path.join(root, "tests/ui/report-entry.tsx")], bundle: true, jsx: "automatic", outfile: path.join(output, "bundle.js"), tsconfig: path.join(root, "tsconfig.json"), alias: {
     "@/app/auth/actions": path.join(root, "tests/ui/auth-actions.ts"),
+    "@/app/painel/seguranca/actions": path.join(root, "tests/ui/workflow-actions.ts"),
+    "@/app/painel/certificados/actions": path.join(root, "tests/ui/workflow-actions.ts"),
+    "next/navigation": path.join(root, "tests/ui/navigation.ts"),
     "next/link": path.join(root, "tests/ui/link.tsx"),
   } });
   server = createServer(async (req, res) => {
@@ -108,6 +111,47 @@ try {
   await page.goto(`${origin}/?empty=1`);
   await page.getByRole("heading", { name: "Primeiro, cadastre sua empresa." }).waitFor();
   assert.equal(await page.locator('input[type="file"]').count(), 0);
+
+  await page.goto(`${origin}/?persist=1`);
+  await page.getByLabel("Empresa emissora").selectOption("test-company-a");
+  await page.getByLabel("Relatório mensal da Shopee", { exact: true }).setInputFiles(fixture);
+  await page.getByRole("button", { name: "Conferir relatório", exact: true }).click();
+  await page.getByRole("heading", { name: "Comissões por vendedor." }).waitFor();
+  assert.equal(await page.evaluate(() => window.workflowUiTest.calls), 0);
+  await page.getByRole("button", { name: "Salvar importação", exact: true }).click();
+  await page.getByRole("link", { name: "Abrir importação", exact: true }).waitFor();
+  assert.equal(await page.evaluate(() => window.workflowUiTest.calls), 1);
+  assert.equal(await page.evaluate(() => window.workflowUiTest.companyId), "test-company-a");
+  assert.ok(await page.evaluate(() => window.workflowUiTest.fileSize > 0));
+  console.log("Reports: explicit save hands original File and selected company to the test boundary exactly once");
+
+  for (const width of [1440,390,320]) {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto(`${origin}/?screen=security`);
+    await page.getByRole("button", { name: "Configurar autenticador", exact: true }).click();
+    await page.getByAltText("QR code para cadastrar seu autenticador").waitFor();
+    await page.waitForFunction(() => document.querySelector('.mfa-enrollment img').naturalWidth > 0);
+    await page.getByLabel("Código do autenticador", { exact: true }).fill("000000");
+    await page.getByRole("button", { name: "Confirmar autenticador", exact: true }).click();
+    await page.getByText("Código sintético inválido.", { exact: true }).waitFor();
+    await page.getByLabel("Código do autenticador", { exact: true }).fill("123456");
+    await page.getByRole("button", { name: "Confirmar autenticador", exact: true }).click();
+    await page.getByText("Verificação em duas etapas ativada.", { exact: true }).waitFor();
+    assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
+
+    await page.goto(`${origin}/?screen=certificate`);
+    await page.getByLabel("Arquivo A1 (.pfx ou .p12)", { exact: true }).setInputFiles({ name: "synthetic.pfx", mimeType: "application/x-pkcs12", buffer: Buffer.from("SYNTHETIC FIXTURE NOT A REAL CERTIFICATE") });
+    await page.getByLabel("Senha do certificado, se definida", { exact: true }).fill("test-password-not-real");
+    await page.getByRole("button", { name: "Proteger certificado", exact: true }).click();
+    await page.getByText("Envio sintético conferido, sem armazenar certificado.", { exact: true }).waitFor();
+    assert.equal(await page.evaluate(() => window.workflowUiTest.passwordLength), 22);
+    assert.equal(await page.locator("#certificate-password").inputValue(), "");
+    await page.getByRole("button", { name: "Verificar acesso à homologação", exact: true }).click();
+    await page.getByText("Verificação sintética sem conexão fiscal.", { exact: true }).waitFor();
+    assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
+    await page.screenshot({ path: path.join(root, `shots/reports/certificate-${width}.png`), fullPage: true });
+    console.log(`Workflow ${width}px: TOTP fixture image/error/success, A1 fixture form and cleared password, no overflow`);
+  }
   assert.deepEqual(errors, []);
   console.log("Reports: cancelled read stays discarded; reload clears data; missing company blocks file selection; no runtime errors");
 } finally {

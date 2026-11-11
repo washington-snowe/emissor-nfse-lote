@@ -149,3 +149,5 @@ export async function parseShopeeSellerCsv(bytes: Uint8Array): Promise<Result> {
   if (!reviewed.data) return { error: { code: "invalid_contract" } };
   return { data: { review: reviewed.data, reportedSellers } };
 }
+
+export type ParsedShopeeReport = NonNullable<Awaited<ReturnType<typeof parseShopeeSellerCsv>>["data"]>;
