@@ -63,9 +63,10 @@ export default async function Dashboard({
             <FileSpreadsheet size={24} aria-hidden="true" />
             <h2>Comissões e relatórios</h2>
             <p>
-              A importação será liberada após a validação dos layouts de cada
-              plataforma.
+              Confira o CSV mensal por vendedor da Shopee em uma prévia local.
+              A gravação e a revisão fiscal serão etapas próprias.
             </p>
+            <Link href="/painel/importacoes" className="text-link">Conferir relatório <ArrowUpRight size={16} aria-hidden="true" /></Link>
           </div>
           <div>
             <ShieldCheck size={24} aria-hidden="true" />

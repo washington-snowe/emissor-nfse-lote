@@ -42,6 +42,7 @@ Aplicar **somente** o arquivo de migração no SQL Editor do projeto Supabase, a
 
 ## Evidências desta entrega
 
+- Homologação pelo usuário no domínio público após o deploy de `64d31a2`: consulta do próprio CNPJ, preenchimento, revisão, salvamento e atualização da lista confirmados como funcionando. Essa evidência é manual, distinta dos testes isolados abaixo, e não homologa regras fiscais.
 - PostgreSQL real: 27 verificações do contexto e 22 de empresas/quota passaram. O teste de 8 bootstraps simultâneos manteve um tenant por conta; 16 consultas concorrentes aceitaram exatamente 10 e recusaram 6. O banco de teste foi removido ao finalizar.
 - Backend: 14 testes passaram; 6 testes de rede opt-in foram ignorados nessa execução unitária, sem serem contados como validação de produção. TypeScript e lint passaram.
 - Provedor real: o adaptador retornou razão social, endereço, código IBGE e CNAE na consulta pública de referência; dados de sócios foram descartados. O teste não criou empresa no Supabase.

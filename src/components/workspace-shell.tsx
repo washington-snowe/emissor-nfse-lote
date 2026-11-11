@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Building2, LayoutDashboard, LogOut } from "lucide-react";
+import { Building2, FileSpreadsheet, LayoutDashboard, LogOut } from "lucide-react";
 import { Brand } from "@/components/brand";
 import { signOut } from "@/app/auth/actions";
 
@@ -9,7 +9,7 @@ export function WorkspaceShell({
   children,
 }: {
   email?: string;
-  active?: "overview" | "companies";
+  active?: "overview" | "companies" | "imports";
   children: React.ReactNode;
 }) {
   return (
@@ -35,6 +35,9 @@ export function WorkspaceShell({
             aria-current={active === "companies" ? "page" : undefined}
           >
             <Building2 size={19} aria-hidden="true" /> Empresas
+          </Link>
+          <Link href="/painel/importacoes" className={active === "imports" ? "sidebar-active" : "sidebar-link"} aria-current={active === "imports" ? "page" : undefined}>
+            <FileSpreadsheet size={19} aria-hidden="true" /> Relatórios
           </Link>
         </nav>
         <div className="sidebar-bottom">

@@ -1,0 +1,5 @@
+Mês de conclusão,Nome da loja,ID da Loja,Comissão Total do Vendedor,CNPJ do Vendedor,CPF do Vendedor,Identificação Fiscal Estrangeira,Razão social do vendedor,Endereço do Vendedor,País do Vendedor,Inscrição Estadual,E-mail
+Oct 2026,Loja sintética A,9000000001,"R$1,10",11222333000181,,,Empresa sintética A,"Distrito de teste, endereço fictício",BR,TEST-IE-A,loja-a@empresa.example
+Oct 2026,Loja sintética B,9000000002,"R$2,20",12ABC34501DE35,,,Empresa sintética B,"Distrito de teste, endereço fictício",BR,TEST-IE-B,loja-b@empresa.example
+Oct 2026,Loja sintética C,9000000003,"R$3,30",,,FOREIGN-TEST-ID,Empresa estrangeira sintética,Endereço estrangeiro fictício,CN,,loja-c@empresa.example
+Oct 2026,Loja sintética D,9000000004,"R$4,40",,,FOREIGN-TEST-ID,Empresa estrangeira sintética,Endereço estrangeiro fictício,CN,,loja-d@empresa.example
