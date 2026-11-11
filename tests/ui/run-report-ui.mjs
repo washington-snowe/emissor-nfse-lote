@@ -152,6 +152,37 @@ try {
     await page.screenshot({ path: path.join(root, `shots/reports/certificate-${width}.png`), fullPage: true });
     console.log(`Workflow ${width}px: TOTP fixture image/error/success, A1 fixture form and cleared password, no overflow`);
   }
+  for (const width of [1440, 820, 390, 320]) {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto(`${origin}/?screen=fiscal`);
+    assert.equal(await page.getByLabel("Município emissor · código IBGE", { exact: false }).inputValue(), "3550308");
+    assert.equal(await page.locator('[name="nationalTaxCode"]').inputValue(), "");
+    assert.equal(await page.locator('[name="issTaxation"]').inputValue(), "");
+    for (const [name, value] of Object.entries({ series: "1", validFrom: "2026-01-01", evidence: "Orientação sintética", serviceMunicipality: "3550308", nationalTaxCode: "010101", description: "Serviço sintético de teste" })) {
+      await page.locator(`[name="${name}"]`).fill(value);
+    }
+    for (const [name, value] of Object.entries({ specialRegime: "0", issTaxation: "1", issWithholding: "1", "totals.mode": "not_informed" })) {
+      await page.locator(`[name="${name}"]`).selectOption(value);
+    }
+    await page.getByRole("button", { name: "Salvar configuração fiscal", exact: true }).click();
+    await page.getByRole("alert").filter({ hasText: "Falha sintética" }).waitFor();
+    assert.equal(await page.locator('[name="description"]').inputValue(), "Serviço sintético de teste", "failed save must preserve entered data");
+    await page.getByRole("button", { name: "Salvar configuração fiscal", exact: true }).click();
+    await page.getByRole("status").filter({ hasText: "Versão sintética 1 salva" }).waitFor();
+    assert.equal(await page.locator('[name="version"]').inputValue(), "1");
+    assert.equal(await page.locator('[name="nationalTaxCode"]').inputValue(), "010101");
+    await page.getByRole("button", { name: "Salvar configuração fiscal", exact: true }).click();
+    await page.getByRole("status").filter({ hasText: "Versão sintética 2 salva" }).waitFor();
+    await page.locator('[name="foreignTrade"]').check();
+    await page.locator('[name="issTaxation"]').selectOption("3");
+    await page.locator('[name="totals.mode"]').selectOption("percentages");
+    assert.equal(await page.locator('[name="foreignTrade.amount"]').count(), 0, "a per-note foreign value must not be stored as a shared profile value");
+    assert.ok(await page.locator('[name="exportResultCountry"]').isVisible());
+    assert.ok(await page.locator('[name="totals.federal"]').isVisible());
+    assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), `Fiscal profile overflow at ${width}`);
+    await page.screenshot({ path: path.join(root, `shots/reports/fiscal-${width}.png`), fullPage: true });
+    console.log(`Fiscal profile ${width}px: no inferred tax fields, preserves edits on failure/success, version advances, foreign controls, no overflow`);
+  }
   assert.deepEqual(errors, []);
   console.log("Reports: cancelled read stays discarded; reload clears data; missing company blocks file selection; no runtime errors");
 } finally {

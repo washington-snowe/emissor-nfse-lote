@@ -7,6 +7,7 @@ import { CertificateForm } from "../../src/components/certificate-form";
 import { CertificateProbe } from "../../src/components/certificate-probe";
 import { CertificateDeactivate } from "../../src/components/certificate-deactivate";
 import { saveReport } from "./workflow-actions";
+import { FiscalProfileForm } from "../../src/components/fiscal-profile-form";
 
 const parameters = new URLSearchParams(location.search);
 const screen = parameters.get("screen");
@@ -22,7 +23,12 @@ createRoot(document.getElementById("root")!).render(
       <span className="eyebrow">Relatórios de comissões</span>
       <h1>Confira seu relatório da Shopee.</h1>
       <p>Escolha sua empresa e confira o CSV mensal por vendedor antes de preparar a emissão.</p>
-      {screen === "security" ? <MfaSettings /> : screen === "challenge" ? <MfaChallenge factorId="00000000-0000-4000-8000-000000000099" /> : screen === "certificate" ? <><CertificateForm companies={companies.slice(0,1)} /><article className="company-card certificate-card report-back"><div><h2>Empresa sintética A</h2><p>Registro sintético, sem certificado real</p></div><div className="certificate-actions"><CertificateProbe id="test-only" /><CertificateDeactivate id="test-only" /></div></article></> : <ReportPreview companies={companies} saveAction={parameters.has("persist") ? saveReport : undefined} />}
+      {screen === "fiscal" ? <FiscalProfileForm municipality="3550308" regime={parameters.has("simples") ? "simples" : "mei"} action={async (_state, form) => {
+        window.workflowUiTest.calls++;
+        await new Promise(resolve => setTimeout(resolve, 100));
+        return window.workflowUiTest.calls === 1 ? { error: "Falha sintética de validação; confira os campos." } :
+          { success: `Versão sintética ${Number(form.get("version")) + 1} salva sem banco ou emissão.`, version: Number(form.get("version")) + 1 };
+      }} /> : screen === "security" ? <MfaSettings /> : screen === "challenge" ? <MfaChallenge factorId="00000000-0000-4000-8000-000000000099" /> : screen === "certificate" ? <><CertificateForm companies={companies.slice(0,1)} /><article className="company-card certificate-card report-back"><div><h2>Empresa sintética A</h2><p>Registro sintético, sem certificado real</p></div><div className="certificate-actions"><CertificateProbe id="test-only" /><CertificateDeactivate id="test-only" /></div></article></> : <ReportPreview companies={companies} saveAction={parameters.has("persist") ? saveReport : undefined} />}
     </div>
   </WorkspaceShell>,
 );

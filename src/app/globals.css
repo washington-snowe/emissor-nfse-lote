@@ -611,7 +611,8 @@ strong {
   font-weight: 500;
   margin-bottom: 8px;
 }
-.field input {
+.field input,
+.field textarea {
   border: 1px solid #bfcbb8;
   border-radius: 6px;
   padding: 10px 12px;
@@ -621,7 +622,8 @@ strong {
   color: var(--ink);
   font-size: 16px;
 }
-.field input[aria-invalid="true"] {
+.field input[aria-invalid="true"],
+.field textarea[aria-invalid="true"] {
   border-color: #a6382c;
 }
 .field-error {
@@ -638,6 +640,13 @@ strong {
   color: var(--muted);
   margin-top: 6px;
 }
+.fiscal-profile-form fieldset { min-width: 0; margin: 0 0 32px; padding: 0 0 28px; border: 0; border-bottom: 1px solid var(--line); }
+.fiscal-profile-form legend { padding: 0; margin-bottom: 12px; font-size: 21px; font-weight: 500; }
+.fiscal-profile-form fieldset > p { margin-bottom: 20px; }
+.fiscal-profile-form textarea { resize: vertical; min-height: 120px; }
+.fiscal-profile-form select { width: 100%; min-width: 0; }
+.fiscal-checkbox { display: flex; align-items: flex-start; gap: 10px; line-height: 1.6; }
+.fiscal-checkbox input { flex: none; margin-top: 6px; }
 .auth-submit {
   width: 100%;
 }

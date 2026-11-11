@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireWorkspace } from "@/lib/tenancy-server";
 import { emptyCompany, type CompanyDraft } from "@/lib/companies";
@@ -54,6 +55,7 @@ export default async function EditCompany({
           Atualize as informações cadastrais. O CNPJ permanece vinculado à mesma
           empresa.
         </p>
+        <Link className="btn btn--secondary" href={`/painel/empresas/${id}/fiscal`}>Configurar dados fiscais</Link>
         <CompanyForm initial={initial} companyId={id} />
       </div>
     </WorkspaceShell>

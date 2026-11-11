@@ -14,7 +14,9 @@ No SQL Editor do projeto Supabase existente, aplicar, nesta ordem, somente:
 
 As duas primeiras migrações já aplicadas não devem ser repetidas. Não executar `tests/database` no projeto remoto. As novas migrações adicionam estrutura; não apagam empresas nem contas. A quarta migração torna o schema Vault privado para usuários da API: somente funções do servidor podem usá-lo. Se a extensão não estiver disponível, a aplicação deverá bloquear armazenamento de A1.
 
-O usuário já confirmou a aplicação da terceira e da quarta. A primeira tentativa da quarta falhou por tentar revogar funções criptográficas internas que pertencem ao Supabase; a migração foi corrigida para restringir schema/tabelas sem alterar essas funções, e a segunda tentativa foi confirmada sem erros. Não repetir as migrações já aplicadas. As migrações 5–7 completam a política de MFA, os limites antes da leitura A1 e a verificação de acesso de homologação.
+O usuário confirmou a aplicação das migrações 1–7. A primeira tentativa da quarta falhou por tentar revogar funções criptográficas internas que pertencem ao Supabase; a migração foi corrigida para restringir schema/tabelas sem alterar essas funções, e a segunda tentativa foi confirmada sem erros. Não repetir as migrações já aplicadas.
+
+A próxima estrutura é `supabase/migrations/202611110008_fiscal_profiles.sql`, para configurações fiscais versionadas. Aplicar somente essa nova migração, quando solicitada após os testes; não executar arquivos de `tests/database`. Ela adiciona tabela e função, sem apagar dados anteriores. O cadastro ficará indisponível até sua aplicação. Ver [núcleo fiscal e limites](nucleo-fiscal.md).
 
 Os arquivos foram aplicados em PostgreSQL 17 descartável com testes de privilégio, duas identidades, chaves compostas, reenvio concorrente, exclusividade de reservas e isolamento de importações/certificados. O teste local **não inclui o Vault real**, indisponível na imagem PostgreSQL padrão; comprova o bloqueio quando ele falta. A criptografia AES-GCM e o parser A1 são testados separadamente com dados sintéticos.
 

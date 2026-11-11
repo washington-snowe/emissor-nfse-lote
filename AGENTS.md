@@ -47,6 +47,8 @@ Migrações 3–7 estão em `supabase/migrations`. O usuário confirmou sua apli
 
 Consultar documentação oficial vigente e registrar URL, versão e evidência antes de implementar. Não inventar endpoint, XML, código tributário, regra de tomador, alíquota ou credenciamento. A1 não prova elegibilidade. HTTP 2xx não prova autorização. Timeout após envio bloqueia retransmissão e exige reconciliação oficial. Nunca misturar tomadores distintos, nem converter tomador estrangeiro em exportação automaticamente. Mocks devem estar claramente identificados e não provar homologação real.
 
+Perfis fiscais (migração 8) mantêm histórico e controle de versão esperada; não editar migrações já aplicadas ou encaminhadas ao usuário. Ler `docs/nucleo-fiscal.md`: XSD oficial preservado, adaptação única da expressão TSSerieDPS apenas em memória e validação independente da série conforme RN144. Assinatura e XSD locais não provam homologação. O formulário não presume códigos fiscais. Valor em moeda estrangeira é por operação e não um valor padrão compartilhado do perfil.
+
 ## Conclusão
 
 Cada tarefa aprovada deve ter critérios de aceitação, implementação, testes relevantes executados com resultado e documentação atualizada. Distinguir testes passados, falhos, ignorados e não executados. Falhas de isolamento, duplicidade ou integridade financeira impedem etapas dependentes. Não declarar produção pronta sem homologação fiscal, restauração de backup, revisão de segurança e autorização.

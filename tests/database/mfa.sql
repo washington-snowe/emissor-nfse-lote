@@ -12,6 +12,7 @@ select pg_temp.mfa_check(public.current_tenant_id() is null,'verified factor req
 select pg_temp.mfa_check((select count(*)=0 from public.companies),'aal1 cannot bypass app guard through company REST');
 select pg_temp.mfa_check((select count(*)=0 from public.report_imports),'aal1 cannot read import data directly');
 select pg_temp.mfa_check((select count(*)=0 from public.company_certificates),'aal1 cannot read certificate metadata directly');
+select pg_temp.mfa_check((select count(*)=0 from public.company_fiscal_profiles),'aal1 cannot read fiscal profiles directly');
 select pg_temp.mfa_check((select count(*)=0 from public.audit_events),'aal1 cannot read protected audit data');
 do $$ begin
  begin perform * from auth.mfa_factors; raise exception 'Direct Auth factor access allowed';
@@ -20,6 +21,7 @@ end $$;
 select set_config('request.jwt.claims','{"sub":"00000000-0000-4000-8000-000000000001","aal":"aal2"}',false);
 select pg_temp.mfa_check(public.current_tenant_id() is not null,'validated aal2 resolves owner tenant');
 select pg_temp.mfa_check((select count(*)=1 from public.companies),'aal2 restores own company access');
+select pg_temp.mfa_check((select count(*)=2 from public.company_fiscal_profiles),'aal2 restores own fiscal profile history');
 select set_config('request.jwt.claims','{"sub":"00000000-0000-4000-8000-000000000002","aal":"aal2"}',false);
 select pg_temp.mfa_check((select count(*)=0 from public.companies where tenant_id=(select id from public.tenants where owner_user_id='00000000-0000-4000-8000-000000000001')),'aal2 does not bypass tenant ownership');
 reset role;

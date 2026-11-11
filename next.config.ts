@@ -2,8 +2,11 @@ import type { NextConfig } from "next";
 
 const config: NextConfig = {
   poweredByHeader: false,
-  serverExternalPackages: ["node-forge"],
-  outputFileTracingIncludes: { "/**/*": ["./server/certificate-worker.cjs", "./node_modules/node-forge/**/*"] },
+  serverExternalPackages: ["node-forge", "xmllint-wasm"],
+  outputFileTracingIncludes: { "/**/*": [
+    "./server/certificate-worker.cjs", "./node_modules/node-forge/**/*",
+    "./server/schema-worker.cjs", "./node_modules/xmllint-wasm/**/*", "./integrations/nfse/**/*",
+  ] },
   async headers() {
     return [
       {

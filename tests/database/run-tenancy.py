@@ -68,6 +68,10 @@ try:
     access_count = re.search(r"^FISCAL_ACCESS_ASSERTIONS=(\d+)$", fiscal_access, re.M)
     assert access_count and int(access_count[1]) >= 9, "Fiscal metadata privilege assertions did not complete"
     print(f"Fiscal access metadata: {access_count[1]} assertions passed (no live fiscal request)")
+    profiles = sql((ROOT / "tests/database/fiscal-profiles.sql").read_text())
+    profile_count = re.search(r"^PROFILE_ASSERTIONS=(\d+)$", profiles, re.M)
+    assert profile_count and int(profile_count[1]) >= 17, "Fiscal profile assertions did not complete"
+    print(f"Fiscal profiles/versioning/isolation: {profile_count[1]} assertions passed")
     mfa = sql((ROOT / "tests/database/mfa.sql").read_text())
     mfa_count = re.search(r"^MFA_ASSERTIONS=(\d+)$", mfa, re.M)
     assert mfa_count and int(mfa_count[1]) >= 10, "MFA policy assertions did not complete"
@@ -122,6 +126,23 @@ try:
         claimed = list(pool.map(claim_import, range(8)))
     assert claimed.count("1") == 1 and claimed.count("0") == 7, "Concurrent workers claimed the same active lease"
     print("Queue concurrency: 8 workers, 1 exclusive lease")
+
+    def save_profile(_):
+        result = docker("exec", "-i", CONTAINER, "psql", "-X", "-qAt", "-v", "ON_ERROR_STOP=1", "-U", "postgres", "-d", "postgres", source=f"""
+          set role service_role;
+          select public.save_fiscal_profile('00000000-0000-4000-8000-000000000003','{company}',0,
+            '{{"simplesOption":"2","issuerMunicipality":"3550308","series":"00001"}}','synthetic concurrency test','2026-01-01')->>'version';
+        """, check=False)
+        if result.returncode:
+            assert 'Fiscal profile changed' in result.stderr, "Unexpected concurrent profile failure"
+            return "stale"
+        return result.stdout.strip()
+
+    with ThreadPoolExecutor(max_workers=8) as pool:
+        versions = list(pool.map(save_profile, range(8)))
+    assert versions.count("1") == 1 and versions.count("stale") == 7, "Concurrent edits overwrote a profile version"
+    assert sql(f"select count(*) from public.company_fiscal_profiles where company_id='{company}';").strip() == "1"
+    print("Fiscal profile concurrency: 8 competing edits, 1 new version, 7 stale edits blocked")
 
     def lookup(_):
         return sql("""
