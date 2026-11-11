@@ -46,11 +46,16 @@ try:
 
     print("PostgreSQL", sql("show server_version;").strip())
     sql((ROOT / "tests/database/bootstrap.sql").read_text())
-    sql((ROOT / "supabase/migrations/202611110001_tenants.sql").read_text())
+    for migration in sorted((ROOT / "supabase/migrations").glob("*.sql")):
+        sql(migration.read_text())
     output = sql((ROOT / "tests/database/tenancy.sql").read_text(), "tenant_test_client")
     match = re.search(r"^ASSERTIONS=(\d+)$", output, re.M)
     assert match and int(match[1]) >= 25, "Isolation assertions did not complete"
     print(f"RLS/privileges/identity: {match[1]} assertions passed")
+    companies = sql((ROOT / "tests/database/companies.sql").read_text(), "tenant_test_client")
+    company_count = re.search(r"^COMPANY_ASSERTIONS=(\d+)$", companies, re.M)
+    assert company_count and int(company_count[1]) >= 18, "Company isolation assertions did not complete"
+    print(f"Companies/lookup quota: {company_count[1]} assertions passed")
 
     # Only in the disposable test database: slow concurrent INSERTs to expose uniqueness races.
     sql("""
@@ -73,6 +78,17 @@ try:
     assert len(set(ids)) == 1 and re.fullmatch(r"[0-9a-f-]{36}", ids[0]), "Concurrent calls produced different tenants"
     assert sql("select count(*) from public.tenants where owner_user_id='00000000-0000-4000-8000-000000000003';").strip() == "1"
     print("Concurrency: 8 simultaneous bootstraps, 1 tenant")
+
+    def lookup(_):
+        return sql("""
+          set role authenticated;
+          set request.jwt.claims = '{"sub":"00000000-0000-4000-8000-000000000003","role":"authenticated"}';
+          select public.consume_cnpj_lookup();
+        """, "tenant_test_client").strip()
+    with ThreadPoolExecutor(max_workers=8) as pool:
+        decisions = list(pool.map(lookup, range(16)))
+    assert decisions.count("t") == 10 and decisions.count("f") == 6, "Concurrent requests bypassed quota"
+    print("Lookup quota concurrency: 16 requests, 10 accepted, 6 denied")
 
     sql("""
       do $$ begin

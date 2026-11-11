@@ -33,6 +33,8 @@ Migrações versionadas e revisadas; nenhuma alteração destrutiva sem plano de
 
 O painel resolve o tenant pela RPC `ensure_tenant()` somente após validar o usuário. A migração deve ser aplicada antes do deploy deste guard. Falha de bootstrap não libera dados nem gera tenant fictício. A conta inicial possui um dono; nenhum ID de tenant ou dono vindo do cliente pode escolher o contexto. Fixtures de `tests/database` são exclusivos do container descartável, nunca do projeto remoto.
 
+Empresas em `public.companies` exigem a segunda migração antes do deploy. Ler `docs/cadastro-empresas.md`. A consulta BrasilAPI é autenticada, limitada no banco e não verifica parâmetros fiscais. Não armazenar QSA/CPF de sócios ou tratar dados preenchidos como homologação fiscal. CNPJ, tenant e identidade da empresa salva são imutáveis. Manter fallback manual e proteção contra respostas de consulta atrasadas. Os testes de UI em `tests/ui` usam adaptadores explícitos e não criam empresas reais.
+
 ## Integrações fiscais
 
 Consultar documentação oficial vigente e registrar URL, versão e evidência antes de implementar. Não inventar endpoint, XML, código tributário, regra de tomador, alíquota ou credenciamento. A1 não prova elegibilidade. HTTP 2xx não prova autorização. Timeout após envio bloqueia retransmissão e exige reconciliação oficial. Nunca misturar tomadores distintos, nem converter tomador estrangeiro em exportação automaticamente. Mocks devem estar claramente identificados e não provar homologação real.

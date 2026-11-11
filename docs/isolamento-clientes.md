@@ -2,7 +2,9 @@
 
 ## Estado da entrega
 
-Migração testada no PostgreSQL local e execução no SQL Editor confirmada pelo usuário. Depois dessa execução, a REST API do Supabase respondeu **401 / 42501** tanto para consulta anônima a `tenants` quanto para a função `current_tenant_id`, demonstrando que esses objetos agora estão protegidos contra o papel anônimo. A inicialização por sessão autenticada e a comparação entre duas sessões no projeto hospedado ainda precisam de verificação após o deploy do guard.
+Migração testada no PostgreSQL local e execução no SQL Editor confirmada pelo usuário. Depois dessa execução, a REST API do Supabase respondeu **401 / 42501** para consulta anônima a `tenants`, para a função `current_tenant_id` e para POST anônimo de `ensure_tenant`, demonstrando proteção de leitura e bootstrap contra o papel anônimo.
+
+O commit de implementação `b8a6302` foi enviado a `main`; a integração Vercel do projeto `emissor-nfse-lote-kjou` confirmou deployment concluído. Os cinco testes de leitura em produção passaram após esse deploy. O usuário informou que entrou no painel e atualizou a página normalmente com o novo guard; isso confirma manualmente a inicialização/reutilização do contexto autenticado. A sessão privada do usuário não foi acessada pelo agente. A comparação entre duas sessões no projeto hospedado ainda não foi realizada.
 
 ## Escopo
 
