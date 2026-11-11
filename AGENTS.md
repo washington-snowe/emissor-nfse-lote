@@ -2,19 +2,19 @@
 
 ## Estado e autorização
 
-Este repositório está na Fase 0, apenas com documentação. Leia `docs/especificacao-mestra.md`, `docs/descoberta.md` e `docs/roadmap.md`. A implementação depende de aprovação explícita do usuário. Não trate a proposta arquitetural como código existente. Não faça commits, push, deploy, contratação de serviços ou emissão real sem autorização.
+O usuário aprovou iniciar a fundação com Next.js, React, TypeScript, Vercel e Supabase. A primeira fatia implementa apresentação, acesso Supabase preparado e painel protegido sem dados de negócio. Leia `docs/especificacao-mestra.md`, `docs/decisoes/0001-vercel-supabase.md` e `docs/fundacao.md`. Não confundir fundação parcial com Fase 1 completa. Não faça commits, push, deploy, contratação de serviços ou emissão real sem autorização.
 
 ## Arquitetura proposta
 
-Monólito modular Django, PostgreSQL central e workers Celery separados, com Redis como transporte. Interface responsiva em português com templates Django e HTMX. Infraestrutura e adaptadores dependem do domínio, nunca o inverso. Detalhes em `docs/arquitetura.md`.
+Next.js App Router com React e TypeScript na Vercel; Supabase Auth, PostgreSQL e Storage privado. Worker fiscal, fila e gerenciador de chaves serão definidos separadamente, sem processamento longo em requisições Vercel. A proposta Django/Celery em `docs/arquitetura.md` é histórica, substituída pela decisão `docs/decisoes/0001-vercel-supabase.md`. Não usar export estático: autenticação exige cookies e código de servidor.
 
 Módulos propostos: identity, tenancy, companies, certificates, imports, marketplaces, commissions, recipients, tax_configuration, invoicing, integrations, jobs, documents, notifications, billing, dashboard, administration e audit. Criar apenas o necessário em cada etapa aprovada.
 
 ## Convenções e comandos
 
-Python com tipagem nas fronteiras e regras de domínio; valores monetários com Decimal e moeda explícita, nunca float. Datas com fuso explícito; competência fiscal separada do instante UTC. Validação no backend. Mensagens do produto em pt-BR; nomes técnicos consistentes. Erros de domínio distintos dos de transporte. Dependências e ferramentas com versões fixadas e lockfile após aprovação.
+TypeScript estrito, validação nas fronteiras e componentes de servidor por padrão. Client Components só para interação. Valores monetários futuros precisam de representação decimal explícita, nunca cálculos financeiros com float. Datas com fuso explícito; competência fiscal separada do instante UTC. Validação no backend. Mensagens do produto em pt-BR; nomes técnicos consistentes. Erros de domínio distintos dos de transporte. Dependências e ferramentas com versões fixadas e lockfile após aprovação.
 
-Ainda não há scripts de desenvolvimento ou testes. Na Fase 1, publicar no README os comandos reais de instalação, migração, servidor, worker, testes, lint e verificação de tipos, e executá-los. Não anunciar comandos apenas propostos como disponíveis.
+Comandos na raiz: `npm ci`, `npm run dev`, `npm run build`, `npm start`, `npm run lint`, `npm run typecheck`, `npm test`. Smoke contra servidor sem variáveis Supabase: `SMOKE_BASE_URL=http://localhost:3000 node --experimental-strip-types --test tests/smoke.test.ts`. Não há migrações de negócio ou worker nesta fatia. Usar lockfile e dependências exatas. Consultar `docs/fundacao.md` para limites dos testes. Nunca colocar chave secret/service_role em NEXT_PUBLIC_*.
 
 As tarefas cloud já são isoladas: utilizar o checkout existente; não criar worktree sem pedido explícito do usuário. Não sobrescrever alterações existentes. Inspecionar Git e instruções antes de editar.
 

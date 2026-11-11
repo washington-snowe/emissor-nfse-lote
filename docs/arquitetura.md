@@ -1,5 +1,7 @@
 # Arquitetura proposta
 
+> Registro original da descoberta. A stack foi posteriormente substituída por Next.js/React/TypeScript + Vercel/Supabase. Consulte [a decisão atual](decisoes/0001-vercel-supabase.md) e [o estado da fundação](fundacao.md); estimativas e tarefas específicas de Django/Celery precisam de revisão.
+
 Status: desenho para aprovação; módulos, tabelas e comandos ainda não existem. O desenho atende ao monólito modular com processo de workers separado exigido na especificação.
 
 ## Comparação de tecnologias

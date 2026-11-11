@@ -1,5 +1,7 @@
 # Custos, sustentabilidade e riscos
 
+> Registro original da descoberta. A stack foi posteriormente substituída por Next.js/React/TypeScript + Vercel/Supabase. Consulte [a decisão atual](decisoes/0001-vercel-supabase.md) e [o estado da fundação](fundacao.md); estimativas e tarefas específicas de Django/Celery precisam de revisão.
+
 Estimativas de planejamento, não cotações atuais. A pesquisa externa está bloqueada; não há contrato, provedor escolhido ou serviço contratado. Os números não incluem promessas de SLA.
 
 ## Hipóteses de piloto

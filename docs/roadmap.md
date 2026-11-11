@@ -1,5 +1,7 @@
 # Roadmap priorizado e critérios de aceitação
 
+> Registro original da descoberta. A stack foi posteriormente substituída por Next.js/React/TypeScript + Vercel/Supabase. Consulte [a decisão atual](decisoes/0001-vercel-supabase.md) e [o estado da fundação](fundacao.md); estimativas e tarefas específicas de Django/Celery precisam de revisão.
+
 Execução incremental. **Nesta entrega só há documentos da Fase 0.** Fases 1–7 aguardam aprovação. Não há estimativa de prazo confiável antes de fontes, amostras e capacidade da equipe; priorização abaixo evita prometer datas sem base.
 
 ## Fase 0 — descoberta e aprovação

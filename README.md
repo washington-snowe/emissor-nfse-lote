@@ -1,21 +1,37 @@
-# Emissor de NFS-e em lote para afiliados
+# Emissor — NFS-e para afiliados
 
-Projeto em descoberta. **Não há aplicação implementada nem integração fiscal homologada.**
+Fundação em **Next.js + React + TypeScript**, preparada para Vercel e Supabase. Primeira fatia: apresentação, cadastro/login preparados e painel protegido. **Importação, emissão fiscal e dados de negócio ainda não estão implementados.**
 
-O produto pretende importar comissões de Shopee, TikTok Shop e Mercado Livre, preparar uma prévia por tomador e processar emissões individuais, com confirmação do cliente e prevenção de duplicidade.
+## Desenvolvimento
 
-## Entrega atual
+Node 22 ou 24. Na raiz:
 
-- [Especificação fornecida](docs/especificacao-mestra.md).
-- [Diagnóstico, viabilidade e pendências](docs/descoberta.md).
-- [Arquitetura, tecnologias e modelo de dados](docs/arquitetura.md).
-- [Pesquisa fiscal, plataformas e concorrência](docs/pesquisa.md).
-- [Custos e matriz de riscos](docs/custos-e-riscos.md).
-- [Roadmap e critérios de aceitação](docs/roadmap.md).
-- [Instruções de engenharia](AGENTS.md).
+```sh
+npm ci
+npm run dev
+```
 
-O plano é uma proposta para aprovação. A pesquisa externa ainda depende da liberação de rede e da análise dos relatórios reais anonimizados. Não existem comandos de instalação, execução ou testes de aplicação nesta etapa. A documentação não comprova elegibilidade fiscal nem prontidão para produção.
+Para habilitar acesso real, criar `.env.local` a partir de `.env.example`, configurar as três variáveis e os callbacks no Supabase conforme [guia da fundação](docs/fundacao.md). Sem configuração, o site inicia e informa que o acesso está em preparação. Não inserir chaves secret/service_role em variáveis públicas.
 
-## Próximo passo
+```sh
+npm run lint
+npm run typecheck
+npm test
+npm run build
+npm start
+```
 
-Concluir as evidências de viabilidade, revisar o plano e obter aprovação explícita antes de iniciar a Fase 1. Não contratar serviços, publicar ou emitir notas reais durante a descoberta.
+Na Vercel: preset Next.js, raiz do repositório e saída padrão; não usar export estático. Nenhum serviço fiscal ou worker está ativo. As instruções detalhadas, limites e verificações estão no [guia](docs/fundacao.md).
+
+## Documentação
+
+- [Decisão atual: Vercel e Supabase](docs/decisoes/0001-vercel-supabase.md).
+- [Fundação e configuração](docs/fundacao.md).
+- [Passo a passo Supabase e Vercel](docs/conectar-servicos.md).
+- [Especificação do usuário](docs/especificacao-mestra.md).
+- [Diagnóstico e pendências](docs/descoberta.md).
+- [Modelo de dados e arquitetura da descoberta](docs/arquitetura.md), cuja recomendação Django foi substituída pela decisão atual.
+- [Pesquisa fiscal e integrações](docs/pesquisa.md).
+- [Hipóteses de custos e riscos](docs/custos-e-riscos.md).
+- [Roadmap](docs/roadmap.md).
+- [Regras de engenharia](AGENTS.md).
