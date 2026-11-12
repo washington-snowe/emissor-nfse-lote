@@ -23,6 +23,7 @@ try {
     "@/app/painel/seguranca/actions": path.join(root, "tests/ui/workflow-actions.ts"),
     "@/app/painel/certificados/actions": path.join(root, "tests/ui/workflow-actions.ts"),
     "@/app/painel/importacoes/review-actions": path.join(root, "tests/ui/workflow-actions.ts"),
+    "@/app/painel/notas/actions": path.join(root, "tests/ui/workflow-actions.ts"),
     "next/navigation": path.join(root, "tests/ui/navigation.ts"),
     "next/link": path.join(root, "tests/ui/link.tsx"),
   } });
@@ -252,6 +253,50 @@ try {
   await page.locator('[name="common.country"]').fill('BR');
   assert.equal(await page.locator('[name="row-2.foreignAmount"]').count(), 0);
   console.log('Review: explicit common foreign recipient preserves per-row currency values; country change clears stale exterior fields');
+  for (const width of [1440, 1024, 820, 768, 390, 320]) {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto(`${origin}/?screen=standalone`);
+    assert.equal(await page.locator('[name="amount"]').inputValue(), '');
+    assert.equal(await page.locator('[name="competenceDate"]').inputValue(), '2026-11-11');
+    await page.getByLabel('Quanto você vai faturar?', { exact: false }).fill('862,36');
+    await page.screenshot({ path: path.join(root, `shots/reports/standalone-ready-${width}.png`), fullPage: true });
+    await page.getByRole('button', { name: 'Preparar nota em homologação' }).click();
+    await page.getByRole('alert').filter({ hasText: 'Falha sintética preserva' }).waitFor();
+    assert.equal(await page.locator('[name="amount"]').inputValue(), '862,36');
+    await page.getByRole('button', { name: 'Preparar nota em homologação' }).click();
+    await page.getByRole('link', { name: 'Acompanhar operação' }).waitFor();
+    const payload = JSON.parse(await page.evaluate(() => window.workflowUiTest.standaloneJson));
+    assert.equal(payload.recipient.document, '11444777000161');
+    assert.equal(payload.configuration.nationalTaxCode, '010101');
+    assert.equal(payload.amount, '862,36');
+    const requestIds = await page.evaluate(() => window.workflowUiTest.requestIds);
+    assert.equal(requestIds[0], requestIds[1], 'retry after uncertain acknowledgement keeps same logical request');
+    await page.getByRole('button', { name: 'Preparar outra nota' }).click();
+    await page.waitForFunction(() => document.activeElement.id === 'single-amount');
+    assert.equal(await page.locator('[name="amount"]').inputValue(), '');
+    await page.locator('[name="amount"]').fill('1.250,50');
+    await page.getByText('Alterar dados da nota', { exact: true }).click();
+    await page.locator('[name="description"]').fill('Descrição sintética alterada pelo usuário');
+    await page.locator('[name="single-recipient.legalName"]').fill('Tomador sintético editado');
+    assert.equal(await page.locator('.standalone-recipient > strong').innerText(), 'Tomador sintético editado');
+    await page.getByRole('button', { name: 'Preparar nota em homologação' }).click();
+    await page.getByRole('link', { name: 'Acompanhar operação' }).waitFor();
+    const nextIds = await page.evaluate(() => window.workflowUiTest.requestIds);
+    assert.notEqual(nextIds[2], nextIds[1]);
+    assert.equal(await page.evaluate(() => window.workflowUiTest.templateVersion), '1');
+    assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), `Standalone overflow ${width}`);
+    await page.screenshot({ path: path.join(root, `shots/reports/standalone-${width}.png`), fullPage: true });
+    await page.goto(`${origin}/?screen=operations`);
+    const uncertain = page.locator('.fiscal-operation').nth(1);
+    assert.equal(await uncertain.getByRole('button', { name: 'Consultar novamente' }).count(), 1);
+    assert.equal(await uncertain.getByRole('button', { name: 'Cancelar preparação' }).count(), 0);
+    await uncertain.getByRole('button', { name: 'Consultar novamente' }).click();
+    await uncertain.getByRole('status').filter({ hasText: 'Ação sintética resume' }).waitFor();
+    assert.equal(await page.locator('.fiscal-operation').nth(2).getByRole('button').count(), 0);
+    assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), `Operations overflow ${width}`);
+    await page.screenshot({ path: path.join(root, `shots/reports/operations-${width}.png`), fullPage: true });
+    console.log(`Invoices ${width}px: amount-only with defaults, retry nonce, editable details, new note, consultation-only uncertainty, no overflow`);
+  }
   assert.deepEqual(errors, []);
   console.log("Reports: cancelled read stays discarded; reload clears data; missing company blocks file selection; no runtime errors");
 } finally {

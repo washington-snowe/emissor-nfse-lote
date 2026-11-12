@@ -652,6 +652,27 @@ strong {
 .review-candidates summary { overflow-wrap: anywhere; }
 .review-role-confirmation, .review-confirmation { margin-top: 24px; }
 .review-confirmation > button { margin-top: 20px; }
+.standalone-amount-input { display: flex; align-items: center; border: 1px solid #bfcbb8; border-radius: 6px; background: white; }
+.standalone-amount-input > span { padding-left: 16px; font-size: 22px; color: var(--muted); }
+.standalone-amount-input > input { border: 0; min-width: 0; font-family: inherit; font-size: 38px; padding: 16px; }
+.standalone-recipient { display: grid; gap: 10px; margin: 24px 0; overflow-wrap: anywhere; }
+.standalone-recipient > strong { font-size: 20px; }
+.standalone-details { margin-top: 28px; }
+.standalone-details > h3 { margin: 28px 0 16px; }
+.standalone-actions { display: flex; flex-wrap: wrap; gap: 12px; }
+.fiscal-operation-list { margin: 28px 0; display: grid; gap: 16px; }
+.fiscal-operation { min-width: 0; padding: 24px; border: 1px solid var(--line); border-radius: 8px; background: white; }
+.fiscal-operation-heading { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 16px; margin-bottom: 16px; }
+.fiscal-operation-heading h2 { margin: 0 0 8px; font-size: 21px; overflow-wrap: anywhere; }
+.fiscal-operation-heading p { margin: 0; }
+.fiscal-status { display: inline-flex; max-width: 100%; padding: 6px 10px; border-radius: 4px; background: #edf0eb; font-size: 13px; }
+.fiscal-status[data-status="authorized"] { background: #e4f0df; color: #205a32; }
+.fiscal-status[data-status="uncertain"], .fiscal-status[data-status="intervention"] { background: #fff0d5; color: #704f12; }
+.fiscal-status[data-status="rejected"] { background: #f8e4e0; color: #8a3026; }
+.fiscal-identifier { overflow-wrap: anywhere; font-size: 12px; }
+.fiscal-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: 20px; }
+.fiscal-controls > p { flex-basis: 100%; margin: 0; }
+@media (max-width: 600px) { .fiscal-operation { padding: 18px; } .fiscal-controls .btn { width: 100%; white-space: normal; } }
 .auth-submit {
   width: 100%;
 }

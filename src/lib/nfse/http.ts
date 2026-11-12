@@ -17,13 +17,17 @@ export function allowedNfseUrl(environment: NfseEnvironment, url: string): URL |
 }
 
 export function nfseGet(environment: NfseEnvironment, url: string, credentials: { pfx: Buffer; password: string }, timeoutMs = 5000): Promise<{ status: number; body: Buffer; contentType: string }> {
+  return nfseRequest(environment, "GET", url, credentials, undefined, timeoutMs);
+}
+
+export function nfseRequest(environment: NfseEnvironment, method: "GET" | "POST", url: string, credentials: { pfx: Buffer; password: string }, body?: Buffer, timeoutMs = 5000): Promise<{ status: number; body: Buffer; contentType: string }> {
   const target = allowedNfseUrl(environment,url);
-  if (!target) return Promise.reject(new Error("Invalid fiscal destination."));
+  if (!target || !["GET", "POST"].includes(method) || method === "POST" && (target.href !== NFSE_BASES[environment] + "/nfse" || !body || body.length > 512_000)) return Promise.reject(new Error("Invalid fiscal destination."));
   return new Promise((resolve,reject) => {
     const request = https.request(target, {
-      method: "GET", pfx: credentials.pfx, passphrase: credentials.password,
+      method, pfx: credentials.pfx, passphrase: credentials.password,
       rejectUnauthorized: true, minVersion: "TLSv1.2", agent: false,
-      headers: { Accept: "application/json,text/html", "User-Agent": "EmissorNfse/0.1" },
+      headers: { Accept: "application/json,text/html", "User-Agent": "EmissorNfse/0.1", ...(body ? { "Content-Type": "application/json", "Content-Length": String(body.length) } : {}) },
     }, response => {
       const chunks: Buffer[] = [];
       let size = 0;
@@ -37,6 +41,6 @@ export function nfseGet(environment: NfseEnvironment, url: string, credentials: 
     });
     const timer = setTimeout(() => request.destroy(new Error("Fiscal deadline exceeded.")), Math.max(1,Math.min(timeoutMs,5000)));
     request.on("error", () => { clearTimeout(timer); reject(new Error("Fiscal connection unavailable.")); });
-    request.end();
+    request.end(body);
   });
 }

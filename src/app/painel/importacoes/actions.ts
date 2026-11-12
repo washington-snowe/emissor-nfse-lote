@@ -4,7 +4,7 @@ import { after } from "next/server";
 import { revalidatePath } from "next/cache";
 import { requireWorkspace } from "@/lib/tenancy-server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { processReportJobs } from "@/lib/report-jobs";
+import { processQueuedWork } from "@/lib/queue-runner";
 import { MAX_SHOPEE_CSV_BYTES } from "@/lib/shopee-seller-csv";
 
 export async function saveReport(form: FormData): Promise<{ id?: string; duplicate?: boolean; error?: string }> {
@@ -26,7 +26,7 @@ export async function saveReport(form: FormData): Promise<{ id?: string; duplica
     });
     if (result.error || !result.data?.id)
       return { error: result.error?.code === "P0001" ? "Limite de 10 novos relatórios em 10 minutos. Aguarde antes de salvar outro." : "Não foi possível salvar. Tente novamente; um arquivo idêntico não será duplicado." };
-    after(async () => { try { await processReportJobs(context.tenantId); } catch { /* Durable lease and Cron recover interrupted processing. */ } });
+    after(async () => { try { await processQueuedWork(context.tenantId); } catch { /* Durable lease and Cron recover interrupted processing. */ } });
     revalidatePath("/painel/importacoes/historico");
     return { id: result.data.id, duplicate: result.data.duplicate === true };
   } catch {
@@ -40,7 +40,7 @@ export async function retryImport(id: string): Promise<{ error?: string }> {
   if (!admin || !/^[0-9a-f-]{36}$/i.test(id)) return { error: "Processamento indisponível." };
   const result = await admin.rpc("retry_report_processing", { p_actor: context.user.id, p_import: id });
   if (result.error || result.data !== true) return { error: "Não foi possível retomar. Aguarde uma execução em andamento ou tente em alguns minutos." };
-  after(async () => { try { await processReportJobs(context.tenantId); } catch { /* The durable queue remains available for recovery. */ } });
+  after(async () => { try { await processQueuedWork(context.tenantId); } catch { /* The durable queue remains available for recovery. */ } });
   revalidatePath(`/painel/importacoes/historico/${id}`);
   return {};
 }

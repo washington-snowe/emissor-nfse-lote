@@ -14,6 +14,6 @@ export function ReviewConfirmation({ id, sha256 }: { id: string; sha256: string 
       catch { setError("Não foi possível confirmar. Confira a versão atual e tente novamente."); }
     })}>{pending ? "Confirmando…" : "Confirmar esta revisão"}</button>
     {error && <p className="form-error" role="alert">{error}</p>}{message && <p className="save-notice" role="status">{message}</p>}
-    <p className="field-hint">A confirmação fica vinculada ao conteúdo desta versão. A transmissão ainda não está habilitada.</p>
+    <p className="field-hint">A confirmação fica vinculada ao conteúdo desta versão. A entrada na fila é uma ação separada.</p>
   </div>;
 }

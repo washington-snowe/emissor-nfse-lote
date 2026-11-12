@@ -5,7 +5,7 @@ import type { FiscalPerson } from "@/lib/nfse/dps";
 import type { ReviewCandidate, ReviewSnapshot } from "@/lib/nfse/review";
 import type { ReviewState } from "@/app/painel/importacoes/review-actions";
 
-function PersonFields({ prefix, initial = {}, foreignForAll = false, foreignAmount = "", currency, onCountryChange }: {
+export function PersonFields({ prefix, initial = {}, foreignForAll = false, foreignAmount = "", currency, onCountryChange }: {
   prefix: string; initial?: Partial<FiscalPerson>; foreignForAll?: boolean; currency?: string;
   onCountryChange?: (country: string) => void;
   foreignAmount?: string;
@@ -45,7 +45,7 @@ function PersonFields({ prefix, initial = {}, foreignForAll = false, foreignAmou
   </>;
 }
 
-function personFromForm(form: FormData, prefix: string) {
+export function personFromForm(form: FormData, prefix: string) {
   const get = (field: string) => String(form.get(`${prefix}.${field}`) ?? "").trim();
   const address = get("address.street") || get("address.postalCode");
   return { kind: get("kind"), document: get("document"), country: get("country"), legalName: get("legalName"), email: get("email"),

@@ -33,4 +33,4 @@ UI testa o componente real com ação de fronteira explicitamente sintética: ca
 
 ## Próximas dependências
 
-Revisão dos tomadores e competência e confirmação de versão foram acrescentadas em [revisão fiscal](revisao-fiscal.md), com migração 9. Fila fiscal, contrato HTTP oficial, envio, reconciliação e prova de autorização continuam pendentes. O acesso mTLS de homologação e as variáveis privadas aguardam confirmação do usuário. Nenhuma nota ou cobrança real foi gerada pelos testes.
+Revisão e confirmação estão em [revisão fiscal](revisao-fiscal.md), com migração 9. Fila, integração condicionada ao contrato oficial, verificação de documento e reconciliação estão em [fila fiscal e nota avulsa](fila-emissao-avulsa.md), com migrações 10/11. Acesso mTLS real, compatibilidade do contrato/algoritmos e homologação ainda precisam ser demonstrados com o A1. Produção permanece bloqueada. Nenhuma nota ou cobrança real foi gerada pelos testes.

@@ -1,6 +1,6 @@
 # Emissor — NFS-e para afiliados
 
-Aplicação em **Next.js + React + TypeScript**, com Vercel e Supabase. Contas, MFA, cadastro com consulta de CNPJ, prévia Shopee, importação privada com histórico/fila, A1 protegido por Vault e configurações fiscais versionadas, condicionados à configuração. O núcleo local gera, assina e valida DPS. **Transmissão fiscal e operação comercial completa ainda não estão implementadas/homologadas.**
+Aplicação em **Next.js + React + TypeScript**, com Vercel e Supabase. Contas, MFA, CNPJ com consulta, importação privada Shopee, A1/Vault, perfis/revisões versionados, fila fiscal e nota avulsa com modelo Shopee. Geração, assinatura, XSD, integração condicional de homologação e reconciliação implementados. **Sem homologação real com A1; produção e operação comercial completa ainda não estão liberadas.**
 
 ## Desenvolvimento
 
@@ -22,7 +22,7 @@ npm run build
 npm start
 ```
 
-Na Vercel: preset Next.js, raiz do repositório e saída padrão; não usar export estático. O processamento de importações depende das variáveis privadas e migrações. O envio fiscal ainda não está habilitado. As instruções da fundação estão no [guia](docs/fundacao.md).
+Na Vercel: preset Next.js, raiz do repositório e saída padrão; não usar export estático. O processamento depende das variáveis privadas e migrações. Homologação inicia desativada e requer A1/contrato oficial conferidos. As instruções da fundação estão no [guia](docs/fundacao.md).
 
 O painel agora exige contexto de cliente no banco. Antes de publicar essa alteração, aplicar a [migração de tenants](supabase/migrations/202611110001_tenants.sql) no projeto Supabase, conforme [guia de isolamento](docs/isolamento-clientes.md). `npm run test:db` usa um PostgreSQL descartável no Docker local e não altera o banco remoto.
 
@@ -44,6 +44,7 @@ Quando configurado o serviço privado, o usuário pode escolher **Salvar importa
 - [Persistência, fila, MFA e certificados](docs/importacoes-certificados-seguranca.md).
 - [Configurações fiscais, assinatura e validação XML](docs/nucleo-fiscal.md).
 - [Revisão, tomadores, consolidação e confirmação por versão](docs/revisao-fiscal.md).
+- [Fila, recuperação e nota avulsa preenchida para afiliados](docs/fila-emissao-avulsa.md).
 - [Configurar processamento Vercel/Supabase](docs/configurar-processamento.md).
 - [Execução do sistema completo e dependências](docs/execucao-sistema.md).
 - [Especificação do usuário](docs/especificacao-mestra.md).

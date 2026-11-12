@@ -10,10 +10,12 @@ export async function loadCertificateMaterial(context: { tenantId: string; compa
   if (result.error || !data || data.tenant_id!==context.tenantId || data.company_id!==context.companyId || data.certificate_id!==context.certificateId)
     throw new Error("Protected certificate unavailable.");
   const material=openCertificate(data.envelope,data.key,context);
-  const inspected=await inspectA1(material.pfx,material.password,data.subject_cnpj);
-  if (!inspected.data || inspected.data.metadata.fingerprint!==data.fingerprint) {
+  try {
+    const inspected=await inspectA1(material.pfx,material.password,data.subject_cnpj);
+    if (!inspected.data || inspected.data.metadata.fingerprint!==data.fingerprint) throw new Error("Certificate verification failed.");
+    return {...material,...inspected.data};
+  } catch {
     material.pfx.fill(0);
     throw new Error("Certificate verification failed.");
   }
-  return {...material,...inspected.data};
 }

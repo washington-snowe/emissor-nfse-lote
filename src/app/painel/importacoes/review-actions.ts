@@ -48,7 +48,7 @@ export async function prepareReportReview(importId: string, _previous: ReviewSta
   if (saved.error || !saved.data?.id) return { error: saved.error?.code === "40001" ? "O relatório ou perfil mudou em outra sessão. Atualize a página e confira antes de preparar novamente." : "Não foi possível salvar a revisão. Confira a migração de revisões e tente novamente." };
   revalidatePath(`/painel/importacoes/historico/${report.data.id}`);
   return { id: saved.data.id, version: saved.data.version, sha256: saved.data.sha256,
-    success: "Revisão salva para conferência. Nenhuma DPS foi transmitida." };
+    success: "Revisão salva para conferência. Esta ação não transmite DPS." };
 }
 
 export async function confirmReportReview(reviewId: string, sha256: string): Promise<ReviewState> {
@@ -58,5 +58,5 @@ export async function confirmReportReview(reviewId: string, sha256: string): Pro
   const result = await admin.rpc("confirm_report_review", { p_actor: context.user.id, p_review: reviewId, p_expected_sha256: sha256 });
   if (result.error || !result.data) return { error: "A revisão ou a configuração mudou. Atualize a página e confira a versão atual." };
   revalidatePath("/painel/importacoes/historico", "layout");
-  return { success: "Revisão confirmada para homologação. A transmissão ainda não está habilitada; nenhuma nota foi enviada." };
+  return { success: "Revisão confirmada para homologação. Colocar um lote na fila é uma ação separada; consulte o histórico das operações." };
 }

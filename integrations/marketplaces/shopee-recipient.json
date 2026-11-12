@@ -1,0 +1,24 @@
+{
+  "label": "Shopee · comissões de afiliado",
+  "recipient": {
+    "kind": "cnpj",
+    "document": "35635824000112",
+    "country": "BR",
+    "legalName": "SHPS TECNOLOGIA E SERVICOS LTDA.",
+    "address": {
+      "country": "BR",
+      "municipalityCode": "3550308",
+      "postalCode": "04538132",
+      "street": "AVENIDA BRIG FARIA LIMA",
+      "number": "3732",
+      "district": "ITAIM BIBI",
+      "complement": "ANDAR 22 23 E 26"
+    }
+  },
+  "evidence": {
+    "recipient_cnpj": "Informado pelo usuário a partir das instruções de pagamento Shopee",
+    "registry_source": "https://brasilapi.com.br/api/cnpj/v1/35635824000112",
+    "retrieved_at": "2026-11-12T01:04:54.975Z",
+    "scope": "Identidade e endereço cadastral; não comprova classificação tributária ou credenciamento"
+  }
+}

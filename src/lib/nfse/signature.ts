@@ -1,4 +1,4 @@
-import { SignedXml } from "xml-crypto";
+import { C14nCanonicalization, SignedXml } from "xml-crypto";
 import { XMLSerializer } from "@xmldom/xmldom";
 import { DSIG_NAMESPACE, dpsRoot, directElements, singleElement, parseFiscalXml } from "./xml.ts";
 import { NFSE_NAMESPACE } from "./dps.ts";
@@ -28,26 +28,38 @@ export function signDps(xml: string, expectedId: string, privateKeyPem: string, 
 }
 
 /** Pin the holder's known certificate; never trust a key supplied by the XML itself. */
-export function verifyDpsSignature(xml: string, expectedId: string, publicCertPem: string): boolean {
+export function verifiedDpsReference(xml: string, expectedId: string, publicCertPem: string): string | null {
   try {
     const { signature } = dpsRoot(xml, expectedId, true);
     const info = singleElement(signature!, DSIG_NAMESPACE, "SignedInfo");
     if (singleElement(info, DSIG_NAMESPACE, "CanonicalizationMethod").getAttribute("Algorithm") !== C14N ||
-        singleElement(info, DSIG_NAMESPACE, "SignatureMethod").getAttribute("Algorithm") !== RSA_SHA256) return false;
+        singleElement(info, DSIG_NAMESPACE, "SignatureMethod").getAttribute("Algorithm") !== RSA_SHA256) return null;
     const reference = singleElement(info, DSIG_NAMESPACE, "Reference");
     if (reference.getAttribute("URI") !== `#${expectedId}` ||
-        singleElement(reference, DSIG_NAMESPACE, "DigestMethod").getAttribute("Algorithm") !== SHA256) return false;
+        singleElement(reference, DSIG_NAMESPACE, "DigestMethod").getAttribute("Algorithm") !== SHA256) return null;
     const transforms = directElements(singleElement(reference, DSIG_NAMESPACE, "Transforms"), DSIG_NAMESPACE, "Transform");
     if (transforms.length !== 2 || transforms[0].getAttribute("Algorithm") !== ENVELOPED ||
-        transforms[1].getAttribute("Algorithm") !== C14N) return false;
+        transforms[1].getAttribute("Algorithm") !== C14N) return null;
     const verifier = new SignedXml({ publicCert: publicCertPem, getCertFromKeyInfo: () => null });
     verifier.loadSignature(new XMLSerializer().serializeToString(signature!));
-    if (!verifier.checkSignature(xml)) return false;
+    if (!verifier.checkSignature(xml)) return null;
     const references = verifier.getSignedReferences();
-    if (references.length !== 1) return false;
+    if (references.length !== 1) return null;
     const verifiedInfo = parseFiscalXml(references[0]).documentElement!;
-    return verifiedInfo.namespaceURI === NFSE_NAMESPACE && verifiedInfo.localName === "infDPS" && verifiedInfo.getAttribute("Id") === expectedId;
+    return verifiedInfo.namespaceURI === NFSE_NAMESPACE && verifiedInfo.localName === "infDPS" && verifiedInfo.getAttribute("Id") === expectedId ? references[0] : null;
   } catch {
-    return false;
+    return null;
   }
+}
+
+export function verifyDpsSignature(xml: string, expectedId: string, publicCertPem: string): boolean {
+  return verifiedDpsReference(xml, expectedId, publicCertPem) !== null;
+}
+
+/** Returned TCDPS permits no Signature. Its contents must still equal our signed request and be covered by NFSe's verified signature. */
+export function unsignedDpsReference(xml: string, expectedId: string): string | null {
+  try {
+    const { info } = dpsRoot(xml, expectedId, false);
+    return new C14nCanonicalization().process(info as unknown as Node, {});
+  } catch { return null; }
 }

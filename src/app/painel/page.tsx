@@ -24,13 +24,15 @@ export default async function Dashboard({
     .eq("tenant_id", context.tenantId);
   if (result.error) throw new Error("Companies unavailable.");
   const count = result.count ?? 0;
+  const totals = await client.rpc("fiscal_status_totals");
   const { status } = await searchParams;
   return (
     <WorkspaceShell email={context.user.email}>
       <div className="dashboard-content">
         <span className="eyebrow">Seu espaço de trabalho</span>
-        <h1>Uma base para suas notas.</h1>
-        <p>Organize suas empresas antes de preparar as primeiras comissões.</p>
+        <h1>Suas emissões, em um só lugar.</h1>
+        <p>Prepare uma nota avulsa ou acompanhe a revisão e o processamento dos relatórios.</p>
+        {!totals.error && <dl className="report-totals"><div><dt>Empresas cadastradas</dt><dd>{count}</dd></div><div><dt>Operações na fila</dt><dd>{["queued", "blocked", "preparing", "sending", "uncertain", "reconciling"].reduce((sum, key) => sum + (totals.data?.[key] ?? 0), 0)}</dd></div><div><dt>Autorizadas em homologação</dt><dd>{totals.data?.authorized ?? 0}</dd></div></dl>}
         {status === "logout-error" && (
           <p className="field-error" role="alert">
             Não foi possível encerrar a sessão. Tente sair novamente.
@@ -47,14 +49,14 @@ export default async function Dashboard({
           </h2>
           <p>
             {count
-              ? "Confira os dados cadastrais e mantenha cada CNPJ organizado. A configuração fiscal será feita em uma etapa própria."
+              ? "Use os dados da empresa e o perfil fiscal para preparar a próxima nota. O histórico mostra as pendências de cada operação."
               : "Digite o CNPJ e preenchemos os dados disponíveis para você revisar."}
           </p>
           <Link
             className="btn btn--primary"
-            href={count ? "/painel/empresas" : "/painel/empresas/nova"}
+            href={count ? "/painel/notas/nova" : "/painel/empresas/nova"}
           >
-            {count ? "Ver minhas empresas" : "Cadastrar minha empresa"}{" "}
+            {count ? "Preparar nota avulsa" : "Cadastrar minha empresa"}{" "}
             <ArrowUpRight size={17} aria-hidden="true" />
           </Link>
         </section>
@@ -63,8 +65,7 @@ export default async function Dashboard({
             <FileSpreadsheet size={24} aria-hidden="true" />
             <h2>Comissões e relatórios</h2>
             <p>
-              Confira o CSV mensal por vendedor da Shopee em uma prévia local.
-              A gravação e a revisão fiscal serão etapas próprias.
+              Confira e salve o CSV mensal da Shopee. Revise tomadores, competência e valores antes de colocar um lote na fila.
             </p>
             <Link href="/painel/importacoes" className="text-link">Conferir relatório <ArrowUpRight size={16} aria-hidden="true" /></Link>
           </div>
@@ -72,9 +73,9 @@ export default async function Dashboard({
             <ShieldCheck size={24} aria-hidden="true" />
             <h2>Emissão fiscal</h2>
             <p>
-              A integração precisa de homologação antes de transmitir documentos
-              reais.
+              Acompanhe preparações, pendências e consultas. A produção continua dependente de homologação validada.
             </p>
+            <Link href="/painel/notas" className="text-link">Acompanhar emissões <ArrowUpRight size={16} aria-hidden="true" /></Link>
           </div>
         </div>
       </div>

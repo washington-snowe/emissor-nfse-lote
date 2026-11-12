@@ -14,6 +14,9 @@ select pg_temp.mfa_check((select count(*)=0 from public.report_imports),'aal1 ca
 select pg_temp.mfa_check((select count(*)=0 from public.company_certificates),'aal1 cannot read certificate metadata directly');
 select pg_temp.mfa_check((select count(*)=0 from public.company_fiscal_profiles),'aal1 cannot read fiscal profiles directly');
 select pg_temp.mfa_check((select count(*)=0 from public.report_reviews),'aal1 cannot read fiscal reviews directly');
+select pg_temp.mfa_check((select count(*)=0 from public.fiscal_operations),'aal1 cannot read fiscal operation data');
+select pg_temp.mfa_check((select count(*)=0 from public.list_fiscal_operations()),'aal1 cannot bypass MFA through display RPC');
+select pg_temp.mfa_check((select count(*)=0 from public.standalone_templates),'aal1 cannot read standalone presets');
 select pg_temp.mfa_check((select count(*)=0 from public.audit_events),'aal1 cannot read protected audit data');
 do $$ begin
  begin perform * from auth.mfa_factors; raise exception 'Direct Auth factor access allowed';

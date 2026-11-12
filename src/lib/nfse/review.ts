@@ -23,7 +23,7 @@ export type ReviewIssue = { code: "review_fields" | "row_limit" | "invalid_recip
 const object = (value: unknown): Record<string, unknown> => value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : {};
 const text = (value: unknown) => typeof value === "string" ? value.trim() : "";
 const optional = (value: unknown) => text(value) || undefined;
-function cleanPerson(value: unknown): FiscalPerson {
+export function cleanFiscalPerson(value: unknown): FiscalPerson {
   const raw = object(value), address = object(raw.address);
   return {
     kind: text(raw.kind) as FiscalPerson["kind"], document: text(raw.kind) === "cnpj" ? normalizeCnpj(text(raw.document)) : text(raw.kind) === "cpf" ? text(raw.document).replace(/[.\-\s]/g, "") : text(raw.document),
@@ -90,8 +90,8 @@ export function prepareFiscalReview(report: ParsedShopeeReport, raw: unknown, bi
     const claim = digest([binding.issuerCnpj, "shopee", "seller-month", seller.storeId, seller.referencePeriod, source.currency]);
     if (claims.has(claim)) { issues.push({ code: "duplicate_source", row }); continue; }
     claims.add(claim);
-    const person = cleanPerson(input.recipientChoice === "single_recipient" ? input.commonRecipient : override?.person ?? candidates[index].person);
-    const intermediary = input.intermediary ? cleanPerson(input.intermediary) : undefined;
+    const person = cleanFiscalPerson(input.recipientChoice === "single_recipient" ? input.commonRecipient : override?.person ?? candidates[index].person);
+    const intermediary = input.intermediary ? cleanFiscalPerson(input.intermediary) : undefined;
     const foreignAmount = optional(override?.foreignAmount);
     const fiscalInput: DpsInput = { issuerCnpj: binding.issuerCnpj, environment: "homologation", dpsNumber: "1",
       emissionTime: `${competence}T12:00:00+00:00`, competenceDate: competence, amount: amount(monetary),

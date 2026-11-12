@@ -20,6 +20,8 @@ A próxima estrutura é `supabase/migrations/202611110008_fiscal_profiles.sql`, 
 
 Depois da 8, aplicar `supabase/migrations/202611110009_report_reviews.sql`, para revisões e confirmações versionadas. Não repetir as migrações anteriores. Essa etapa também não cria transmissão ou documentos fiscais; ver [revisão fiscal](revisao-fiscal.md). Sem a migração, o histórico de importações permanece acessível e informa que a preparação está pendente.
 
+O usuário confirmou que a 8 e a 9 foram aplicadas. Para a nova etapa, executar somente `202611110010_fiscal_queue.sql` e depois `202611110011_standalone_templates.sql`. Fila, modelos, limites e roteiro de homologação estão em [fila fiscal e nota avulsa](fila-emissao-avulsa.md). Não repetir 1–9.
+
 Os arquivos foram aplicados em PostgreSQL 17 descartável com testes de privilégio, duas identidades, chaves compostas, reenvio concorrente, exclusividade de reservas e isolamento de importações/certificados. O teste local **não inclui o Vault real**, indisponível na imagem PostgreSQL padrão; comprova o bloqueio quando ele falta. A criptografia AES-GCM e o parser A1 são testados separadamente com dados sintéticos.
 
 ## 2. Variáveis privadas da aplicação
@@ -30,6 +32,7 @@ No projeto Vercel **emissor-nfse-lote-kjou**, em Settings → Environment Variab
 | --- | --- |
 | `SUPABASE_SERVICE_ROLE_KEY` | Chave secret (`sb_secret_…`) ou service_role do projeto Supabase, disponível em Project Settings → API Keys. Somente servidor. Nunca anon/publishable e nunca `NEXT_PUBLIC_*`. |
 | `CRON_SECRET` | Segredo aleatório de pelo menos 32 caracteres para o processador interno. Pode ser gerado localmente com o comando abaixo. Somente servidor. |
+| `NFSE_HOMOLOGATION_ENABLED` | Inicia como `false`. Somente habilitar com `true` após conferir A1 e contrato oficial, seguindo o roteiro de homologação. Nunca habilita produção. |
 
 ```sh
 node -e "console.log(require('node:crypto').randomBytes(32).toString('hex'))"

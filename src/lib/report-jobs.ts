@@ -2,12 +2,12 @@ import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { parseShopeeSellerCsv } from "@/lib/shopee-seller-csv";
 
-export async function processReportJobs(tenantId?: string) {
+export async function processReportJobs(tenantId?: string, limit = 3) {
   const client = createAdminClient();
   if (!client) return { processed: 0, available: false };
   const deadline = Date.now() + 20_000;
   let processed = 0;
-  while (processed < 3 && Date.now() < deadline) {
+  while (processed < Math.min(3, limit) && Date.now() < deadline) {
     const claimed = await client.rpc("claim_report_jobs", { p_tenant: tenantId ?? null, p_limit: 1 });
     if (claimed.error) throw new Error("Report queue unavailable.");
     const job = claimed.data?.[0];

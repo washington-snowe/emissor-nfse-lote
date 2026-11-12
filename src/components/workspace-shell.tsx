@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Building2, FileSpreadsheet, LayoutDashboard, LogOut, ShieldCheck, KeyRound } from "lucide-react";
+import { Building2, FileSpreadsheet, FileText, LayoutDashboard, LogOut, ShieldCheck, KeyRound } from "lucide-react";
 import { Brand } from "@/components/brand";
 import { signOut } from "@/app/auth/actions";
 
@@ -7,6 +7,7 @@ const destinations = [
   { id: "overview", href: "/painel", label: "Visão geral", Icon: LayoutDashboard },
   { id: "companies", href: "/painel/empresas", label: "Empresas", Icon: Building2 },
   { id: "imports", href: "/painel/importacoes", label: "Relatórios", Icon: FileSpreadsheet },
+  { id: "invoices", href: "/painel/notas", label: "Emissões", Icon: FileText },
   { id: "certificates", href: "/painel/certificados", label: "Certificados A1", Icon: KeyRound },
   { id: "security", href: "/painel/seguranca", label: "Segurança", Icon: ShieldCheck },
 ] as const;
@@ -23,7 +24,7 @@ export function WorkspaceShell({
   children,
 }: {
   email?: string;
-  active?: "overview" | "companies" | "imports" | "security" | "certificates";
+  active?: "overview" | "companies" | "imports" | "security" | "certificates" | "invoices";
   children: React.ReactNode;
 }) {
   return (

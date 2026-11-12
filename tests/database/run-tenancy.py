@@ -7,6 +7,7 @@ import secrets
 import subprocess
 import time
 import uuid
+import json
 
 ROOT = Path(__file__).resolve().parents[2]
 IMAGE = "postgres@sha256:665dc7b37ac52a17e298511414c21d23ffa4e6a6ef6225b3e5d59c7afb35e994"
@@ -48,6 +49,9 @@ try:
     sql((ROOT / "tests/database/bootstrap.sql").read_text())
     for migration in sorted((ROOT / "supabase/migrations").glob("*.sql")):
         sql(migration.read_text())
+    diagnostic = sql((ROOT / "supabase/diagnostics/standalone-status.sql").read_text()).strip()
+    assert diagnostic == "t|t|t|t|t|t|t|t", "Standalone migration diagnostic differs from the applied migration"
+    print("Standalone migration metadata diagnostic: all 8 checks passed")
     output = sql((ROOT / "tests/database/tenancy.sql").read_text(), "tenant_test_client")
     match = re.search(r"^ASSERTIONS=(\d+)$", output, re.M)
     assert match and int(match[1]) >= 25, "Isolation assertions did not complete"
@@ -76,6 +80,10 @@ try:
     review_count = re.search(r"^REVIEW_ASSERTIONS=(\d+)$", reviews, re.M)
     assert review_count and int(review_count[1]) >= 20, "Report review assertions did not complete"
     print(f"Report reviews/confirmation/integrity: {review_count[1]} assertions passed")
+    fiscal_queue = sql((ROOT / "tests/database/fiscal-queue.sql").read_text())
+    fiscal_queue_count = re.search(r"^FISCAL_QUEUE_ASSERTIONS=(\d+)$", fiscal_queue, re.M)
+    assert fiscal_queue_count and int(fiscal_queue_count[1]) >= 30, "Fiscal queue assertions did not complete"
+    print(f"Fiscal queue/deduplication/fencing/reconciliation: {fiscal_queue_count[1]} assertions passed (synthetic state fixtures)")
     mfa = sql((ROOT / "tests/database/mfa.sql").read_text())
     mfa_count = re.search(r"^MFA_ASSERTIONS=(\d+)$", mfa, re.M)
     assert mfa_count and int(mfa_count[1]) >= 10, "MFA policy assertions did not complete"
@@ -190,6 +198,85 @@ try:
     assert len(set(confirmations)) == 1 and re.fullmatch(r"[0-9a-f-]{36}", confirmations[0]), "Repeated confirmation created different proof records"
     assert sql(f"select count(*) from public.review_confirmations where review_id='{review_id}';").strip() == "1"
     print("Review concurrency: 8 competing preparations, 1 version; 8 confirmations, 1 proof record")
+
+    # Same legal issuer registered in two tenants must share a sequence without sharing business data.
+    fiscal_a = json.loads(sql("""select jsonb_build_object('company',c.id,'tenant',c.tenant_id,'profile',p.id,'hash',p.configuration_sha256,'configuration',p.configuration)
+      from public.companies c join public.tenants t on t.id=c.tenant_id join lateral
+      (select * from public.company_fiscal_profiles where company_id=c.id order by version desc limit 1) p on true
+      where t.owner_user_id='00000000-0000-4000-8000-000000000001';""").strip())
+    company_b = sql("select c.id from public.companies c join public.tenants t on t.id=c.tenant_id where t.owner_user_id='00000000-0000-4000-8000-000000000002';").strip()
+    sql(f"""select public.save_fiscal_profile('00000000-0000-4000-8000-000000000002','{company_b}',0,
+      '{{"simplesOption":"3","issuerMunicipality":"3550308","series":"00002"}}','Synthetic shared counter test','2026-01-01');""")
+    sql(f"""insert into public.company_certificates(id,tenant_id,company_id,subject_cnpj,fingerprint,serial_number,valid_from,valid_until,created_by)
+      select gen_random_uuid(),tenant_id,id,cnpj,repeat('c',64),'Synthetic concurrency certificate',now()-interval '1 day',now()+interval '1 day','00000000-0000-4000-8000-000000000002'
+      from public.companies where id='{company_b}';""")
+    fiscal_b = json.loads(sql(f"""select jsonb_build_object('company',c.id,'tenant',c.tenant_id,'profile',p.id,'hash',p.configuration_sha256,'configuration',p.configuration)
+      from public.companies c join public.company_fiscal_profiles p on p.company_id=c.id where c.id='{company_b}';""").strip())
+    counter_before = int(sql("select next_number from private.dps_counters where issuer_cnpj='11222333000181' and series='00002';").strip())
+
+    def fiscal_enqueue(index, *, request_id=None, reference=None):
+        owner = fiscal_a if index % 2 == 0 else fiscal_b
+        actor = '00000000-0000-4000-8000-000000000001' if index % 2 == 0 else '00000000-0000-4000-8000-000000000002'
+        data = json.dumps({'amount': '1.00', 'competenceDate': '2026-10-31', 'commissionType': 'Synthetic concurrency test',
+          'reference': reference or f'Synthetic distinct payment {index}',
+          'recipient': {'kind': 'cnpj', 'document': '11444777000161', 'country': 'BR', 'legalName': 'Synthetic recipient'}}).replace("'", "''")
+        configuration = json.dumps(owner['configuration']).replace("'", "''")
+        return sql(f"""set role service_role; select public.enqueue_standalone_fiscal('{actor}','{owner['company']}','{owner['profile']}',
+          '{owner['hash']}','{request_id or uuid.uuid4()}','{data}','{configuration}')->>'id';""").strip()
+
+    with ThreadPoolExecutor(max_workers=8) as pool:
+        distinct_batches = list(pool.map(fiscal_enqueue, range(8)))
+    assert len(set(distinct_batches)) == 8, "Distinct payments were conflated"
+    counter_after = int(sql("select next_number from private.dps_counters where issuer_cnpj='11222333000181' and series='00002';").strip())
+    assert counter_after == counter_before, "Unverified queued operations touched shared issuer sequence"
+    def claim_identity(_):
+        job = json.loads(sql("set role service_role; select j from public.claim_fiscal_jobs(null,1) j;").strip())
+        cert = sql(f"select id from public.company_certificates where company_id='{job['company_id']}' and status='active';").strip()
+        sql(f"set role service_role; select public.record_fiscal_transport('{job['id']}','{job['lease_token']}','{cert}');")
+        return json.loads(sql(f"set role service_role; select public.reserve_fiscal_identity('{job['id']}','{job['lease_token']}','{cert}');").strip())
+    with ThreadPoolExecutor(max_workers=8) as pool:
+        reserved = list(pool.map(claim_identity, range(8)))
+    assert len({item['id'] for item in reserved}) == 8, "Shared issuer sequence collided across verified tenants"
+    counter_verified = int(sql("select next_number from private.dps_counters where issuer_cnpj='11222333000181' and series='00002';").strip())
+    assert counter_verified - counter_before == 8, "Verified reservations did not advance shared sequence exactly once"
+    # A second tenant can prepare privately, but after A1 verification the same legal payment cannot reserve twice.
+    duplicate_batch = fiscal_enqueue(1, reference='Synthetic distinct payment 0')
+    duplicate_job = json.loads(sql(f"set role service_role; select j from public.claim_fiscal_jobs('{fiscal_b['tenant']}',1) j;").strip())
+    duplicate_cert = sql(f"select id from public.company_certificates where company_id='{company_b}' and status='active';").strip()
+    sql(f"set role service_role; select public.record_fiscal_transport('{duplicate_job['id']}','{duplicate_job['lease_token']}','{duplicate_cert}');")
+    duplicate_result = docker("exec", "-i", CONTAINER, "psql", "-X", "-qAt", "-v", "ON_ERROR_STOP=1", "-U", "postgres", "-d", "postgres", source=f"""
+      set role service_role; select public.reserve_fiscal_identity('{duplicate_job['id']}','{duplicate_job['lease_token']}','{duplicate_cert}');
+    """, check=False)
+    assert duplicate_result.returncode and 'Verified source already reserved' in duplicate_result.stderr, "Verified duplicate payment escaped global reservation"
+    assert sql(f"select batch_id='{duplicate_batch}' from public.fiscal_operations where id='{duplicate_job['id']}';").strip() == 't'
+    assert int(sql("select next_number from private.dps_counters where issuer_cnpj='11222333000181' and series='00002';").strip()) == counter_verified
+    sql(f"set role service_role; select public.release_fiscal_preparation('{duplicate_job['id']}','{duplicate_job['lease_token']}','source_duplicate');")
+    same_request = str(uuid.uuid4())
+    with ThreadPoolExecutor(max_workers=8) as pool:
+        same_batches = list(pool.map(lambda _: fiscal_enqueue(0, request_id=same_request, reference='Synthetic repeated click'), range(8)))
+    assert len(set(same_batches)) == 1, "Repeated clicks created more than one fiscal batch"
+    same_operation = sql(f"select id from public.fiscal_operations where batch_id='{same_batches[0]}';").strip()
+    sql(f"""select public.block_fiscal_dependencies('{fiscal_a['tenant']}',null,'transmission_disabled');
+      select public.manage_fiscal_operation('00000000-0000-4000-8000-000000000001','{same_operation}','resume');""")
+
+    def fiscal_claim(_):
+        return sql(f"set role service_role; select count(*) from public.claim_fiscal_jobs('{fiscal_a['tenant']}',1);").strip()
+    with ThreadPoolExecutor(max_workers=8) as pool:
+        fiscal_leases = list(pool.map(fiscal_claim, range(8)))
+    assert fiscal_leases.count('1') == 1 and fiscal_leases.count('0') == 7, "Fiscal operation leased by more than one worker"
+    token, cert_id = sql(f"""select e.lease_token||'|'||c.id from public.fiscal_operations o
+      join private.fiscal_execution e on e.operation_id=o.id join public.company_certificates c on c.company_id=o.company_id and c.status='active'
+      where o.id='{same_operation}';""").strip().split('|')
+    dps_id = json.loads(sql(f"set role service_role; select public.reserve_fiscal_identity('{same_operation}','{token}','{cert_id}');").strip())['id']
+
+    def begin_fiscal(_):
+        return sql(f"""set role service_role; select public.begin_fiscal_send('{same_operation}','{token}','{cert_id}',
+          'Synthetic DB concurrency only {dps_id}','BEGIN CERTIFICATE synthetic only');""").strip()
+    with ThreadPoolExecutor(max_workers=8) as pool:
+        begun = list(pool.map(begin_fiscal, range(8)))
+    assert begun.count('t') == 1 and begun.count('f') == 7, "More than one worker obtained dispatch permission"
+    assert sql(f"select transmit_count from public.fiscal_operations where id='{same_operation}';").strip() == '1'
+    print("Fiscal concurrency: shared issuer sequence across two tenants; 8 clicks -> 1 operation; 8 workers -> 1 lease/dispatch intent")
 
     def lookup(_):
         return sql("""
