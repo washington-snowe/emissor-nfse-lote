@@ -4,7 +4,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
-  const { client, context } = await requireWorkspace({ strong: true }); const { id } = await params;
+  const { client, context } = await requireWorkspace(); const { id } = await params;
   const headers = { "Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff" };
   if (!/^[0-9a-f-]{36}$/i.test(id)) return new Response(null, { status: 404, headers });
   const metadata = await client.from("fiscal_documents").select("id,access_key,xml_sha256").eq("id", id).eq("tenant_id", context.tenantId).maybeSingle();

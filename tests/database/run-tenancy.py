@@ -84,10 +84,10 @@ try:
     fiscal_queue_count = re.search(r"^FISCAL_QUEUE_ASSERTIONS=(\d+)$", fiscal_queue, re.M)
     assert fiscal_queue_count and int(fiscal_queue_count[1]) >= 30, "Fiscal queue assertions did not complete"
     print(f"Fiscal queue/deduplication/fencing/reconciliation: {fiscal_queue_count[1]} assertions passed (synthetic state fixtures)")
-    mfa = sql((ROOT / "tests/database/mfa.sql").read_text())
-    mfa_count = re.search(r"^MFA_ASSERTIONS=(\d+)$", mfa, re.M)
-    assert mfa_count and int(mfa_count[1]) >= 10, "MFA policy assertions did not complete"
-    print(f"MFA policy: {mfa_count[1]} assertions passed (Auth gateway claims simulated)")
+    access = sql((ROOT / "tests/database/authenticated-access.sql").read_text())
+    access_count = re.search(r"^ACCESS_ASSERTIONS=(\d+)$", access, re.M)
+    assert access_count and int(access_count[1]) >= 40, "Authenticated access assertions did not complete"
+    print(f"Password-session access/isolation: {access_count[1]} assertions passed (Auth gateway claims simulated)")
 
     # Only in the disposable test database: slow concurrent INSERTs to expose uniqueness races.
     sql("""

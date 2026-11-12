@@ -35,7 +35,6 @@ export default async function SavedReport({ params }: { params: Promise<{ id: st
   const configuration = profile?.data ? parseFiscalProfile(profile.data.configuration, company.data.cnpj, company.data.tax_regime) : null;
   const snapshot = review?.data ? readReviewSnapshot(review.data.snapshot, report.id, report.file_sha256) : null;
   const confirmation = review?.data ? await client.from("review_confirmations").select("id").eq("review_id", review.data.id).eq("tenant_id", context.tenantId).maybeSingle() : null;
-  const strong = (await client.auth.mfa.getAuthenticatorAssuranceLevel()).data?.currentLevel === "aal2";
   return <WorkspaceShell email={context.user.email} active="imports"><div className="dashboard-content report-page">
     <span className="eyebrow">Importação salva</span><h1>Revise seu relatório.</h1><p>{report.file_name}</p>
     <Link className="text-link" href="/painel/importacoes/historico">Voltar às importações</Link>
@@ -47,8 +46,7 @@ export default async function SavedReport({ params }: { params: Promise<{ id: st
     {snapshot && review?.data && <SavedReportReview id={review.data.id} version={review.data.version} sha256={review.data.snapshot_sha256}
       snapshot={snapshot} confirmed={Boolean(confirmation?.data)} current={Boolean(configuration) && profile?.data?.id === review.data.profile_id} />}
     {parsed && <section className="report-back">
-      {!strong ? <><h2>Proteja sua conta para preparar notas.</h2><Link className="btn btn--secondary" href="/painel/seguranca">Configurar autenticador</Link></> :
-        !configuration ? <><h2>Configure os dados fiscais da empresa.</h2><Link className="btn btn--secondary" href={`/painel/empresas/${company.data.id}/fiscal`}>Abrir configuração fiscal</Link></> :
+      {!configuration ? <><h2>Configure os dados fiscais da empresa.</h2><Link className="btn btn--secondary" href={`/painel/empresas/${company.data.id}/fiscal`}>Abrir configuração fiscal</Link></> :
           !createAdminClient() || review?.error ? <p>A preparação de revisões depende da configuração privada do servidor e da migração de revisões.</p> :
             parsed.review.rows.length > MAX_FISCAL_REVIEW_ROWS ? <p>O relatório permanece salvo. A revisão fiscal desta etapa atende até 500 linhas e não descarta valores automaticamente.</p> :
               <ReportReviewForm candidates={reviewCandidates(parsed, profile?.data?.id === review?.data?.profile_id ? snapshot ?? undefined : undefined)}

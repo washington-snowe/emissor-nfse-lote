@@ -1,4 +1,4 @@
-# Importações persistentes, fila, MFA e A1
+# Importações persistentes, fila e A1
 
 Entrega intermediária da execução completa, autorizada pelo usuário. O sistema completo e a emissão fiscal ainda não estão homologados. O usuário confirmou no Supabase as migrações 3 e 4 (esta após correção de permissões do Vault), e depois 5–7. As credenciais privadas da Vercel precisam estar configuradas conforme `configurar-processamento.md` para as funções protegidas aparecerem.
 
@@ -14,17 +14,17 @@ O job lê o original no servidor, usa o mesmo adaptador validado e compara seu d
 
 O histórico em `/painel/importacoes/historico` lê somente dados do tenant pela sessão normal e RLS. A abertura valida novamente o envelope normalizado, hash e associação de linhas/vendedores antes de mostrar o resultado. Ainda não há confirmação fiscal, consolidação, alocação ou prevenção completa de reexportações semanticamente equivalentes: o digest impede somente reenvio dos mesmos bytes. Não confundir uma importação salva com nota emitida.
 
-## MFA
+## Autenticação e isolamento
 
-`/painel/seguranca` cadastra TOTP pelo Supabase Auth. QR e chave manual são entregues apenas à sessão autenticada que iniciou o cadastro, em memória; a aplicação não os registra em logs, Git ou armazenamento próprio. A imagem é uma URI de dados SVG codificada, não HTML executado. Fatores pendentes abandonados são removidos antes de uma nova matrícula; fatores verificados nunca são removidos por esse caminho.
+A verificação em duas etapas foi removida por solicitação explícita do usuário. A migração `202611120012_remove_mfa_requirement.sql`, aplicada sem erros segundo sua confirmação, substitui a regra da migração 5. Não repetir nem editar a migração 5.
 
-Após verificar TOTP, o SDK atualiza a sessão. Contas com fator verificado e sessão AAL1 são encaminhadas a `/verificar-acesso`; as políticas de dados também exigem AAL2, bloqueando acesso direto pela API. A função de tenant não aceita dono ou tenant do cliente. A migração 5 consulta fatores gerenciados pelo Auth sem conceder acesso às tabelas `auth` ao usuário. Fator não verificado não bloqueia a conta. Cadastro/uso de A1 exige sessão AAL2 e fator verificado no servidor; também há conferência do usuário antes de cada ação privilegiada.
+O painel, o cadastro de A1, os perfis/revisões fiscais e os documentos exigem sessão validada por `auth.getUser()` e vínculo com o dono da empresa. `current_tenant_id()` usa somente a identidade da sessão, com `SECURITY INVOKER` e RLS do próprio tenant. Sessão AAL1 pode acessar seus dados mesmo que exista fator previamente cadastrado no Auth. Dados de outra conta e material privado dos certificados continuam inacessíveis pelo cliente.
 
-Desativar o autenticador requer código atual. Códigos próprios de recuperação e procedimento administrativo de recuperação ainda não existem; a UI orienta guardar a chave manual no gerenciador de senhas. Não há bypass ou código universal. A homologação real do fluxo TOTP ainda precisa ser feita pelo usuário em seu navegador.
+As telas e ações de cadastro/desafio TOTP foram removidas. Os caminhos antigos `/verificar-acesso` e `/painel/seguranca` validam a sessão e redirecionam ao painel. A mudança não apaga fatores do Supabase Auth nem acessa suas chaves; eles deixaram de ser exigidos pelo aplicativo. Certificados, senhas e dados de negócio não são removidos.
 
 ## Certificados
 
-`/painel/certificados` aceita PKCS#12 RSA `.pfx`/`.p12` até 256 KiB somente quando Vault e serviço privado estiverem disponíveis e a sessão for AAL2. O servidor reserva quota **antes** da inspeção cara. O parser usa `node-forge@1.4.3`, versão fixada; roda em Worker Thread com V8 separado, limite de memória e prazo de quatro segundos. Nenhum subprocesso de shell ou arquivo temporário com material do A1 é usado. Arquivo inválido, senha incorreta, ambiguidade, datas inválidas, chave incompatível ou CNPJ divergente são recusados.
+`/painel/certificados` aceita PKCS#12 RSA `.pfx`/`.p12` até 256 KiB somente quando Vault e serviço privado estiverem disponíveis e houver sessão autenticada. O servidor reserva quota **antes** da inspeção cara. O parser usa `node-forge@1.4.3`, versão fixada; roda em Worker Thread com V8 separado, limite de memória e prazo de quatro segundos. Nenhum subprocesso de shell ou arquivo temporário com material do A1 é usado. Arquivo inválido, senha incorreta, ambiguidade, datas inválidas, chave incompatível ou CNPJ divergente são recusados.
 
 O CNPJ é lido do `otherName` OID `2.16.76.1.3.3`, não de um texto do commonName. O Anexo I oficial, RN DPS 644/E0716, identifica esse campo. A chave privada é conferida contra o certificado com assinatura/verificação de desafio. Isso não valida cadeia ICP-Brasil, revogação/LCR ou credenciamento; a aplicação não transforma essas verificações locais em autorização fiscal.
 
@@ -34,7 +34,7 @@ Substituição serializa pela empresa e impede dois certificados ativos. O anter
 
 ## Consulta de homologação e contrato oficial
 
-“Verificar acesso à homologação” exige AAL2, empresa própria, município IBGE e certificado ativo. Só realiza GETs em destinos oficiais fixados na página de APIs do Portal Nacional. Não segue redirects, não reutiliza agente TLS entre certificados, não desativa validação TLS e limita prazo/tamanho da resposta. A consulta usa o caminho documentado `/parametros_municipais/{codigoMunicipio}/convenio`.
+“Verificar acesso à homologação” exige sessão autenticada, empresa própria, município IBGE e certificado ativo. Só realiza GETs em destinos oficiais fixados na página de APIs do Portal Nacional. Não segue redirects, não reutiliza agente TLS entre certificados, não desativa validação TLS e limita prazo/tamanho da resposta. A consulta usa o caminho documentado `/parametros_municipais/{codigoMunicipio}/convenio`.
 
 Uma resposta JSON 2xx é registrada como `response_received`, nunca “emissor autorizado”. Não há POST fiscal nesta entrega. O acesso, a confiança ICP-Brasil, as regras de assinatura, a emissão de homologação e a recuperação por DPS ainda exigem verificação real.
 
@@ -42,7 +42,11 @@ O mesmo acesso tenta ler a documentação Swagger do host oficial, sem executar 
 
 Manuais/XSDs foram obtidos do portal oficial em 11/11/2026. O histórico embutido do PDF diverge da versão anunciada no nome do arquivo; o manifesto de proveniência registra essa diferença. Os endereços Swagger retornaram 503 sem mTLS neste executor; não se conclui que o serviço esteja indisponível. O teste com A1 na aplicação é necessário para verificar acesso real.
 
-## Evidências e limites
+## Evidências atuais
+
+Após a remoção: 61 testes unitários aprovados e 6 opt-in ignorados; 246 asserções no PostgreSQL, incluindo 47 sobre acesso com senha e isolamento com fator previamente cadastrado. Concorrência, UI responsiva, TypeScript, lint e build passaram. Auth/Vault/fiscal nos testes continuam sintéticos ou não disponíveis; não é homologação real com A1.
+
+## Evidências e limites da entrega inicial
 
 - PostgreSQL 17.11: 27 verificações de tenancy, 22 de empresas, 27 de importações/fila, 17 de privilégios/metadata de certificados, 9 de metadados fiscais e 10 de MFA passaram.
 - Concorrência real no banco: oito registros simultâneos do mesmo original produziram uma importação, um job e uma unidade de quota; oito workers disputaram uma única reserva. Os testes anteriores de bootstrap e quota CNPJ continuam passando.

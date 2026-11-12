@@ -1454,10 +1454,6 @@ strong {
 .report-seller-details dt { color: #52604f; font-size: 12px; margin-top: 10px; }
 .report-seller-details dd { white-space: pre-wrap; }
 .report-back { margin-top: 32px; }
-.mfa-enrollment { margin-top: 24px; }
-.mfa-enrollment img { display: block; max-width: 100%; margin-block: 16px; }
-.mfa-enrollment summary { cursor: pointer; min-height: 44px; padding-block: 10px; }
-.mfa-enrollment .mono { overflow-wrap: anywhere; }
 .certificate-card { flex-wrap: wrap; }
 .certificate-card > div:first-child { flex: 1 1 240px; }
 .certificate-card > div:last-child:not(:first-child) { flex: 0 1 auto; }

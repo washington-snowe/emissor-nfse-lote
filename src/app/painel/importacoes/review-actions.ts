@@ -11,7 +11,7 @@ import { validateFiscalDocuments } from "@/lib/nfse/schema";
 
 export type ReviewState = { error?: string; success?: string; issues?: ReviewIssue[]; id?: string; version?: number; sha256?: string };
 export async function prepareReportReview(importId: string, _previous: ReviewState, form: FormData): Promise<ReviewState> {
-  const { client, context } = await requireWorkspace({ strong: true });
+  const { client, context } = await requireWorkspace();
   const admin = createAdminClient();
   if (!admin || !/^[0-9a-f-]{36}$/i.test(importId)) return { error: "Preparação indisponível." };
   const report = await client.from("report_imports").select("id,company_id,file_sha256,parsed_payload,status").eq("id", importId).eq("tenant_id", context.tenantId).maybeSingle();
@@ -52,7 +52,7 @@ export async function prepareReportReview(importId: string, _previous: ReviewSta
 }
 
 export async function confirmReportReview(reviewId: string, sha256: string): Promise<ReviewState> {
-  const { context } = await requireWorkspace({ strong: true });
+  const { context } = await requireWorkspace();
   const admin = createAdminClient();
   if (!admin || !/^[0-9a-f-]{36}$/i.test(reviewId) || !/^[a-f0-9]{64}$/.test(sha256)) return { error: "Revisão indisponível." };
   const result = await admin.rpc("confirm_report_review", { p_actor: context.user.id, p_review: reviewId, p_expected_sha256: sha256 });

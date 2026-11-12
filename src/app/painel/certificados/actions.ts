@@ -18,7 +18,7 @@ const errors: Record<string, string> = {
 };
 
 export async function uploadCertificate(_previous: CertificateState, form: FormData): Promise<CertificateState> {
-  const { client, context } = await requireWorkspace({ strong: true });
+  const { client, context } = await requireWorkspace();
   const admin = createAdminClient();
   if (!admin) return { error: "O armazenamento protegido de certificados ainda não está configurado." };
   const capabilities = await admin.rpc("workflow_capabilities");
@@ -48,7 +48,7 @@ export async function uploadCertificate(_previous: CertificateState, form: FormD
 }
 
 export async function deactivateCertificate(id: string): Promise<CertificateState> {
-  const { context } = await requireWorkspace({ strong: true });
+  const { context } = await requireWorkspace();
   const admin = createAdminClient();
   if (!admin || !/^[0-9a-f-]{36}$/i.test(id)) return { error: "Certificado indisponível." };
   const result = await admin.rpc("revoke_certificate", { p_actor: context.user.id, p_certificate: id });
@@ -58,7 +58,7 @@ export async function deactivateCertificate(id: string): Promise<CertificateStat
 }
 
 export async function probeCertificate(id: string): Promise<CertificateState> {
-  const { client, context } = await requireWorkspace({ strong: true });
+  const { client, context } = await requireWorkspace();
   const admin = createAdminClient();
   if (!admin || !/^[0-9a-f-]{36}$/i.test(id)) return { error: "Verificação indisponível." };
   const certificate=await client.from("company_certificates").select("id,company_id").eq("id",id).eq("tenant_id",context.tenantId).eq("status","active").maybeSingle();

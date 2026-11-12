@@ -22,6 +22,8 @@ Depois da 8, aplicar `supabase/migrations/202611110009_report_reviews.sql`, para
 
 O usuário confirmou que a 8 e a 9 foram aplicadas. Para a nova etapa, executar somente `202611110010_fiscal_queue.sql` e depois `202611110011_standalone_templates.sql`. Fila, modelos, limites e roteiro de homologação estão em [fila fiscal e nota avulsa](fila-emissao-avulsa.md). Não repetir 1–9.
 
+O diagnóstico da migração 11 retornou os oito campos `true`, confirmado pelo usuário. Não repetir a 11. A remoção da verificação em duas etapas usa `supabase/migrations/202611120012_remove_mfa_requirement.sql`, também confirmada sem erros. Ela substitui o helper de tenant por resolução da identidade autenticada com RLS, sem apagar contas, certificados ou dados. Não repetir as migrações 1–12.
+
 Os arquivos foram aplicados em PostgreSQL 17 descartável com testes de privilégio, duas identidades, chaves compostas, reenvio concorrente, exclusividade de reservas e isolamento de importações/certificados. O teste local **não inclui o Vault real**, indisponível na imagem PostgreSQL padrão; comprova o bloqueio quando ele falta. A criptografia AES-GCM e o parser A1 são testados separadamente com dados sintéticos.
 
 ## 2. Variáveis privadas da aplicação

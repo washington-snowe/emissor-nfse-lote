@@ -2,6 +2,14 @@
 
 Autorização atual: o usuário solicitou implementar o sistema completo, incluindo emissão, mantendo Vercel e Supabase; VPS só será considerada futuramente. A autorização cobre desenvolvimento, testes e evolução do código. Credenciais reais, ativação de cobranças e emissão de documentos reais continuam exigindo configuração e confirmação da operação correspondente, sem valores ou parâmetros fiscais presumidos.
 
+## Remoção da verificação em duas etapas
+
+O usuário solicitou remover o segundo fator. Implementada remoção dos guards AAL2, telas/ações TOTP, bloqueios de certificado/perfil/revisão/avulsa/documento e item de navegação. URLs antigas redirecionam usuários autenticados ao painel. Login, verificação de usuário no servidor, propriedade, RLS, quotas, Vault e limites fiscais permanecem.
+
+O usuário confirmou oito `true` no diagnóstico da migração 11 e aplicação sem erros de `202611120012_remove_mfa_requirement.sql`. Migrações 1–11 preservadas. Fatores antigos do Auth não são apagados; não condicionam mais o acesso. O helper agora é `SECURITY INVOKER` e deriva o tenant somente de `auth.uid()`. Capacidades não anunciam exigência de MFA.
+
+Verificação: 61 unitários aprovados, 6 opt-in ignorados; 246 asserções PostgreSQL com 47 de acesso de senha/isolamento, incluindo conta com fator previamente verificado, dados de outra conta, RPCs, ausência de identidade e material privado. Testes concorrentes, UI em seis larguras, TypeScript/build/lint aprovados. Nenhuma nota real emitida. Publicação deste ajuste será conferida após o push; evidências anteriores abaixo registram o estado na data de cada checkpoint.
+
 ## Ordem e critérios
 
 1. Importações duráveis: original privado, SHA-256 calculado no banco, vínculo com empresa própria, limite por conta, prevenção de reenvio concorrente e histórico. A prévia existente continuará funcionando.

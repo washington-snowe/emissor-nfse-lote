@@ -20,7 +20,6 @@ try {
   await mkdir(path.join(root, "shots/reports"), { recursive: true });
   await build({ entryPoints: [path.join(root, "tests/ui/report-entry.tsx")], bundle: true, jsx: "automatic", outfile: path.join(output, "bundle.js"), tsconfig: path.join(root, "tsconfig.json"), alias: {
     "@/app/auth/actions": path.join(root, "tests/ui/auth-actions.ts"),
-    "@/app/painel/seguranca/actions": path.join(root, "tests/ui/workflow-actions.ts"),
     "@/app/painel/certificados/actions": path.join(root, "tests/ui/workflow-actions.ts"),
     "@/app/painel/importacoes/review-actions": path.join(root, "tests/ui/workflow-actions.ts"),
     "@/app/painel/notas/actions": path.join(root, "tests/ui/workflow-actions.ts"),
@@ -52,6 +51,8 @@ try {
   for (const width of [1440, 1024, 820, 768, 390, 320]) {
     await page.setViewportSize({ width, height: width < 640 ? 844 : 900 });
     await page.goto(origin);
+    assert.equal(await page.getByRole("link", { name: "Segurança", exact: true }).count(), 0);
+    assert.equal(await page.getByText("Configurar autenticador", { exact: true }).count(), 0);
     await page.getByLabel("Empresa emissora").selectOption("test-company-a");
     await page.getByLabel("Relatório mensal da Shopee", { exact: true }).setInputFiles(fixture);
     requests.length = 0;
@@ -129,18 +130,6 @@ try {
 
   for (const width of [1440,390,320]) {
     await page.setViewportSize({ width, height: 900 });
-    await page.goto(`${origin}/?screen=security`);
-    await page.getByRole("button", { name: "Configurar autenticador", exact: true }).click();
-    await page.getByAltText("QR code para cadastrar seu autenticador").waitFor();
-    await page.waitForFunction(() => document.querySelector('.mfa-enrollment img').naturalWidth > 0);
-    await page.getByLabel("Código do autenticador", { exact: true }).fill("000000");
-    await page.getByRole("button", { name: "Confirmar autenticador", exact: true }).click();
-    await page.getByText("Código sintético inválido.", { exact: true }).waitFor();
-    await page.getByLabel("Código do autenticador", { exact: true }).fill("123456");
-    await page.getByRole("button", { name: "Confirmar autenticador", exact: true }).click();
-    await page.getByText("Verificação em duas etapas ativada.", { exact: true }).waitFor();
-    assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
-
     await page.goto(`${origin}/?screen=certificate`);
     await page.getByLabel("Arquivo A1 (.pfx ou .p12)", { exact: true }).setInputFiles({ name: "synthetic.pfx", mimeType: "application/x-pkcs12", buffer: Buffer.from("SYNTHETIC FIXTURE NOT A REAL CERTIFICATE") });
     await page.getByLabel("Senha do certificado, se definida", { exact: true }).fill("test-password-not-real");
@@ -152,7 +141,7 @@ try {
     await page.getByText("Verificação sintética sem conexão fiscal.", { exact: true }).waitFor();
     assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
     await page.screenshot({ path: path.join(root, `shots/reports/certificate-${width}.png`), fullPage: true });
-    console.log(`Workflow ${width}px: TOTP fixture image/error/success, A1 fixture form and cleared password, no overflow`);
+    console.log(`Workflow ${width}px: A1 fixture form and cleared password, no overflow`);
   }
   for (const width of [1440, 820, 390, 320]) {
     await page.setViewportSize({ width, height: 900 });

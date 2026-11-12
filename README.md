@@ -1,6 +1,6 @@
 # Emissor — NFS-e para afiliados
 
-Aplicação em **Next.js + React + TypeScript**, com Vercel e Supabase. Contas, MFA, CNPJ com consulta, importação privada Shopee, A1/Vault, perfis/revisões versionados, fila fiscal e nota avulsa com modelo Shopee. Geração, assinatura, XSD, integração condicional de homologação e reconciliação implementados. **Sem homologação real com A1; produção e operação comercial completa ainda não estão liberadas.**
+Aplicação em **Next.js + React + TypeScript**, com Vercel e Supabase. Contas, CNPJ com consulta, importação privada Shopee, A1/Vault, perfis/revisões versionados, fila fiscal e nota avulsa com modelo Shopee. Geração, assinatura, XSD, integração condicional de homologação e reconciliação implementados. **Sem homologação real com A1; produção e operação comercial completa ainda não estão liberadas.**
 
 ## Desenvolvimento
 
@@ -30,7 +30,7 @@ O cadastro de empresas requer também a [migração de empresas](supabase/migrat
 
 A base interna de importação possui contrato versionado, rastreabilidade de linhas e resumo com decimais exatos separados por moeda. Em `/painel/importacoes`, a prévia lê localmente o [CSV mensal por vendedor da Shopee](docs/shopee-csv-mensal.md), com base na amostra real fornecida. Durante a conferência local o arquivo não é enviado nem salvo; não há agrupamento ou emissão fiscal. Outros layouts dependem de amostras; veja [contrato e limites da importação](docs/importacao-comissoes.md).
 
-Quando configurado o serviço privado, o usuário pode escolher **Salvar importação**, enviando o original para sua conta e acompanhando o processamento em `/painel/importacoes/historico`. MFA está em `/painel/seguranca` e A1 em `/painel/certificados`. As migrações 3–7 e as variáveis privadas estão no [guia de configuração](docs/configurar-processamento.md). Fluxo, testes, modelo de segurança e limites estão em [importações/certificados/MFA](docs/importacoes-certificados-seguranca.md). Não usar chave privilegiada em variável pública.
+Quando configurado o serviço privado, o usuário pode escolher **Salvar importação**, enviando o original para sua conta e acompanhando o processamento em `/painel/importacoes/historico`. A1 está em `/painel/certificados`. A verificação em duas etapas foi removida por solicitação do usuário; a migração 12 preserva autenticação e isolamento entre contas. As migrações 3–7 e as variáveis privadas estão no [guia de configuração](docs/configurar-processamento.md). Fluxo, testes, modelo de segurança e limites estão em [importações/certificados/segurança](docs/importacoes-certificados-seguranca.md). Não usar chave privilegiada em variável pública.
 
 ## Documentação
 
@@ -41,7 +41,7 @@ Quando configurado o serviço privado, o usuário pode escolher **Salvar importa
 - [Cadastro de empresas e preenchimento automático](docs/cadastro-empresas.md).
 - [Contrato interno de importação e revisão](docs/importacao-comissoes.md).
 - [Layout Shopee CSV mensal e prévia local](docs/shopee-csv-mensal.md).
-- [Persistência, fila, MFA e certificados](docs/importacoes-certificados-seguranca.md).
+- [Persistência, fila e certificados](docs/importacoes-certificados-seguranca.md).
 - [Configurações fiscais, assinatura e validação XML](docs/nucleo-fiscal.md).
 - [Revisão, tomadores, consolidação e confirmação por versão](docs/revisao-fiscal.md).
 - [Fila, recuperação e nota avulsa preenchida para afiliados](docs/fila-emissao-avulsa.md).

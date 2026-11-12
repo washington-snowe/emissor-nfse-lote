@@ -19,7 +19,7 @@ Manter `SUPABASE_SERVICE_ROLE_KEY` e `CRON_SECRET` somente no servidor, conforme
 
 ## Nota avulsa
 
-Depois de cadastrar a empresa, ativar MFA e confirmar o perfil fiscal uma vez, o formulário abre com o tomador Shopee, endereço, descrição e parâmetros do perfil preenchidos. Somente o valor fica vazio. A competência inicial é a data corrente em **America/Sao_Paulo**, aparece no resumo e pode ser alterada. Não é inferida de CSV nem gravada como padrão permanente.
+Depois de cadastrar a empresa e confirmar o perfil fiscal uma vez, o formulário abre com o tomador Shopee, endereço, descrição e parâmetros do perfil preenchidos. Somente o valor fica vazio. A competência inicial é a data corrente em **America/Sao_Paulo**, aparece no resumo e pode ser alterada. Não é inferida de CSV nem gravada como padrão permanente.
 
 Em “Alterar dados da nota”, o usuário pode editar competência, tipo de comissão, referência de pagamento, tomador/endereço, descrição, códigos e parâmetros fiscais. Alterações podem ser lembradas em um modelo versionado da própria empresa; o modelo não guarda valor, competência ou referência de uma nota anterior. Quando o perfil fiscal base muda, os parâmetros antigos não são reaplicados automaticamente. A razão social, documento e competência do resumo acompanham as edições do formulário.
 
@@ -72,7 +72,7 @@ No caminho condicionado ao contrato, a DPS é assinada, validada por XSD e compr
 
 Uma resposta 2xx só vira `authorized` após verificar base64/gzip/UTF-8 com limite de expansão, XSD NFS-e, chave/Id, emitente, resultado 100/107, assinatura da NFS-e e correspondência canônica entre `infDPS` retornado e a requisição assinada original. Se a DPS retornada contiver assinatura, ela também precisa verificar; sua ausência é permitida pelo TCDPS retornado, mantendo os dados sob a assinatura externa verificada. O certificado dessa assinatura externa é vinculado à resposta obtida do canal oficial autenticado; isso não é uma validação independente completa da cadeia ICP/CRL de um XML enviado por qualquer pessoa. O sistema não aceita upload de XML como prova de autorização.
 
-Documento, hash e estado são gravados na mesma transação, uma vez por operação. Download de XML exige sessão/MFA, propriedade e hash correto, com `private, no-store`. Respostas brutas do provedor, XMLs, senhas, chaves e tokens não vão a logs. PDF, e-mail transacional, cobrança e liberação de produção continuam em etapas próprias; nenhum documento demonstrativo é apresentado como nota real.
+Documento, hash e estado são gravados na mesma transação, uma vez por operação. Download de XML exige sessão autenticada, propriedade e hash correto, com `private, no-store`. Respostas brutas do provedor, XMLs, senhas, chaves e tokens não vão a logs. PDF, e-mail transacional, cobrança e liberação de produção continuam em etapas próprias; nenhum documento demonstrativo é apresentado como nota real.
 
 ## Execução na Vercel
 

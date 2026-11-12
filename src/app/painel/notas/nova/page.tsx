@@ -29,7 +29,6 @@ export default async function NewInvoice({ searchParams }: { searchParams: Promi
     client.from("company_certificates").select("id").eq("company_id", company.id).eq("tenant_id", context.tenantId).eq("status", "active").gt("valid_until", new Date().toISOString()).limit(1).maybeSingle(),
   ]) : [null, null, null];
   const profile = company && current?.data ? parseFiscalProfile(current.data.configuration, company.cnpj, company.tax_regime) : null;
-  const strong = (await client.auth.mfa.getAuthenticatorAssuranceLevel()).data?.currentLevel === "aal2";
   let initial: StandaloneDefaults | null = profile ? { configuration: profile, recipient: cleanFiscalPerson(shopee.recipient), commissionType: "Comissões de afiliado Shopee" } : null;
   if (initial && company && template?.data && current?.data && template.data.profile_id === current.data.id) {
     const defaults = template.data.defaults;
@@ -44,8 +43,7 @@ export default async function NewInvoice({ searchParams }: { searchParams: Promi
     <Link className="text-link" href="/painel/notas">Ver minhas emissões</Link>
     {!company ? <section className="dashboard-welcome"><h2>Cadastre a empresa emissora.</h2><Link className="btn btn--primary" href="/painel/empresas/nova">Cadastrar empresa</Link></section> : <>
       {companies.data.length > 1 && <InvoiceCompanySelect companies={companies.data} selected={company.id} />}
-      {!strong ? <section className="dashboard-welcome"><h2>Proteja sua conta para preparar notas.</h2><Link className="btn btn--primary" href="/painel/seguranca">Configurar autenticador</Link></section> :
-        !initial || !current?.data ? <section className="dashboard-welcome"><h2>Confirme o perfil fiscal uma vez.</h2><p>Os códigos e parâmetros serão reaproveitados nas próximas notas.</p><Link className="btn btn--primary" href={`/painel/empresas/${company.id}/fiscal`}>Configurar dados fiscais</Link></section> :
+      {!initial || !current?.data ? <section className="dashboard-welcome"><h2>Confirme o perfil fiscal uma vez.</h2><p>Os códigos e parâmetros serão reaproveitados nas próximas notas.</p><Link className="btn btn--primary" href={`/painel/empresas/${company.id}/fiscal`}>Configurar dados fiscais</Link></section> :
           template?.error || !createAdminClient() ? <section className="dashboard-welcome"><h2>Preparação aguardando configuração.</h2><p>Confira as migrações de emissão e as variáveis privadas do servidor.</p></section> :
             <StandaloneInvoiceForm key={`${company.id}:${current.data.id}`} initial={initial} companyId={company.id} profileVersion={current.data.version} requestId={randomUUID()}
               competenceDate={todayInBrazil()} templateVersion={template?.data?.version ?? 0} readiness={readiness}

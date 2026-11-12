@@ -10,7 +10,7 @@ import { validateFiscalSchema } from "@/lib/nfse/schema";
 export type FiscalProfileState = { error?: string; success?: string; version?: number };
 
 export async function saveFiscalProfile(companyId: string, _previous: FiscalProfileState, form: FormData): Promise<FiscalProfileState> {
-  const { client, context } = await requireWorkspace({ strong: true });
+  const { client, context } = await requireWorkspace();
   const admin = createAdminClient();
   if (!admin || !/^[0-9a-f-]{36}$/i.test(companyId)) return { error: "Configuração fiscal indisponível." };
   const company = await client.from("companies").select("id,cnpj,tax_regime").eq("id", companyId).eq("tenant_id", context.tenantId).maybeSingle();

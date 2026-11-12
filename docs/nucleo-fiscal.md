@@ -2,7 +2,7 @@
 
 ## Entrega e limites
 
-`/painel/empresas/{id}/fiscal` permite ao dono autenticado com MFA salvar configurações da própria empresa. A migração 8 cria histórico imutável: uma alteração acrescenta versão; uma gravação com versão antiga falha, inclusive quando duas sessões salvam simultaneamente. A referência da orientação fiscal e sua data de início acompanham cada versão. Dados são protegidos por RLS e a gravação só pode ser feita pelo servidor após validar o usuário.
+`/painel/empresas/{id}/fiscal` permite ao dono autenticado salvar configurações da própria empresa. A migração 8 cria histórico imutável: uma alteração acrescenta versão; uma gravação com versão antiga falha, inclusive quando duas sessões salvam simultaneamente. A referência da orientação fiscal e sua data de início acompanham cada versão. Dados são protegidos por RLS e a gravação só pode ser feita pelo servidor após validar o usuário.
 
 O formulário aproveita o código IBGE cadastral. Não infere código de serviço do CNAE, alíquota, retenção, imunidade ou exportação. O enquadramento vem do cadastro da empresa e só admite MEI e ME/EPP do Simples. Ao mudar esse enquadramento, a versão anterior precisa ser revista. Dados de comércio exterior são parâmetros; o valor na moeda estrangeira deve ser confirmado por operação e não é um valor comum repetido em todas as notas.
 
@@ -27,7 +27,7 @@ O validador libxml2/WASM interpreta como literais as âncoras `^`/`$` do padrão
 
 Unitários cobrem decimais grandes, identidades, datas inválidas, séries reservadas, adulteração de assinatura, referência externa, identidades duplicadas, documento com DTD, XSD oficial/adaptação e cenários sintéticos MEI/Simples/exterior. Certificados de teste são autoassinados e não provam confiança ICP-Brasil ou homologação.
 
-PostgreSQL real: 17 asserções de perfis, histórico e privilégio; política MFA também testa leitura dos perfis com AAL1/AAL2. O teste concorrente disputa oito gravações da versão zero: uma cria versão 1, sete recebem conflito. Não há sobrescrita silenciosa.
+PostgreSQL real: 17 asserções de perfis, histórico e privilégio; testes de acesso também conferem isolamento e leitura dos perfis com sessão de senha, inclusive para contas com fator antigo. O teste concorrente disputa oito gravações da versão zero: uma cria versão 1, sete recebem conflito. Não há sobrescrita silenciosa.
 
 UI testa o componente real com ação de fronteira explicitamente sintética: campos fiscais sem valor presumido, preenchimento IBGE, dados preservados após erro/sucesso, versão avançando, campos condicionais e ausência de overflow em 1440/820/390/320 px. Isso não é teste do Supabase/Vault real.
 
