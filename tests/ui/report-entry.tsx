@@ -1,3 +1,5 @@
+import { AccountProfileForm, LoginChangeForm, ReferralLink } from "../../src/components/account-forms";
+import { SubscriptionPlans } from "../../src/components/subscription-plans";
 import { createRoot } from "react-dom/client";
 import { ReportPreview } from "../../src/components/report-preview";
 import { WorkspaceShell } from "../../src/components/workspace-shell";
@@ -42,13 +44,13 @@ const operations = <FiscalOperationList operations={[
   { id: "test-authorized", batch_id: "test-batch", status: "authorized", reason: null, amount: "3.30", recipient: { legalName: "Tomador sintético C" }, dps_id: "DPS" + "3".repeat(42), transmit_count: 1, competence_date: "2026-10-31", document: { id: "test-document", access_key: "1".repeat(50) } },
 ]} />;
 createRoot(document.getElementById("root")!).render(
-  <WorkspaceShell email="interface@emissor.example" active="imports">
+  <WorkspaceShell name="Pessoa sintética de teste" email="interface@emissor.example" active={screen === "profile" ? "profile" : screen === "plans" ? "subscription" : screen === "login" ? "login" : "imports"} companies={[{id:"00000000-0000-4000-8000-000000000001",legal_name:"Empresa sintética A com nome extenso",cnpj:"11222333000181"},{id:"00000000-0000-4000-8000-000000000002",legal_name:"Empresa sintética B",cnpj:"11444777000161"}]} companyId="00000000-0000-4000-8000-000000000001">
     <div className="dashboard-content report-page">
       <p>Ambiente isolado de teste de interface · empresas e arquivo fictícios</p>
-      <span className="eyebrow">Relatórios de comissões</span>
-      <h1>{screen === "standalone" ? "Sua nota de afiliado, sem começar do zero." : screen === "operations" ? "Acompanhe suas emissões." : "Confira seu relatório da Shopee."}</h1>
+      <span className="eyebrow">{["profile","login","plans","referrals"].includes(screen ?? "") ? "Conta" : "Relatórios de comissões"}</span>
+      <h1>{screen === "plans" ? "Sua assinatura." : screen === "profile" ? "Seu perfil." : screen === "login" ? "Seus dados de acesso." : screen === "standalone" ? "Sua nota de afiliado, sem começar do zero." : screen === "operations" ? "Acompanhe suas emissões." : "Confira seu relatório da Shopee."}</h1>
       <p>Escolha sua empresa e confira o CSV mensal por vendedor antes de preparar a emissão.</p>
-      {screen === "standalone" ? standalone : screen === "operations" ? operations : screen === "review" ? review : screen === "review-confirmation" ? <ReviewConfirmation id="test-review" sha256={"a".repeat(64)} /> : screen === "fiscal" ? <FiscalProfileForm municipality="3550308" regime={parameters.has("simples") ? "simples" : "mei"} action={async (_state, form) => {
+      {screen === "profile" ? <AccountProfileForm name="Pessoa sintética" phone="" /> : screen === "login" ? <LoginChangeForm kind="password" /> : screen === "plans" ? <SubscriptionPlans ready={!parameters.has("unavailable")} request="00000000-0000-4000-8000-000000000099" /> : screen === "referrals" ? <ReferralLink url="https://emissor.example/criar-conta?ref=aaaaaaaaaaaaaaaaaaaa" /> : screen === "standalone" ? standalone : screen === "operations" ? operations : screen === "review" ? review : screen === "review-confirmation" ? <ReviewConfirmation id="test-review" sha256={"a".repeat(64)} /> : screen === "fiscal" ? <FiscalProfileForm municipality="3550308" regime={parameters.has("simples") ? "simples" : "mei"} action={async (_state, form) => {
         window.workflowUiTest.calls++;
         await new Promise(resolve => setTimeout(resolve, 100));
         return window.workflowUiTest.calls === 1 ? { error: "Falha sintética de validação; confira os campos." } :

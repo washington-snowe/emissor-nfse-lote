@@ -89,6 +89,12 @@ try:
     assert access_count and int(access_count[1]) >= 40, "Authenticated access assertions did not complete"
     print(f"Password-session access/isolation: {access_count[1]} assertions passed (Auth gateway claims simulated)")
 
+    for filename, marker, minimum in [("account-navigation.sql", "NAVIGATION_ASSERTIONS", 18), ("billing.sql", "BILLING_ASSERTIONS", 25), ("billing-usage.sql", "USAGE_ASSERTIONS", 15)]:
+        result = sql((ROOT / "tests/database" / filename).read_text())
+        matched = re.search(r"^" + marker + r"=(\d+)$", result, re.M)
+        assert matched and int(matched[1]) >= minimum, "Account/billing assertions did not complete"
+        print(f"{marker}: {matched[1]} assertions passed (provider/Auth boundaries synthetic)")
+
     # Only in the disposable test database: slow concurrent INSERTs to expose uniqueness races.
     sql("""
       create function public.test_slow_insert() returns trigger language plpgsql as $$
@@ -288,6 +294,60 @@ try:
         decisions = list(pool.map(lookup, range(16)))
     assert decisions.count("t") == 10 and decisions.count("f") == 6, "Concurrent requests bypassed quota"
     print("Lookup quota concurrency: 16 requests, 10 accepted, 6 denied")
+
+    def concurrent_profile(_):
+        result = docker("exec", "-i", CONTAINER, "psql", "-X", "-qAt", "-v", "ON_ERROR_STOP=1", "-U", "postgres", "-d", "postgres", source="""
+          set role authenticated;
+          set request.jwt.claims='{"sub":"00000000-0000-4000-8000-000000000003"}';
+          select public.save_account_profile('Synthetic competing profile','',0)->>'version';
+        """, check=False)
+        if result.returncode:
+            assert 'Profile changed' in result.stderr, "Unexpected account-profile concurrency error"
+            return "stale"
+        return result.stdout.strip()
+    with ThreadPoolExecutor(max_workers=8) as pool:
+        profiles = list(pool.map(concurrent_profile, range(8)))
+    assert profiles.count('1') == 1 and profiles.count('stale') == 7, "Concurrent account profiles lost an edit"
+    print("Account profile concurrency: 8 competing saves, 1 version, 7 stale edits rejected")
+
+    def billing_claim(_):
+        result = docker("exec", "-i", CONTAINER, "psql", "-X", "-qAt", "-v", "ON_ERROR_STOP=1", "-U", "postgres", "-d", "postgres", source="""
+          set role service_role;
+          select public.claim_billing_account('00000000-0000-4000-8000-000000000002',false);
+        """, check=False)
+        if result.returncode:
+            assert 'Billing busy' in result.stderr, "Unexpected concurrent billing lease failure"
+            return None
+        return json.loads(result.stdout.strip())
+    with ThreadPoolExecutor(max_workers=8) as pool:
+        billing_claims = list(pool.map(billing_claim, range(8)))
+    granted = [item for item in billing_claims if item]
+    assert len(granted) == 1, "More than one billing action got the account lease"
+    billing = granted[0]
+    sql(f"set role service_role; select public.release_billing_account('{billing['tenant_id']}',false,'{billing['token']}');")
+
+    def event_claim(_):
+        result = docker("exec", "-i", CONTAINER, "psql", "-X", "-qAt", "-v", "ON_ERROR_STOP=1", "-U", "postgres", "-d", "postgres", source="""
+          set role service_role;
+          select public.claim_stripe_event('evt_concurrent','invoice.paid','cus_synthetic',false,repeat('d',64));
+        """, check=False)
+        if result.returncode:
+            assert 'Billing busy' in result.stderr, "Unexpected concurrent event claim failure"
+            return None
+        return json.loads(result.stdout.strip())
+    with ThreadPoolExecutor(max_workers=8) as pool:
+        event_claims = list(pool.map(event_claim, range(8)))
+    granted_events = [item for item in event_claims if item]
+    assert len(granted_events) == 1, "Concurrent webhooks obtained overlapping leases"
+    event_token = granted_events[0]['token']
+    def finish_event(_):
+        return sql(f"set role service_role; select public.apply_stripe_event('evt_concurrent',false,'{event_token}','[]','[]',null);").strip()
+    with ThreadPoolExecutor(max_workers=8) as pool:
+        event_results = list(pool.map(finish_event, range(8)))
+    assert event_results.count('t') == 1 and event_results.count('f') == 7, "Webhook committed twice"
+    assert sql("select count(*) from private.stripe_events where id='evt_concurrent' and completed_at is not null;").strip() == '1'
+    assert sql("select commission_cents from private.referral_commissions where referred_tenant=(select id from public.tenants where owner_user_id='00000000-0000-4000-8000-000000000002') and not livemode;").strip() == '400'
+    print("Billing concurrency: 8 actions -> 1 account lease; 8 webhook claims -> 1 lease; 8 completions -> 1 commit; commission unchanged")
 
     sql("""
       do $$ begin

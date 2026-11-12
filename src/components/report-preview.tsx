@@ -22,11 +22,11 @@ const errorMessages = {
   invalid_contract: "Não foi possível validar todos os dados do relatório. Nenhum total parcial foi calculado.",
 };
 
-export function ReportPreview({ companies, saveAction }: {
-  companies: Company[];
+export function ReportPreview({ companies, saveAction, initialCompanyId }: {
+  companies: Company[]; initialCompanyId?: string;
   saveAction?: (form: FormData) => Promise<{ id?: string; duplicate?: boolean; error?: string }>;
 }) {
-  const [companyId, setCompanyId] = useState(companies.length === 1 ? companies[0].id : "");
+  const [companyId, setCompanyId] = useState(companies.some(company => company.id === initialCompanyId) ? initialCompanyId! : companies.length === 1 ? companies[0].id : "");
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<Preview | null>(null);
   const [error, setError] = useState("");

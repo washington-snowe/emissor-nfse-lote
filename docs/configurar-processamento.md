@@ -2,6 +2,10 @@
 
 Nenhuma VPS é necessária para esta etapa. A fila fica no PostgreSQL; a Vercel executa tarefas curtas. Chamadas interrompidas mantêm a tarefa recuperável. No plano Hobby, o Cron de recuperação é diário, com precisão por hora; o disparo após uma ação e a opção de retomar no painel atendem o fluxo imediato. Não é uma garantia de processamento contínuo em alto volume.
 
+## Etapa atual: menu e cobrança
+
+Migrações 1–12 já confirmadas. Para a nova etapa, aplicar somente `202611120013_account_and_referrals.sql` e depois `202611120014_stripe_billing.sql`, encaminhadas após os testes. Não repetir as anteriores. Variáveis privadas Stripe, URL do webhook, eventos e roteiro de teste estão em [menu, conta e Stripe](menu-conta-stripe.md). Isso não libera emissão fiscal em produção.
+
 ## 1. Banco
 
 No SQL Editor do projeto Supabase existente, aplicar, nesta ordem, somente:

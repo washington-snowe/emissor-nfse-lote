@@ -21,3 +21,10 @@ export async function saveReport(form: FormData) {
   window.workflowUiTest.fileSize = (form.get("file") as File).size;
   return { id: "00000000-0000-4000-8000-000000000088", duplicate: false };
 }
+
+export async function selectWorkspaceCompany(id: string, area: string) { window.workflowUiTest.companyId = id; window.workflowUiTest.path = area; return {}; }
+export async function saveAccountProfile(_state: unknown, form: FormData) { window.workflowUiTest.calls++; return window.workflowUiTest.calls===1 ? {error:"Falha sintética de perfil."} : { success: "Perfil sintético salvo.", version: Number(form.get("version"))+1 }; }
+export async function updateLogin() { window.workflowUiTest.calls++; return { success: "Acesso sintético atualizado; nenhum Auth real." }; }
+export async function claimReferral() { return { success: "Indicação sintética vinculada." }; }
+
+export async function openBilling() { window.workflowUiTest.calls++; return {error:"Checkout sintético sem cobrança ou conexão Stripe."}; }

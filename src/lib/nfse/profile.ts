@@ -55,3 +55,19 @@ export function profileFromForm(form: FormData): unknown {
 export function validProfileEvidence(value: unknown, validFrom: unknown) {
   return typeof value === "string" && value.trim().length >= 3 && value.length <= 500 && !/[\u0000-\u001f\u007f]/.test(value) && validFiscalDate(validFrom);
 }
+
+export type FiscalSection = "service" | "advanced";
+const serviceFields = ["serviceMunicipality", "serviceCountry", "nationalTaxCode", "municipalTaxCode", "nbsCode", "description", "issTaxation", "issWithholding", "issRate", "immunityType", "exportResultCountry"];
+const advancedFields = ["issuerMunicipality", "issuerRegistration", "series", "simplesAssessment", "specialRegime", "totals.mode", "totals.percent", "totals.federal", "totals.state", "totals.municipal", "foreignTrade", ...["mode", "relationship", "currency", "providerIncentive", "recipientIncentive", "temporaryGoods", "mdic", "importDeclaration", "exportRegistration"].map(key => `foreignTrade.${key}`)];
+export function mergeFiscalSection(profile: FiscalProfile, submitted: FormData, section: FiscalSection): FormData {
+  const merged = new FormData();
+  for (const [key, value] of Object.entries(profile)) {
+    if (typeof value === "string") merged.set(key, value);
+    else if (value && typeof value === "object") for (const [child, item] of Object.entries(value)) if (typeof item === "string") merged.set(`${key}.${child}`, item);
+  }
+  if (profile.foreignTrade) merged.set("foreignTrade", "on");
+  for (const field of [...(section === "service" ? serviceFields : advancedFields), "version", "validFrom", "evidence"]) {
+    merged.delete(field); const value = submitted.get(field); if (typeof value === "string") merged.set(field, value);
+  }
+  return merged;
+}

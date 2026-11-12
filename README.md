@@ -2,6 +2,8 @@
 
 Aplicação em **Next.js + React + TypeScript**, com Vercel e Supabase. Contas, CNPJ com consulta, importação privada Shopee, A1/Vault, perfis/revisões versionados, fila fiscal e nota avulsa com modelo Shopee. Geração, assinatura, XSD, integração condicional de homologação e reconciliação implementados. **Sem homologação real com A1; produção e operação comercial completa ainda não estão liberadas.**
 
+O menu organiza Início, Notas, emissão em lote/avulsa, dados da empresa e conta. Perfil, alterações de login, assinatura Stripe e indicações estão implementados. Pagamentos dependem das credenciais e da validação da Stripe em teste; comissões ficam registradas para repasse ainda não configurado. Consulte [menu, planos e configuração Stripe](docs/menu-conta-stripe.md).
+
 ## Desenvolvimento
 
 Node 22 ou 24. Na raiz:
@@ -46,6 +48,7 @@ Quando configurado o serviço privado, o usuário pode escolher **Salvar importa
 - [Revisão, tomadores, consolidação e confirmação por versão](docs/revisao-fiscal.md).
 - [Fila, recuperação e nota avulsa preenchida para afiliados](docs/fila-emissao-avulsa.md).
 - [Configurar processamento Vercel/Supabase](docs/configurar-processamento.md).
+- [Menu, conta, planos Stripe e indicações](docs/menu-conta-stripe.md).
 - [Execução do sistema completo e dependências](docs/execucao-sistema.md).
 - [Especificação do usuário](docs/especificacao-mestra.md).
 - [Diagnóstico e pendências](docs/descoberta.md).

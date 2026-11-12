@@ -1,0 +1,19 @@
+{
+  "provider": "Stripe",
+  "reviewedAt": "2026-11-12",
+  "apiVersion": "2025-02-24.acacia",
+  "sources": [
+    "https://docs.stripe.com/api/checkout/sessions/create",
+    "https://docs.stripe.com/api/customer_portal/sessions/create",
+    "https://docs.stripe.com/api/customer_portal/sessions/create.md?query=flow_data",
+    "https://docs.stripe.com/api/invoices/object?api-version=2025-02-24.acacia",
+    "https://docs.stripe.com/webhooks/signature"
+  ],
+  "status": "Implemented with synthetic boundary tests; real Stripe sandbox validation still requires private credentials.",
+  "notes": [
+    "REST calls explicitly pin the documented Acacia version; current docs also advertise a newer default.",
+    "Application-owned subscription metadata and registered price IDs bind snapshots to a customer and tenant.",
+    "Referral commission: 20 percent of captured first card payment after discounts/refunds, before Stripe processing fees; renewals earn no commission.",
+    "No real checkout, charge, payout, provider account or financial credential was created by the executor."
+  ]
+}

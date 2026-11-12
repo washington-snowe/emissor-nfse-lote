@@ -1,0 +1,58 @@
+-- Stripe boundaries are synthetic; never execute against hosted Supabase.
+create temporary table billing_checks(name text primary key);
+grant insert on billing_checks to authenticated,service_role;
+create function pg_temp.bill_check(ok boolean,name text) returns void language plpgsql as $$ begin if ok is distinct from true then raise exception 'Billing assertion failed: %',name; end if; insert into pg_temp.billing_checks values(name); end $$;
+select set_config('test.bill_a',(select id::text from public.tenants where owner_user_id='00000000-0000-4000-8000-000000000001'),false);
+select set_config('test.bill_b',(select id::text from public.tenants where owner_user_id='00000000-0000-4000-8000-000000000002'),false);
+set role service_role;
+select set_config('test.bill_claim',public.claim_billing_account('00000000-0000-4000-8000-000000000002',false)::text,false);
+select pg_temp.bill_check(current_setting('test.bill_claim')::jsonb->>'tenant_id'=current_setting('test.bill_b'),'billing lease derives account from trusted actor');
+do $$ begin
+ begin perform public.claim_billing_account('00000000-0000-4000-8000-000000000002',false); raise exception 'Concurrent billing lease accepted'; exception when lock_not_available then perform pg_temp.bill_check(true,'billing lease prevents concurrent actions'); end;
+end $$;
+select pg_temp.bill_check(not public.bind_stripe_customer(current_setting('test.bill_b')::uuid,false,gen_random_uuid(),'cus_synthetic'),'stale lease cannot bind customer');
+select pg_temp.bill_check(public.bind_stripe_customer(current_setting('test.bill_b')::uuid,false,(current_setting('test.bill_claim')::jsonb->>'token')::uuid,'cus_synthetic'),'lease binds provider customer');
+select public.store_stripe_price(false,'afiliado','monthly','price_synthetic',3990);
+select pg_temp.bill_check(public.stripe_price(false,'afiliado','monthly')='price_synthetic','price catalog records exact approved price');
+do $$ begin
+ begin perform public.store_stripe_price(false,'start','quarterly','price_wrong',4001); raise exception 'Wrong quarterly price accepted'; exception when invalid_parameter_value then perform pg_temp.bill_check(true,'quarterly rounding validated in database'); end;
+end $$;
+select pg_temp.bill_check(public.prepare_stripe_checkout(current_setting('test.bill_b')::uuid,false,(current_setting('test.bill_claim')::jsonb->>'token')::uuid,gen_random_uuid(),'afiliado','monthly')->>'checkout_plan'='afiliado','checkout intent persists before external creation');
+select pg_temp.bill_check(public.release_billing_account(current_setting('test.bill_b')::uuid,false,(current_setting('test.bill_claim')::jsonb->>'token')::uuid),'billing action releases owned lease');
+select set_config('test.bill_event',public.claim_stripe_event('evt_synthetic','invoice.paid','cus_synthetic',false,repeat('a',64))::text,false);
+select set_config('test.bill_subscription',jsonb_build_array(jsonb_build_object('id','sub_synthetic','customer_id','cus_synthetic','tenant_id',current_setting('test.bill_b'),'price_id','price_synthetic','status','active','period_start',now(),'period_end',now()+interval '1 month','created_at',now(),'cancel_at_period_end',false))::text,false);
+select set_config('test.bill_payment',jsonb_build_array(jsonb_build_object('id','in_synthetic','subscription_id','sub_synthetic','status','paid','paid_cents','3990','cash_cents','3990','refunded_cents','0','paid_at',now()+interval '1 minute','created_at',now(),'hosted_url','https://invoice.stripe.com/synthetic'))::text,false);
+select pg_temp.bill_check(not public.apply_stripe_event('evt_synthetic',false,gen_random_uuid(),current_setting('test.bill_subscription')::jsonb,current_setting('test.bill_payment')::jsonb,'in_synthetic'),'expired webhook token cannot apply payment');
+select pg_temp.bill_check(public.apply_stripe_event('evt_synthetic',false,(current_setting('test.bill_event')::jsonb->>'token')::uuid,current_setting('test.bill_subscription')::jsonb,current_setting('test.bill_payment')::jsonb,'in_synthetic'),'verified snapshot applies payment atomically');
+select pg_temp.bill_check(public.claim_stripe_event('evt_synthetic','invoice.paid','cus_synthetic',false,repeat('a',64))->>'duplicate'='true','duplicate event is idempotent');
+reset role;
+select pg_temp.bill_check((select commission_cents=798 from private.referral_commissions where referred_tenant=current_setting('test.bill_b')::uuid and not livemode),'commission is exactly twenty percent of first payment');
+select pg_temp.bill_check((select count(*)=0 from private.billing_usage),'homologation authorizations never create billable usage');
+set role service_role;
+select set_config('test.bill_event',public.claim_stripe_event('evt_refund','charge.refunded','cus_synthetic',false,repeat('b',64))::text,false);
+select pg_temp.bill_check(public.apply_stripe_event('evt_refund',false,(current_setting('test.bill_event')::jsonb->>'token')::uuid,current_setting('test.bill_subscription')::jsonb,jsonb_set(current_setting('test.bill_payment')::jsonb,'{0,refunded_cents}','"1990"'),'in_synthetic'),'refund updates payment and commission together');
+reset role;
+select pg_temp.bill_check((select commission_cents=400 from private.referral_commissions where referred_tenant=current_setting('test.bill_b')::uuid and not livemode),'partial refund reduces first-payment commission');
+set role service_role;
+select set_config('test.bill_event',public.claim_stripe_event('evt_renewal','invoice.paid','cus_synthetic',false,repeat('c',64))::text,false);
+select pg_temp.bill_check(public.apply_stripe_event('evt_renewal',false,(current_setting('test.bill_event')::jsonb->>'token')::uuid,current_setting('test.bill_subscription')::jsonb,jsonb_set(jsonb_set(current_setting('test.bill_payment')::jsonb,'{0,id}','"in_renewal"'),'{0,paid_at}',to_jsonb(now()+interval '1 month')),'in_renewal'),'renewal is recorded without replacing first-payment commission');
+reset role;
+select pg_temp.bill_check((select commission_cents=400 and first_invoice='in_synthetic' from private.referral_commissions where referred_tenant=current_setting('test.bill_b')::uuid and not livemode),'renewal never earns a second commission');
+set role authenticated;
+select set_config('request.jwt.claims','{"sub":"00000000-0000-4000-8000-000000000001"}',false);
+select pg_temp.bill_check((select count(*)=0 from public.account_subscriptions),'referrer cannot read referred account subscription');
+select pg_temp.bill_check((select count(*)=0 from public.billing_payments),'referrer cannot read referred account invoices');
+select pg_temp.bill_check(public.billing_account_summary(false)->>'commission_cents'='400','referrer sees aggregate earned commission only');
+select pg_temp.bill_check(public.billing_account_summary(true)->>'commission_cents'='0','test and live balances are isolated');
+do $$ begin
+ begin perform * from private.billing_accounts; raise exception 'Provider identity exposed'; exception when insufficient_privilege then perform pg_temp.bill_check(true,'provider mapping remains private'); end;
+ begin perform public.apply_stripe_event('evt_forged',false,gen_random_uuid(),'[]','[]',null); raise exception 'Client forged paid status'; exception when insufficient_privilege then perform pg_temp.bill_check(true,'client cannot forge paid status'); end;
+end $$;
+select set_config('request.jwt.claims','{"sub":"00000000-0000-4000-8000-000000000002"}',false);
+select pg_temp.bill_check((select count(*)=1 from public.account_subscriptions),'payer reads own subscription');
+select pg_temp.bill_check((select count(*)=2 from public.billing_payments),'payer reads own payment history');
+reset role;
+select pg_temp.bill_check(lower(private.billing_month('2026-01-31 12:00Z','2026-03-30 12:00Z'))='2026-02-28 12:00Z'::timestamptz,'monthly allowance clamps short months');
+select pg_temp.bill_check(lower(private.billing_month('2026-01-31 12:00Z','2026-03-31 12:00Z'))='2026-03-31 12:00Z'::timestamptz,'quarterly allowance keeps original monthly anchor');
+select pg_temp.bill_check(lower(private.billing_month('2026-01-31 12:00Z','2027-03-30 12:00Z'))='2027-02-28 12:00Z'::timestamptz,'monthly allowance preserves original anchor after a year');
+select 'BILLING_ASSERTIONS='||count(*) from billing_checks;

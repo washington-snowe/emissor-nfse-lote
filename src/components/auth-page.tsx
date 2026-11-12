@@ -7,8 +7,10 @@ export function AuthPage({
   signup,
   ready,
   confirmationError = false,
+  referral,
 }: {
   signup: boolean;
+  referral?: string;
   ready: boolean;
   confirmationError?: boolean;
 }) {
@@ -67,7 +69,7 @@ export function AuthPage({
             </p>
           )}
           {ready ? (
-            <AuthForm signup={signup} />
+            <AuthForm signup={signup} referral={referral} />
           ) : (
             <div className="setup-notice" role="status">
               <strong>Acesso em preparação</strong>

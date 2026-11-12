@@ -8,9 +8,9 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { parseFiscalProfile } from "@/lib/nfse/profile";
 import { cleanFiscalPerson } from "@/lib/nfse/review";
 import { todayInBrazil, type StandaloneDefaults } from "@/lib/nfse/standalone";
-import { WorkspaceShell } from "@/components/workspace-shell";
+import { WorkspaceShell } from "@/components/workspace";
 import { StandaloneInvoiceForm } from "@/components/standalone-invoice-form";
-import { InvoiceCompanySelect } from "@/components/invoice-company-select";
+import { getWorkspaceData } from "@/lib/workspace-data";
 import { issueStandalone } from "../actions";
 
 export const metadata: Metadata = { title: "Nota avulsa" };
@@ -21,7 +21,8 @@ export default async function NewInvoice({ searchParams }: { searchParams: Promi
   const companies = await client.from("companies").select("id,cnpj,legal_name,tax_regime").eq("tenant_id", context.tenantId).order("created_at");
   if (companies.error) throw new Error("Companies unavailable");
   const { empresa } = await searchParams;
-  const company = empresa ? companies.data.find(item => item.id === empresa) : companies.data[0];
+  const { selected } = await getWorkspaceData();
+  const company = empresa ? companies.data.find(item => item.id === empresa) : companies.data.find(item => item.id === selected?.id) ?? companies.data[0];
   if (empresa && !company) notFound();
   const [current, template, certificate] = company ? await Promise.all([
     client.from("company_fiscal_profiles").select("id,version,configuration,configuration_sha256").eq("company_id", company.id).eq("tenant_id", context.tenantId).order("version", { ascending: false }).limit(1).maybeSingle(),
@@ -38,11 +39,10 @@ export default async function NewInvoice({ searchParams }: { searchParams: Promi
   }
   const readiness = !certificate?.data ? "aguardando certificado A1; você já pode preparar a nota." : process.env.NFSE_HOMOLOGATION_ENABLED !== "true" ?
     "transmissão ainda desativada; a preparação ficará salva." : "o envio depende do contrato oficial e das validações da operação.";
-  return <WorkspaceShell email={context.user.email} active="invoices"><div className="dashboard-content company-page">
+  return <WorkspaceShell email={context.user.email} active="standalone" companyId={company?.id}><div className="dashboard-content company-page">
     <span className="eyebrow">Emissão individual</span><h1>Sua nota de afiliado, sem começar do zero.</h1><p>O tomador Shopee e os dados do seu perfil vêm preenchidos. Informe o valor e altere o que precisar.</p>
-    <Link className="text-link" href="/painel/notas">Ver minhas emissões</Link>
+    <Link className="text-link" href={company ? `/painel/notas?empresa=${company.id}` : "/painel/notas"}>Ver minhas emissões</Link>
     {!company ? <section className="dashboard-welcome"><h2>Cadastre a empresa emissora.</h2><Link className="btn btn--primary" href="/painel/empresas/nova">Cadastrar empresa</Link></section> : <>
-      {companies.data.length > 1 && <InvoiceCompanySelect companies={companies.data} selected={company.id} />}
       {!initial || !current?.data ? <section className="dashboard-welcome"><h2>Confirme o perfil fiscal uma vez.</h2><p>Os códigos e parâmetros serão reaproveitados nas próximas notas.</p><Link className="btn btn--primary" href={`/painel/empresas/${company.id}/fiscal`}>Configurar dados fiscais</Link></section> :
           template?.error || !createAdminClient() ? <section className="dashboard-welcome"><h2>Preparação aguardando configuração.</h2><p>Confira as migrações de emissão e as variáveis privadas do servidor.</p></section> :
             <StandaloneInvoiceForm key={`${company.id}:${current.data.id}`} initial={initial} companyId={company.id} profileVersion={current.data.version} requestId={randomUUID()}

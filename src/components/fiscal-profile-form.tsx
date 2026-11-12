@@ -5,7 +5,8 @@ import type { FiscalProfile } from "@/lib/nfse/dps";
 import type { FiscalProfileState } from "@/app/painel/empresas/[id]/fiscal/actions";
 
 type InitialProfile = { version: number; configuration: FiscalProfile; valid_from: string; evidence_reference: string };
-export function FiscalProfileForm({ initial, version = 0, municipality, regime, action }: {
+export function FiscalProfileForm({ initial, version = 0, municipality, regime, action, section = "all" }: {
+  section?: "all" | "service" | "advanced";
   initial?: InitialProfile; version?: number; municipality: string; regime: string;
   action: (state: FiscalProfileState, form: FormData) => Promise<FiscalProfileState>;
 }) {
@@ -32,17 +33,17 @@ export function FiscalProfileForm({ initial, version = 0, municipality, regime, 
       <legend>Identificação e vigência</legend>
       <p>Enquadramento cadastrado: <strong>{regime === "mei" ? "MEI" : "ME / EPP do Simples Nacional"}</strong>. Cada alteração salva uma nova versão.</p>
       <div className="form-grid">
-        {field("issuerMunicipality", "Município emissor · código IBGE", p?.issuerMunicipality ?? municipality, true, 7)}
+        {section !== "service" && <>{field("issuerMunicipality", "Município emissor · código IBGE", p?.issuerMunicipality ?? municipality, true, 7)}
         {field("issuerRegistration", "Inscrição municipal", p?.issuerRegistration, false, 15)}
-        {field("series", "Série do aplicativo · 1 a 49999", p?.series, true, 5)}
+        {field("series", "Série do aplicativo · 1 a 49999", p?.series, true, 5)}</>}
         {field("validFrom", "Válida a partir de", initial?.valid_from, true, 10, "date")}
-        {select("specialRegime", "Regime especial", [["0", "Nenhum"], ["1", "Cooperativa"], ["2", "Estimativa"], ["3", "Microempresa municipal"], ["4", "Notário ou registrador"], ["5", "Profissional autônomo"], ["6", "Sociedade de profissionais"], ["9", "Outro"]], p?.specialRegime)}
-        {regime === "simples" && select("simplesAssessment", "Apuração pelo Simples", [["1", "Tributos federais e ISS pelo Simples"], ["2", "Federais pelo Simples, ISS fora"], ["3", "Federais e ISS fora do Simples"]], p?.simplesAssessment)}
+        {section !== "service" && <>{select("specialRegime", "Regime especial", [["0", "Nenhum"], ["1", "Cooperativa"], ["2", "Estimativa"], ["3", "Microempresa municipal"], ["4", "Notário ou registrador"], ["5", "Profissional autônomo"], ["6", "Sociedade de profissionais"], ["9", "Outro"]], p?.specialRegime)}
+        {regime === "simples" && select("simplesAssessment", "Apuração pelo Simples", [["1", "Tributos federais e ISS pelo Simples"], ["2", "Federais pelo Simples, ISS fora"], ["3", "Federais e ISS fora do Simples"]], p?.simplesAssessment)}</>}
       </div>
       {field("evidence", "Referência da orientação fiscal", initial?.evidence_reference, true, 500)}
       <p className="field-hint">Ex.: orientação do contador e data, ou referência da consulta municipal. Não inclua senha ou códigos de acesso.</p>
     </fieldset>
-    <fieldset disabled={pending}>
+    {section !== "advanced" && <fieldset disabled={pending}>
       <legend>Serviço e tributação</legend>
       <p>Preencha o município da prestação ou o país, conforme a operação. O código de serviço deve ser confirmado com sua orientação fiscal.</p>
       <div className="form-grid">
@@ -61,8 +62,8 @@ export function FiscalProfileForm({ initial, version = 0, municipality, regime, 
       </div>
       <div className="field"><label htmlFor="fiscal-description">Descrição do serviço *</label><textarea id="fiscal-description" name="description" defaultValue={p?.description} required maxLength={2000} rows={4} /></div>
       <p className="field-hint">Use ponto para decimais. Tomador estrangeiro, por si só, não caracteriza exportação.</p>
-    </fieldset>
-    <fieldset disabled={pending}>
+    </fieldset>}
+    {section !== "service" && <><fieldset disabled={pending}>
       <legend>Estimativa dos tributos</legend>
       <div className="field"><label htmlFor="fiscal-totals">Forma de informar *</label><select id="fiscal-totals" name="totals.mode" value={totalsMode} required onChange={e => setTotalsMode(e.target.value as typeof totalsMode)}>
         <option value="">Selecione</option>{regime === "mei" ? <option value="not_informed">Não informar estimativa · MEI</option> : <option value="simples_percent">Percentual aproximado do Simples</option>}<option value="percentages">Percentuais federal, estadual e municipal</option><option value="amounts">Valores federal, estadual e municipal</option>
@@ -86,6 +87,7 @@ export function FiscalProfileForm({ initial, version = 0, municipality, regime, 
         {field("foreignTrade.exportRegistration", "Registro de exportação, se aplicável", p?.foreignTrade?.exportRegistration, false, 12)}
       </div>}
     </fieldset>
+    </>}
     {state.error && <p className="form-error" role="alert">{state.error}</p>}
     {state.success && <p className="save-notice" role="status">{state.success}</p>}
     <button className="btn btn--primary" type="submit" disabled={pending}>{pending ? "Conferindo e salvando…" : "Salvar configuração fiscal"}</button>

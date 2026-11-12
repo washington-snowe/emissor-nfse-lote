@@ -2,6 +2,16 @@
 
 Autorização atual: o usuário solicitou implementar o sistema completo, incluindo emissão, mantendo Vercel e Supabase; VPS só será considerada futuramente. A autorização cobre desenvolvimento, testes e evolução do código. Credenciais reais, ativação de cobranças e emissão de documentos reais continuam exigindo configuração e confirmação da operação correspondente, sem valores ou parâmetros fiscais presumidos.
 
+## Menu da imagem, conta e Stripe
+
+O usuário solicitou organizar funções existentes e acrescentar todas as áreas da imagem, sem API no menu. Implementados seletor de empresas próprias, navegação hierárquica/móvel, filtros por empresa e separação de Serviço/Avançado sem duplicar o perfil. Perfil, alteração autenticada de e-mail/senha e encerramento de outras sessões; autenticação em duas etapas continua removida.
+
+O usuário definiu cinco planos, franquias 150/500/2500/5000/10000, CNPJs sem limite, preços mensais R$19,90/39,90/99,90/149,90/199,90, excedentes R$0,30/0,18/0,06/0,05/0,03, desconto trimestral exato de 33% e comissão de 20% somente no primeiro pagamento. Valores e comportamento estão em `docs/menu-conta-stripe.md` e no catálogo validado.
+
+Stripe: Checkout, Portal, alteração de plano/cadência com confirmação, cancelamento ao fim do período, histórico por webhooks HMAC e consulta atual; isolamento test/live, leases por conta, eventos idempotentes e comissão ajustada por estorno. Consumo autorizado em produção gera registro atômico; homologação não é faturável. Excedentes usam lote com idempotência e reconciliação antes de repetir. Indicações possuem link/código próprio, vínculo único, bloqueio de autorindicação/ciclos e agregados privados. Não houve Stripe real, movimentação de fundos ou repasse de comissões pelo executor. Método de repasse e credenciais de teste dependem de configuração externa.
+
+Migrações 13/14 encaminhadas após 307 asserções PostgreSQL e concorrência: oito ações → uma reserva de cobrança; oito claims de webhook → uma reserva; oito conclusões → um commit; oito perfis → uma versão. Testes de consumo sintético restauram a restrição fiscal de produção por rollback. 73 testes unitários aprovados e seis opt-in ignorados; build/TypeScript/lint aprovados. UI de empresas, relatórios e conta em seis larguras; planos móveis corrigidos após detectar overflow. Fronteiras Auth/Stripe/Vault/fiscal são sintéticas nos testes. Smoke local do build final aprovado: páginas públicas 200, todas as áreas da conta e emissão exigem login, worker sem segredo 401, webhook Stripe sem configuração 503/GET 405, código de indicação válido no cadastro e rastreamento sem anexos privados. Migrações remotas 13/14 e credenciais Stripe permanecem pendentes; as consultas públicas de metadados retornaram PGRST202 antes da publicação. Deploy será conferido após o push.
+
 ## Remoção da verificação em duas etapas
 
 O usuário solicitou remover o segundo fator. Implementada remoção dos guards AAL2, telas/ações TOTP, bloqueios de certificado/perfil/revisão/avulsa/documento e item de navegação. URLs antigas redirecionam usuários autenticados ao painel. Login, verificação de usuário no servidor, propriedade, RLS, quotas, Vault e limites fiscais permanecem.

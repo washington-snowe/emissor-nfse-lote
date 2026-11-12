@@ -1,9 +1,10 @@
 import "server-only";
+import { cache } from "react";
 import { redirect } from "next/navigation";
 import { createSupabaseClient } from "@/lib/supabase/server";
 import { getTenantContext } from "@/lib/tenancy";
 
-export async function requireWorkspace() {
+export const requireWorkspace = cache(async () => {
   const client = await createSupabaseClient();
   if (!client) redirect("/entrar");
   const context = await getTenantContext(client);
@@ -11,4 +12,4 @@ export async function requireWorkspace() {
   if (context.status !== "ready")
     throw new Error("Workspace initialization unavailable.");
   return { client, context };
-}
+});

@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { requireWorkspace } from "@/lib/tenancy-server";
-import { WorkspaceShell } from "@/components/workspace-shell";
+import { WorkspaceShell } from "@/components/workspace";
 import { CompanyForm } from "@/components/company-form";
 
 export const metadata: Metadata = { title: "Cadastrar empresa" };

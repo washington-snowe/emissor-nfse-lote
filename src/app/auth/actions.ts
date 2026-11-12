@@ -1,5 +1,8 @@
 "use server";
 
+import { cookies } from "next/headers";
+import { REFERRAL_COOKIE, validReferralCode } from "@/lib/account";
+import { completeReferral } from "@/lib/referral-attribution";
 import { redirect } from "next/navigation";
 import { createSupabaseClient } from "@/lib/supabase/server";
 import { getSiteOrigin } from "@/lib/config";
@@ -28,6 +31,7 @@ export async function signIn(
         error:
           "Não foi possível entrar. Confira e-mail e senha ou tente novamente mais tarde.",
       };
+    await completeReferral();
   } catch {
     return {
       error:
@@ -56,6 +60,11 @@ export async function signUp(
         error:
           "O cadastro ainda não está disponível. Tente novamente mais tarde.",
       };
+    const referral = form.get("referral");
+    if (validReferralCode(referral)) {
+      const store = await cookies();
+      if (!validReferralCode(store.get(REFERRAL_COOKIE)?.value)) store.set(REFERRAL_COOKIE, referral, { httpOnly: true, secure: process.env.NODE_ENV === "production", sameSite: "lax", path: "/", maxAge: 604800 });
+    }
     const { data, error } = await supabase.auth.signUp({
       email: input.email,
       password: input.password,
@@ -66,6 +75,7 @@ export async function signUp(
         error:
           "Não foi possível concluir o cadastro. Tente novamente mais tarde.",
       };
+    if (data.session) await completeReferral();
     if (!data.session)
       return {
         success:

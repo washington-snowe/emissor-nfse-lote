@@ -6,8 +6,8 @@ import {
   FileSpreadsheet,
   ShieldCheck,
 } from "lucide-react";
-import { requireWorkspace } from "@/lib/tenancy-server";
-import { WorkspaceShell } from "@/components/workspace-shell";
+import { getWorkspaceData } from "@/lib/workspace-data";
+import { WorkspaceShell } from "@/components/workspace";
 
 export const metadata: Metadata = { title: "Meu espaço" };
 export const dynamic = "force-dynamic";
@@ -15,9 +15,10 @@ export const dynamic = "force-dynamic";
 export default async function Dashboard({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: string }>;
+  searchParams: Promise<{ status?: string; empresa?: string }>;
 }) {
-  const { client, context } = await requireWorkspace();
+  const { status, empresa } = await searchParams;
+  const { client, context, selected } = await getWorkspaceData(empresa);
   const result = await client
     .from("companies")
     .select("id", { count: "exact", head: true })
@@ -25,9 +26,8 @@ export default async function Dashboard({
   if (result.error) throw new Error("Companies unavailable.");
   const count = result.count ?? 0;
   const totals = await client.rpc("fiscal_status_totals");
-  const { status } = await searchParams;
   return (
-    <WorkspaceShell email={context.user.email}>
+    <WorkspaceShell email={context.user.email} companyId={selected?.id}>
       <div className="dashboard-content">
         <span className="eyebrow">Seu espaço de trabalho</span>
         <h1>Suas emissões, em um só lugar.</h1>
@@ -54,7 +54,7 @@ export default async function Dashboard({
           </p>
           <Link
             className="btn btn--primary"
-            href={count ? "/painel/notas/nova" : "/painel/empresas/nova"}
+            href={selected ? `/painel/notas/nova?empresa=${selected.id}` : "/painel/empresas/nova"}
           >
             {count ? "Preparar nota avulsa" : "Cadastrar minha empresa"}{" "}
             <ArrowUpRight size={17} aria-hidden="true" />
@@ -67,7 +67,7 @@ export default async function Dashboard({
             <p>
               Confira e salve o CSV mensal da Shopee. Revise tomadores, competência e valores antes de colocar um lote na fila.
             </p>
-            <Link href="/painel/importacoes" className="text-link">Conferir relatório <ArrowUpRight size={16} aria-hidden="true" /></Link>
+            <Link href={selected ? `/painel/importacoes?empresa=${selected.id}` : "/painel/importacoes"} className="text-link">Conferir relatório <ArrowUpRight size={16} aria-hidden="true" /></Link>
           </div>
           <div>
             <ShieldCheck size={24} aria-hidden="true" />
@@ -75,7 +75,7 @@ export default async function Dashboard({
             <p>
               Acompanhe preparações, pendências e consultas. A produção continua dependente de homologação validada.
             </p>
-            <Link href="/painel/notas" className="text-link">Acompanhar emissões <ArrowUpRight size={16} aria-hidden="true" /></Link>
+            <Link href={selected ? `/painel/notas?empresa=${selected.id}` : "/painel/notas"} className="text-link">Acompanhar emissões <ArrowUpRight size={16} aria-hidden="true" /></Link>
           </div>
         </div>
       </div>

@@ -3,7 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireWorkspace } from "@/lib/tenancy-server";
 import { emptyCompany, type CompanyDraft } from "@/lib/companies";
-import { WorkspaceShell } from "@/components/workspace-shell";
+import { WorkspaceShell } from "@/components/workspace";
 import { CompanyForm } from "@/components/company-form";
 
 export const metadata: Metadata = { title: "Dados da empresa" };
@@ -47,7 +47,7 @@ export default async function EditCompany({
       )
     : [];
   return (
-    <WorkspaceShell email={context.user.email} active="companies">
+    <WorkspaceShell email={context.user.email} active="companies" companyId={id}>
       <div className="dashboard-content company-page">
         <span className="eyebrow">Empresas</span>
         <h1>Dados da sua empresa.</h1>

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Building2, Plus, ArrowUpRight } from "lucide-react";
 import { requireWorkspace } from "@/lib/tenancy-server";
-import { WorkspaceShell } from "@/components/workspace-shell";
+import { WorkspaceShell } from "@/components/workspace";
 
 export const metadata: Metadata = { title: "Empresas" };
 export const dynamic = "force-dynamic";
@@ -18,6 +18,8 @@ export default async function Companies({
     .eq("tenant_id", context.tenantId)
     .order("created_at");
   if (error) throw new Error("Companies unavailable.");
+  const profiles = await client.from("company_fiscal_profiles").select("company_id").eq("tenant_id", context.tenantId);
+  const configured = new Set(profiles.data?.map(profile => profile.company_id) ?? []);
   const { salvo } = await searchParams;
   return (
     <WorkspaceShell email={context.user.email} active="companies">
@@ -56,7 +58,7 @@ export default async function Companies({
                     {company.address?.city ? ` · ${company.address.city}` : ""}
                   </p>
                   <span className="small-status">
-                    Configuração fiscal pendente
+                    {profiles.error ? "Dados cadastrados" : configured.has(company.id) ? "Perfil fiscal configurado" : "Configuração fiscal pendente"}
                   </span>
                 </div>
                 <ArrowUpRight size={19} aria-hidden="true" />

@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { requireWorkspace } from "@/lib/tenancy-server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { parseFiscalProfile, profileFromForm, validProfileEvidence } from "@/lib/nfse/profile";
+import { parseFiscalProfile, profileFromForm, validProfileEvidence, mergeFiscalSection } from "@/lib/nfse/profile";
 import { buildDps } from "@/lib/nfse/dps";
 import { validateFiscalSchema } from "@/lib/nfse/schema";
 
@@ -36,4 +36,14 @@ export async function saveFiscalProfile(companyId: string, _previous: FiscalProf
   };
   revalidatePath(`/painel/empresas/${company.data.id}/fiscal`);
   return { version: result.data.version, success: `Versão ${result.data.version} salva. A revisão das operações e a homologação continuam necessárias para emitir.` };
+}
+
+export async function saveFiscalSection(companyId: string, section: "service" | "advanced", previous: FiscalProfileState, form: FormData): Promise<FiscalProfileState> {
+  const { client, context } = await requireWorkspace();
+  if (!["service", "advanced"].includes(section)) return { error: "Área fiscal inválida." };
+  const company = await client.from("companies").select("cnpj,tax_regime").eq("id", companyId).eq("tenant_id", context.tenantId).maybeSingle();
+  const current = await client.from("company_fiscal_profiles").select("configuration").eq("company_id", companyId).eq("tenant_id", context.tenantId).order("version", { ascending: false }).limit(1).maybeSingle();
+  const profile = company.data && current.data ? parseFiscalProfile(current.data.configuration, company.data.cnpj, company.data.tax_regime) : null;
+  if (company.error || current.error || !profile) return { error: "Conclua primeiro a configuração fiscal inicial." };
+  return saveFiscalProfile(companyId, previous, mergeFiscalSection(profile, form, section));
 }

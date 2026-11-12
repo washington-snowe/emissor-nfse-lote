@@ -20,6 +20,9 @@ try {
   await mkdir(path.join(root, "shots/reports"), { recursive: true });
   await build({ entryPoints: [path.join(root, "tests/ui/report-entry.tsx")], bundle: true, jsx: "automatic", outfile: path.join(output, "bundle.js"), tsconfig: path.join(root, "tsconfig.json"), alias: {
     "@/app/auth/actions": path.join(root, "tests/ui/auth-actions.ts"),
+    "@/app/painel/navigation-actions": path.join(root, "tests/ui/workflow-actions.ts"),
+    "@/app/painel/conta/actions": path.join(root, "tests/ui/workflow-actions.ts"),
+    "@/app/painel/conta/assinatura/actions": path.join(root, "tests/ui/workflow-actions.ts"),
     "@/app/painel/certificados/actions": path.join(root, "tests/ui/workflow-actions.ts"),
     "@/app/painel/importacoes/review-actions": path.join(root, "tests/ui/workflow-actions.ts"),
     "@/app/painel/notas/actions": path.join(root, "tests/ui/workflow-actions.ts"),

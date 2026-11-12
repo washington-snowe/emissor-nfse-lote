@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireWorkspace } from "@/lib/tenancy-server";
-import { WorkspaceShell } from "@/components/workspace-shell";
+import { WorkspaceShell } from "@/components/workspace";
 import { FiscalOperationList, type OperationDisplay } from "@/components/fiscal-operation-list";
 import { FiscalControls } from "@/components/fiscal-controls";
 import { FiscalRefresh } from "@/components/fiscal-refresh";

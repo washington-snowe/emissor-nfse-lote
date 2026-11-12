@@ -6,7 +6,7 @@ import { ArrowRight, LoaderCircle } from "lucide-react";
 import { signIn, signUp } from "@/app/auth/actions";
 import type { AuthState } from "@/lib/auth-validation";
 
-export function AuthForm({ signup = false }: { signup?: boolean }) {
+export function AuthForm({ signup = false, referral }: { signup?: boolean; referral?: string }) {
   const [state, action, pending] = useActionState<AuthState, FormData>(
     signup ? signUp : signIn,
     {},
@@ -21,6 +21,7 @@ export function AuthForm({ signup = false }: { signup?: boolean }) {
   }, [state]);
   return (
     <form action={action} className="auth-form">
+      {signup && referral && <input type="hidden" name="referral" value={referral} />}
       <div className="field">
         <label htmlFor="email">E-mail</label>
         <input

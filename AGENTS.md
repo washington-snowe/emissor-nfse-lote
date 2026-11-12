@@ -53,6 +53,16 @@ Revisões (migração 9): ler `docs/revisao-fiscal.md`. Confirmação exige dige
 
 Fila e avulsa (migrações 10/11): ler `docs/fila-emissao-avulsa.md`. O usuário confirmou 8/9 e o CNPJ Shopee 35635824000112; A1 só estará disponível no próximo dia. Modelos reaproveitam o perfil fiscal, sem inferir códigos de serviço ou gravar valor/competência antigos. Antes de A1/acesso oficial, reservar somente escopos locais, sem tocar o namespace de outro tenant. Numeração compartilhada exige certificado próprio e acesso mTLS oficial; acesso não é autorização fiscal. Uma operação pode iniciar no máximo um POST: lease expirado após intenção vira consulta, nunca nova preparação. Homologação fica desativada por padrão, produção bloqueada. Contratos/certificados/XMLs de testes são sintéticos e não provam homologação. Não aceitar HTTP 2xx sem documento válido e vinculado à DPS. Não editar migrações encaminhadas ao usuário; 10/11 foram solicitadas após testes locais.
 
+## Menu, conta e Stripe
+
+O usuário pediu os itens da imagem, exceto API. `docs/menu-conta-stripe.md` é a referência atual: Início, Notas, Emitir (lote/avulsa), Empresa (Cadastro/Serviço/Avançado/Certificado) e Conta (Perfil/Login/Assinatura/Indicações). Não remover os endpoints internos por causa da exclusão do item de menu. Seleção de empresa é preferência HttpOnly validada contra empresas próprias; nunca autorização por cookie/URL. `WorkspaceShell` de páginas vem do wrapper servidor `components/workspace.tsx`; a versão de apresentação usa dados reais fornecidos pelo wrapper ou fixtures explícitas em testes.
+
+Migrações 13/14 foram encaminhadas após testes e não devem ser editadas. Migrações 1–12 estão confirmadas. Testes de produção sintética relaxam constraints somente dentro de transação descartável com rollback, nunca no Supabase hospedado. Preservar o bloqueio fiscal real de produção e a remoção de MFA.
+
+Planos aprovados: Start R$19,90/150 notas/excedente30 centavos; Afiliado R$39,90/500/18; 5x R$99,90/2500/6; 10x R$149,90/5000/5; 20x R$199,90/10000/3. CNPJs sem limite. Trimestre = três mensalidades ×67%, arredondando somente o total. Franquia mensal ancorada na assinatura, sem consumo de homologação. Comissão de indicação: 20% somente do primeiro pagamento capturado, após descontos/estornos; renovação não gera outra. Repasse de comissões ainda não configurado; não apresentar crédito como dinheiro transferido.
+
+Stripe usa hosts fixos, TLS, versão REST explícita, HMAC do corpo original, leases/idempotência e consulta atual antes de persistir snapshots. Retorno do Checkout nunca comprova pagamento. Segredos somente no servidor, sem `NEXT_PUBLIC`; `STRIPE_BILLING_ENABLED=false` por padrão. Test/live separados. Credenciais, checkout real em sandbox e repasses não foram validados neste executor; fixtures não são homologação da Stripe. Fonte/versionamento em `integrations/stripe/provenance.json`.
+
 ## Conclusão
 
 Cada tarefa aprovada deve ter critérios de aceitação, implementação, testes relevantes executados com resultado e documentação atualizada. Distinguir testes passados, falhos, ignorados e não executados. Falhas de isolamento, duplicidade ou integridade financeira impedem etapas dependentes. Não declarar produção pronta sem homologação fiscal, restauração de backup, revisão de segurança e autorização.

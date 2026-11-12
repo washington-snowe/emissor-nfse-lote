@@ -1,3 +1,4 @@
+import { completeReferral } from "@/lib/referral-attribution";
 import { NextResponse } from "next/server";
 import { createSupabaseClient } from "@/lib/supabase/server";
 import { getSiteOrigin } from "@/lib/config";
@@ -14,10 +15,12 @@ export async function GET(request: Request) {
     const supabase = await createSupabaseClient();
     if (code && supabase) {
       const { error } = await supabase.auth.exchangeCodeForSession(code);
-      if (!error)
+      if (!error) {
+        await completeReferral();
         return NextResponse.redirect(`${origin}/painel`, {
           headers: { "Cache-Control": "no-store" },
         });
+      }
     }
   } catch {
     // Tokens and provider errors must never appear in logs or redirects.

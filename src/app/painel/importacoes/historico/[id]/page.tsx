@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { requireWorkspace } from "@/lib/tenancy-server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { validatePersistedReport } from "@/lib/persisted-report";
-import { WorkspaceShell } from "@/components/workspace-shell";
+import { WorkspaceShell } from "@/components/workspace";
 import { ReportResults } from "@/components/report-results";
 import { QueueRefresh } from "@/components/queue-refresh";
 import { retryImport } from "../../actions";
@@ -35,9 +35,9 @@ export default async function SavedReport({ params }: { params: Promise<{ id: st
   const configuration = profile?.data ? parseFiscalProfile(profile.data.configuration, company.data.cnpj, company.data.tax_regime) : null;
   const snapshot = review?.data ? readReviewSnapshot(review.data.snapshot, report.id, report.file_sha256) : null;
   const confirmation = review?.data ? await client.from("review_confirmations").select("id").eq("review_id", review.data.id).eq("tenant_id", context.tenantId).maybeSingle() : null;
-  return <WorkspaceShell email={context.user.email} active="imports"><div className="dashboard-content report-page">
+  return <WorkspaceShell email={context.user.email} active="imports" companyId={company.data.id}><div className="dashboard-content report-page">
     <span className="eyebrow">Importação salva</span><h1>Revise seu relatório.</h1><p>{report.file_name}</p>
-    <Link className="text-link" href="/painel/importacoes/historico">Voltar às importações</Link>
+    <Link className="text-link" href={`/painel/importacoes/historico?empresa=${company.data.id}`}>Voltar às importações</Link>
     {parsed ? <ReportResults preview={parsed} companyName={company.data.legal_name} /> : <section className="dashboard-welcome">
       <h2>{report.status === "received" ? "Seu relatório está na fila." : "O arquivo precisa de atenção."}</h2>
       <p>{report.status === "received" ? "O original está salvo. O processamento pode continuar mesmo após você fechar esta página." : "Não foi possível reconhecer e validar o relatório inteiro. Confira o arquivo original e envie uma nova exportação; nenhum total parcial foi aprovado."}</p>
