@@ -18,6 +18,8 @@ O usuário confirmou a aplicação das migrações 1–7. A primeira tentativa d
 
 A próxima estrutura é `supabase/migrations/202611110008_fiscal_profiles.sql`, para configurações fiscais versionadas. Aplicar somente essa nova migração, quando solicitada após os testes; não executar arquivos de `tests/database`. Ela adiciona tabela e função, sem apagar dados anteriores. O cadastro ficará indisponível até sua aplicação. Ver [núcleo fiscal e limites](nucleo-fiscal.md).
 
+Depois da 8, aplicar `supabase/migrations/202611110009_report_reviews.sql`, para revisões e confirmações versionadas. Não repetir as migrações anteriores. Essa etapa também não cria transmissão ou documentos fiscais; ver [revisão fiscal](revisao-fiscal.md). Sem a migração, o histórico de importações permanece acessível e informa que a preparação está pendente.
+
 Os arquivos foram aplicados em PostgreSQL 17 descartável com testes de privilégio, duas identidades, chaves compostas, reenvio concorrente, exclusividade de reservas e isolamento de importações/certificados. O teste local **não inclui o Vault real**, indisponível na imagem PostgreSQL padrão; comprova o bloqueio quando ele falta. A criptografia AES-GCM e o parser A1 são testados separadamente com dados sintéticos.
 
 ## 2. Variáveis privadas da aplicação

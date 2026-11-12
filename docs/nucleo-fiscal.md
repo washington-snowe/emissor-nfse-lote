@@ -33,4 +33,4 @@ UI testa o componente real com ação de fronteira explicitamente sintética: ca
 
 ## Próximas dependências
 
-Revisão dos tomadores e competência, confirmação de versão, fila fiscal, contrato HTTP oficial, envio, reconciliação e prova de autorização ainda precisam ser integrados. O acesso mTLS de homologação e as variáveis privadas aguardam confirmação do usuário. Nenhuma nota ou cobrança real foi gerada pelos testes.
+Revisão dos tomadores e competência e confirmação de versão foram acrescentadas em [revisão fiscal](revisao-fiscal.md), com migração 9. Fila fiscal, contrato HTTP oficial, envio, reconciliação e prova de autorização continuam pendentes. O acesso mTLS de homologação e as variáveis privadas aguardam confirmação do usuário. Nenhuma nota ou cobrança real foi gerada pelos testes.

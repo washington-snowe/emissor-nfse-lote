@@ -22,6 +22,7 @@ try {
     "@/app/auth/actions": path.join(root, "tests/ui/auth-actions.ts"),
     "@/app/painel/seguranca/actions": path.join(root, "tests/ui/workflow-actions.ts"),
     "@/app/painel/certificados/actions": path.join(root, "tests/ui/workflow-actions.ts"),
+    "@/app/painel/importacoes/review-actions": path.join(root, "tests/ui/workflow-actions.ts"),
     "next/navigation": path.join(root, "tests/ui/navigation.ts"),
     "next/link": path.join(root, "tests/ui/link.tsx"),
   } });
@@ -183,6 +184,74 @@ try {
     await page.screenshot({ path: path.join(root, `shots/reports/fiscal-${width}.png`), fullPage: true });
     console.log(`Fiscal profile ${width}px: no inferred tax fields, preserves edits on failure/success, version advances, foreign controls, no overflow`);
   }
+  for (const width of [1440, 820, 390, 320]) {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto(`${origin}/?screen=review`);
+    assert.equal(await page.locator('#review-recipient').inputValue(), "");
+    assert.equal(await page.locator('#review-competence').inputValue(), "");
+    assert.equal(await page.getByRole('button', { name: 'Preparar prévia das notas' }).isDisabled(), true);
+    await page.locator('#review-competence').fill('2026-10-31');
+    await page.locator('#review-type').fill('Comissão sintética de teste');
+    await page.locator('#review-evidence').fill('Orientação sintética de teste');
+    await page.locator('#review-recipient').selectOption('reported_sellers');
+    await page.locator('#review-grouping').selectOption('per_row');
+    await page.locator('.review-candidates details').nth(1).locator('summary').click();
+    for (const [name, value] of Object.entries({ 'address.postalCode': '000000', 'address.city': 'Synthetic city', 'address.province': 'Synthetic province', 'address.street': 'Synthetic street', 'address.number': '1', 'address.district': 'Synthetic district', foreignAmount: '2.20' })) {
+      await page.locator(`[name="row-3.${name}"]`).fill(value);
+    }
+    await page.locator('[name="confirmRecipientRole"]').check();
+    await page.getByRole('button', { name: 'Preparar prévia das notas' }).click();
+    await page.getByRole('alert').filter({ hasText: 'Revisão sintética precisa' }).waitFor();
+    assert.equal(await page.locator('#review-evidence').inputValue(), 'Orientação sintética de teste');
+    assert.equal(await page.locator('[name="row-3.address.street"]').inputValue(), 'Synthetic street');
+    await page.getByRole('button', { name: 'Preparar prévia das notas' }).click();
+    await page.getByRole('status').filter({ hasText: 'Revisão sintética salva' }).waitFor();
+    const payload = JSON.parse(await page.evaluate(() => window.workflowUiTest.reviewJson));
+    assert.equal(payload.competenceDate, '2026-10-31');
+    assert.equal(payload.confirmRecipientRole, true);
+    assert.equal(payload.recipients[1].foreignAmount, '2.20');
+    assert.equal(payload.recipients[1].person.address.country, 'CN');
+    assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), `Review overflow at ${width}`);
+    await page.screenshot({ path: path.join(root, `shots/reports/review-${width}.png`), fullPage: true });
+    await page.goto(`${origin}/?screen=review-confirmation`);
+    assert.equal(await page.getByRole('button', { name: 'Confirmar esta revisão' }).isDisabled(), true);
+    await page.getByRole('checkbox').check();
+    await page.getByRole('button', { name: 'Confirmar esta revisão' }).click();
+    await page.getByRole('status').filter({ hasText: 'Confirmação sintética' }).waitFor();
+    assert.equal(await page.evaluate(() => window.workflowUiTest.calls), 1);
+    console.log(`Review ${width}px: explicit competence/role, foreign address/value, preserves entered data, gated confirmation, no overflow`);
+  }
+  await page.goto(`${origin}/?screen=review`);
+  await page.locator('#review-recipient').selectOption('single_recipient');
+  await page.locator('[name="common.kind"]').selectOption('foreign');
+  for (const [name, value] of Object.entries({ document: 'SYNTHETIC-NIF', legalName: 'Synthetic common recipient', country: 'CN', 'address.postalCode': '000000', 'address.city': 'Synthetic city', 'address.province': 'Synthetic province', 'address.street': 'Synthetic street', 'address.number': '1', 'address.district': 'Synthetic district' })) {
+    await page.locator(`[name="common.${name}"]`).fill(value);
+  }
+  assert.equal(await page.locator('[name="row-2.foreignAmount"]').inputValue(), '');
+  assert.equal(await page.locator('[name="row-3.foreignAmount"]').inputValue(), '');
+  await page.locator('[name="row-2.foreignAmount"]').fill('1.10');
+  await page.locator('[name="row-3.foreignAmount"]').fill('2.20');
+  await page.locator('#review-competence').fill('2026-10-31');
+  await page.locator('#review-type').fill('Synthetic commission');
+  await page.locator('#review-evidence').fill('Synthetic accounting reference');
+  await page.locator('#review-grouping').selectOption('same_recipient');
+  await page.locator('[name="confirmRecipientRole"]').check();
+  await page.getByRole('button', { name: 'Preparar prévia das notas' }).click();
+  await page.getByRole('alert').filter({ hasText: 'Revisão sintética precisa' }).waitFor();
+  const commonPayload = JSON.parse(await page.evaluate(() => window.workflowUiTest.reviewJson));
+  assert.equal(commonPayload.commonRecipient.address.country, 'CN');
+  assert.deepEqual(commonPayload.recipients.map(row => row.foreignAmount), ['1.10', '2.20']);
+  await page.locator('[name="common.kind"]').selectOption('no_nif');
+  assert.equal(await page.locator('[name="common.document"]').inputValue(), '');
+  await page.locator('[name="common.document"]').selectOption('1');
+  await page.getByRole('button', { name: 'Preparar prévia das notas' }).click();
+  await page.getByRole('status').filter({ hasText: 'Revisão sintética salva' }).waitFor();
+  const withoutNif = JSON.parse(await page.evaluate(() => window.workflowUiTest.reviewJson));
+  assert.equal(withoutNif.commonRecipient.kind, 'no_nif');
+  assert.equal(withoutNif.commonRecipient.document, '1');
+  await page.locator('[name="common.country"]').fill('BR');
+  assert.equal(await page.locator('[name="row-2.foreignAmount"]').count(), 0);
+  console.log('Review: explicit common foreign recipient preserves per-row currency values; country change clears stale exterior fields');
   assert.deepEqual(errors, []);
   console.log("Reports: cancelled read stays discarded; reload clears data; missing company blocks file selection; no runtime errors");
 } finally {

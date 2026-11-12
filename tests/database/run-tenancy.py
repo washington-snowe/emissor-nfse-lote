@@ -72,6 +72,10 @@ try:
     profile_count = re.search(r"^PROFILE_ASSERTIONS=(\d+)$", profiles, re.M)
     assert profile_count and int(profile_count[1]) >= 17, "Fiscal profile assertions did not complete"
     print(f"Fiscal profiles/versioning/isolation: {profile_count[1]} assertions passed")
+    reviews = sql((ROOT / "tests/database/report-reviews.sql").read_text())
+    review_count = re.search(r"^REVIEW_ASSERTIONS=(\d+)$", reviews, re.M)
+    assert review_count and int(review_count[1]) >= 20, "Report review assertions did not complete"
+    print(f"Report reviews/confirmation/integrity: {review_count[1]} assertions passed")
     mfa = sql((ROOT / "tests/database/mfa.sql").read_text())
     mfa_count = re.search(r"^MFA_ASSERTIONS=(\d+)$", mfa, re.M)
     assert mfa_count and int(mfa_count[1]) >= 10, "MFA policy assertions did not complete"
@@ -143,6 +147,49 @@ try:
     assert versions.count("1") == 1 and versions.count("stale") == 7, "Concurrent edits overwrote a profile version"
     assert sql(f"select count(*) from public.company_fiscal_profiles where company_id='{company}';").strip() == "1"
     print("Fiscal profile concurrency: 8 competing edits, 1 new version, 7 stale edits blocked")
+
+    sql(f"""
+      select public.finish_report_job(j.id,j.lease_token,jsonb_build_object('review',jsonb_build_object(
+        'source',jsonb_build_object('fileSha256',r.file_sha256,'adapterId','shopee-seller-monthly-csv','adapterVersion','1'),
+        'fiscalStatus','not_evaluated','rows','[{{"location":{{"row":2}},"currency":"BRL","amount":"1.00"}}]'::jsonb),
+        'reportedSellers','[{{}}]'::jsonb)) from public.work_jobs j join public.report_imports r on r.id=j.import_id
+        where r.id='{imported[0]}';
+    """)
+    profile_id = sql(f"select id from public.company_fiscal_profiles where company_id='{company}' order by version desc limit 1;").strip()
+    review_snapshot = sql(f"""
+      select jsonb_build_object('contractVersion',1,'environment','homologation','companyId',c.id,'issuerCnpj',c.cnpj,
+        'importId',r.id,'fileSha256',r.file_sha256,'profileId',p.id,'profileSha256',p.configuration_sha256,'profileVersion',p.version,
+        'competenceDate','2026-10-31','commissionType','Synthetic concurrency test','evidenceReference','Synthetic reference',
+        'recipientRoleConfirmed',true,'recipientChoice','single_recipient','grouping','per_row','sourceRows',1,'currency','BRL','total','1.00',
+        'groups',jsonb_build_array(jsonb_build_object('sourceRows','[2]'::jsonb,'sourceClaims',jsonb_build_array(repeat('e',64)),
+          'allocations','[{{"row":2,"amount":"1.00"}}]'::jsonb,'amount','1.00','recipient','{{"kind":"cnpj","document":"11222333000181","country":"BR","legalName":"Synthetic concurrency fixture"}}'::jsonb)))
+      from public.report_imports r join public.companies c on c.id=r.company_id join public.company_fiscal_profiles p on p.id='{profile_id}'
+      where r.id='{imported[0]}';
+    """).strip().replace("'", "''")
+
+    def prepare_review(_):
+        result = docker("exec", "-i", CONTAINER, "psql", "-X", "-qAt", "-v", "ON_ERROR_STOP=1", "-U", "postgres", "-d", "postgres", source=f"""
+          set role service_role;
+          select public.save_report_review('00000000-0000-4000-8000-000000000003','{imported[0]}','{profile_id}',0,'{review_snapshot}')->>'version';
+        """, check=False)
+        if result.returncode:
+            assert 'Review changed' in result.stderr, "Unexpected concurrent review failure"
+            return "stale"
+        return result.stdout.strip()
+
+    with ThreadPoolExecutor(max_workers=8) as pool:
+        prepared = list(pool.map(prepare_review, range(8)))
+    assert prepared.count("1") == 1 and prepared.count("stale") == 7, "Concurrent preparation overwrote a review"
+    review_id, review_hash = sql(f"select id||'|'||snapshot_sha256 from public.report_reviews where import_id='{imported[0]}';").strip().split('|')
+
+    def confirm_review(_):
+        return sql(f"set role service_role; select public.confirm_report_review('00000000-0000-4000-8000-000000000003','{review_id}','{review_hash}');").strip()
+
+    with ThreadPoolExecutor(max_workers=8) as pool:
+        confirmations = list(pool.map(confirm_review, range(8)))
+    assert len(set(confirmations)) == 1 and re.fullmatch(r"[0-9a-f-]{36}", confirmations[0]), "Repeated confirmation created different proof records"
+    assert sql(f"select count(*) from public.review_confirmations where review_id='{review_id}';").strip() == "1"
+    print("Review concurrency: 8 competing preparations, 1 version; 8 confirmations, 1 proof record")
 
     def lookup(_):
         return sql("""

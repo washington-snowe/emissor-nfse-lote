@@ -4,7 +4,7 @@ const { validateXML } = require("xmllint-wasm");
 
 // Only public XML and pinned schemas reach this isolated validator; never private keys/passwords.
 validateXML({
-  xml: { fileName: "document.xml", contents: workerData.xml },
+  xml: workerData.xmls.map((contents, index) => ({ fileName: `document-${index}.xml`, contents })),
   schema: workerData.schema,
   preload: workerData.preload,
   initialMemoryPages: 256,

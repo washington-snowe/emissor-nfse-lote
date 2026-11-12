@@ -43,6 +43,7 @@ Quando configurado o serviço privado, o usuário pode escolher **Salvar importa
 - [Layout Shopee CSV mensal e prévia local](docs/shopee-csv-mensal.md).
 - [Persistência, fila, MFA e certificados](docs/importacoes-certificados-seguranca.md).
 - [Configurações fiscais, assinatura e validação XML](docs/nucleo-fiscal.md).
+- [Revisão, tomadores, consolidação e confirmação por versão](docs/revisao-fiscal.md).
 - [Configurar processamento Vercel/Supabase](docs/configurar-processamento.md).
 - [Execução do sistema completo e dependências](docs/execucao-sistema.md).
 - [Especificação do usuário](docs/especificacao-mestra.md).

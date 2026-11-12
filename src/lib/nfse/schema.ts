@@ -29,20 +29,27 @@ async function schemas(): Promise<SchemaFile[]> {
 }
 
 export async function validateFiscalSchema(xml: string, kind: "DPS" | "NFSe"): Promise<boolean> {
+  return validateFiscalDocuments([xml], kind);
+}
+
+export async function validateFiscalDocuments(xmls: string[], kind: "DPS" | "NFSe"): Promise<boolean> {
   if (kind !== "DPS" && kind !== "NFSe") return false;
   try {
-    const doc = parseFiscalXml(xml);
-    if (doc.documentElement!.localName !== kind || doc.documentElement!.namespaceURI !== NFSE_NAMESPACE) return false;
-    const dps = doc.getElementsByTagNameNS(NFSE_NAMESPACE, "infDPS");
-    if (dps.length !== 1) return false;
-    const series = singleElement(dps.item(0)!, NFSE_NAMESPACE, "serie").textContent ?? "";
-    if (!/^\d{5}$/.test(series) || BigInt(series) < 1n || BigInt(series) > 49999n) return false;
+    if (!Array.isArray(xmls) || xmls.length < 1 || xmls.length > 500 || xmls.reduce((size, xml) => size + Buffer.byteLength(xml), 0) > 4_000_000) return false;
+    for (const xml of xmls) {
+      const doc = parseFiscalXml(xml);
+      if (doc.documentElement!.localName !== kind || doc.documentElement!.namespaceURI !== NFSE_NAMESPACE) return false;
+      const dps = doc.getElementsByTagNameNS(NFSE_NAMESPACE, "infDPS");
+      if (dps.length !== 1) return false;
+      const series = singleElement(dps.item(0)!, NFSE_NAMESPACE, "serie").textContent ?? "";
+      if (!/^\d{5}$/.test(series) || BigInt(series) < 1n || BigInt(series) > 49999n) return false;
+    }
     cached ??= schemas().catch(error => { cached = undefined; throw error; });
     const files = await cached;
     const schema = files.find(file => file.fileName === `${kind}_v1.01.xsd`)!;
     return await new Promise<boolean>(resolve => {
       const worker = new Worker(join(process.cwd(), "server/schema-worker.cjs"), {
-        workerData: { xml, schema, preload: files.filter(file => file !== schema) },
+        workerData: { xmls, schema, preload: files.filter(file => file !== schema) },
         resourceLimits: { maxOldGenerationSizeMb: 32, maxYoungGenerationSizeMb: 8, stackSizeMb: 2 },
       });
       let finished = false;

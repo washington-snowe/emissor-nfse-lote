@@ -49,6 +49,8 @@ Consultar documentação oficial vigente e registrar URL, versão e evidência a
 
 Perfis fiscais (migração 8) mantêm histórico e controle de versão esperada; não editar migrações já aplicadas ou encaminhadas ao usuário. Ler `docs/nucleo-fiscal.md`: XSD oficial preservado, adaptação única da expressão TSSerieDPS apenas em memória e validação independente da série conforme RN144. Assinatura e XSD locais não provam homologação. O formulário não presume códigos fiscais. Valor em moeda estrangeira é por operação e não um valor padrão compartilhado do perfil.
 
+Revisões (migração 9): ler `docs/revisao-fiscal.md`. Confirmação exige digest e versão/perfil atuais e não transmite nesta entrega. Snapshot preserva todas as linhas, valores e alocações; negativos/zero não são descartados. Os escopos mensais por loja são preparados para futura prevenção de reexportações, mas ainda não estão reservados por fila fiscal. Não anunciar bloqueio de emissão duplicada entre arquivos até integrar essa reserva transacional. Dados reaproveitados de revisão anterior não eliminam a confirmação do usuário.
+
 ## Conclusão
 
 Cada tarefa aprovada deve ter critérios de aceitação, implementação, testes relevantes executados com resultado e documentação atualizada. Distinguir testes passados, falhos, ignorados e não executados. Falhas de isolamento, duplicidade ou integridade financeira impedem etapas dependentes. Não declarar produção pronta sem homologação fiscal, restauração de backup, revisão de segurança e autorização.

@@ -647,6 +647,11 @@ strong {
 .fiscal-profile-form select { width: 100%; min-width: 0; }
 .fiscal-checkbox { display: flex; align-items: flex-start; gap: 10px; line-height: 1.6; }
 .fiscal-checkbox input { flex: none; margin-top: 6px; }
+.review-candidates { margin: 24px 0; }
+.review-candidates details { padding: 16px 0; border-bottom: 1px solid var(--line); }
+.review-candidates summary { overflow-wrap: anywhere; }
+.review-role-confirmation, .review-confirmation { margin-top: 24px; }
+.review-confirmation > button { margin-top: 20px; }
 .auth-submit {
   width: 100%;
 }

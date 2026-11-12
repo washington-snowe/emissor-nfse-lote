@@ -28,6 +28,14 @@ Autorização atual: o usuário solicitou implementar o sistema completo, inclui
 
 Este arquivo registra execução em andamento; não é declaração de sistema completo ou homologação fiscal.
 
+## Entrega de revisão fiscal
+
+O checkpoint de perfis/XML `ec9959e` foi publicado com sucesso na Vercel. Na sequência foram implementados revisão de tomadores/competência, consolidação explícita, alocações por linha e confirmação de snapshot imutável em homologação, sem transmissão. A migração 9 foi encaminhada após testes e não deve ser editada. O usuário ainda não confirmou a aplicação das migrações 8/9, as variáveis privadas, o cadastro/consulta A1 ou a orientação sobre tomador.
+
+Verificação desta etapa: 49 unitários aprovados e 6 opt-in ignorados; 159 asserções PostgreSQL, com concorrência de preparação e confirmação (oito concorrentes, uma versão/prova); UI em 1440/820/390/320 px, build e lint aprovados. As fronteiras de Auth/Vault/ações nos testes de UI são sintéticas. Dados reais do CSV continuam fora dos arquivos versionáveis. A consulta pública de documentação oficial retornou HTTP 200 com lista vazia novamente; não há contrato HTTP capturado para implementar o envio sem presumir campos.
+
+Ler `docs/revisao-fiscal.md` para limites (até 500 linhas por revisão), escolhas explícitas, conservação dos valores e dependências ainda necessárias: fila fiscal, sequenciamento, reserva de escopos para reexportações, envio/reconciliação, prova de autorização e documentos. Preparar/confirmar não enfileira emissão. Produção e comercial não estão prontos.
+
 ## Checkpoint 6bf61d8
 
 Publicado na Vercel em 11/11/2026: importação privada/fila/histórico, MFA com política de dados, A1 com envelope/Vault e consulta GET de homologação. O usuário confirmou migrações 3–7; a quarta exigiu retirar REVOKE de funções criptográficas gerenciadas. Testes de banco: 112 asserções (27+22+27+17+9+10), mais concorrência; 37 aprovações unitárias no conjunto e 6 opt-in ignorados; UI e build passaram. MFA, Vault real e A1 ainda aguardam teste no navegador do usuário. A nova consulta não emite notas.

@@ -6,7 +6,7 @@ import { validateXML } from "xmllint-wasm";
 import { buildDps, fiscalDecimal, type DpsInput } from "../src/lib/nfse/dps.ts";
 import { signDps, verifyDpsSignature } from "../src/lib/nfse/signature.ts";
 import { parseFiscalXml } from "../src/lib/nfse/xml.ts";
-import { validateFiscalSchema } from "../src/lib/nfse/schema.ts";
+import { validateFiscalSchema, validateFiscalDocuments } from "../src/lib/nfse/schema.ts";
 
 // All identities/data below are synthetic parser fixtures, never ICP-Brasil/homologation proof.
 const keys = forge.pki.rsa.generateKeyPair(2048);
@@ -111,4 +111,14 @@ test("ME/EPP exige apuração e estimativa; tomador estrangeiro exige endereço 
   const invalid = structuredClone(foreign);
   invalid.profile.foreignTrade!.mode = "9";
   assert.equal(await validateFiscalSchema(sign(invalid).xml, "DPS"), false);
+  const domestic = fixture();
+  domestic.profile.foreignTrade = foreign.profile.foreignTrade;
+  assert.equal(buildDps(domestic).xml.includes("<comExt>"), false, "foreign defaults do not add foreign trade to a domestic row");
+});
+
+test("validação de prévia em lote é limitada e recusa o lote inteiro se um XML falhar", async () => {
+  const xml = buildDps(fixture()).xml;
+  assert.equal(await validateFiscalDocuments(Array(500).fill(xml), "DPS"), true);
+  assert.equal(await validateFiscalDocuments(Array(501).fill(xml), "DPS"), false);
+  assert.equal(await validateFiscalDocuments([xml, xml.replace("<cTribNac>010101", "<cTribNac>invalid")], "DPS"), false);
 });

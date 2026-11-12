@@ -8,6 +8,8 @@ import { CertificateProbe } from "../../src/components/certificate-probe";
 import { CertificateDeactivate } from "../../src/components/certificate-deactivate";
 import { saveReport } from "./workflow-actions";
 import { FiscalProfileForm } from "../../src/components/fiscal-profile-form";
+import { ReportReviewForm } from "../../src/components/report-review-form";
+import { ReviewConfirmation } from "../../src/components/review-confirmation";
 
 const parameters = new URLSearchParams(location.search);
 const screen = parameters.get("screen");
@@ -16,6 +18,15 @@ const companies = parameters.has("empty") ? [] : [
   { id: "test-company-a", legal_name: "Empresa sintética A", cnpj: "11222333000181" },
   { id: "test-company-b", legal_name: "Empresa sintética B", cnpj: "12ABC34501DE35" },
 ];
+const review = <ReportReviewForm candidates={[
+  { row: 2, storeName: "Loja sintética A", referencePeriod: "2026-10", amount: "1.10", person: { kind: "cnpj", document: "11222333000181", country: "BR", legalName: "Empresa sintética A" } },
+  { row: 3, storeName: "Loja sintética exterior", referencePeriod: "2026-10", amount: "2.20", person: { kind: "foreign", document: "SYNTHETIC-NIF", country: "CN", legalName: "Synthetic foreign company" } },
+]} foreignForAll={false} currency="986" needsIntermediary={false} action={async (_state, form) => {
+  window.workflowUiTest.calls++;
+  window.workflowUiTest.reviewJson = String(form.get("review"));
+  return window.workflowUiTest.calls === 1 ? { error: "Revisão sintética precisa de conferência." } :
+    { id: "test-review", version: Number(form.get("version")) + 1, sha256: "a".repeat(64), success: "Revisão sintética salva, sem banco ou emissão." };
+}} />;
 createRoot(document.getElementById("root")!).render(
   <WorkspaceShell email="interface@emissor.example" active="imports">
     <div className="dashboard-content report-page">
@@ -23,7 +34,7 @@ createRoot(document.getElementById("root")!).render(
       <span className="eyebrow">Relatórios de comissões</span>
       <h1>Confira seu relatório da Shopee.</h1>
       <p>Escolha sua empresa e confira o CSV mensal por vendedor antes de preparar a emissão.</p>
-      {screen === "fiscal" ? <FiscalProfileForm municipality="3550308" regime={parameters.has("simples") ? "simples" : "mei"} action={async (_state, form) => {
+      {screen === "review" ? review : screen === "review-confirmation" ? <ReviewConfirmation id="test-review" sha256={"a".repeat(64)} /> : screen === "fiscal" ? <FiscalProfileForm municipality="3550308" regime={parameters.has("simples") ? "simples" : "mei"} action={async (_state, form) => {
         window.workflowUiTest.calls++;
         await new Promise(resolve => setTimeout(resolve, 100));
         return window.workflowUiTest.calls === 1 ? { error: "Falha sintética de validação; confira os campos." } :
