@@ -36,6 +36,11 @@ const meiSetup = <MeiFiscalSetup companyId="test-company" municipality="São Pau
 const automaticSetup = <AutomaticAffiliateSummary companyId="test-company" regime={parameters.has("simples") ? "simples" : "mei"} municipality="São Paulo / SP"
   initial={parameters.has("simples") ? undefined : {valid_from:"2025-06-10",configuration:{issuerMunicipality:"3550308",series:"1",simplesOption:"2",specialRegime:"0",serviceMunicipality:"3550308",nationalTaxCode:"170601",description:"Promoção de vendas como afiliado",issTaxation:"1",issWithholding:"1",totals:{mode:"not_informed"}}}} reason={parameters.has("simples") ? "simples_data_required" : "configured"}/>;
 const quickData=quickUiData();
+if(parameters.has("many-notes")&&quickData.preview){
+  const first=quickData.preview.groups[0];
+  quickData.preview.groups=Array.from({length:38},(_,i)=>({...first,sourceRows:[i+2],sourceClaims:[i.toString(16).padStart(64,"0")],allocations:[{row:i+2,amount:"1.10"}]}));
+  quickData.preview.sourceRows=38;quickData.preview.total="41.80";
+}
 if(parameters.has("transmission-off"))quickData.transmissionEnabled=false;
 if(parameters.has("preview-pending")){quickData.digest=undefined;quickData.error="A competência sugerida é anterior à vigência do perfil fiscal. Confira a data ou a vigência da configuração antes de confirmar.";}
 if(parameters.has("validity-case")){quickData.digest=undefined;quickData.error="O lote usa a competência 31/10/2026, mas o perfil está configurado a partir de 12/11/2026.";quickData.validityAdjustment={profileId:"test-profile",profileVersion:1,profileHash:"b".repeat(64),currentFrom:"2026-11-12",targetFrom:"2026-10-31",previewDigest:"a".repeat(64)};}

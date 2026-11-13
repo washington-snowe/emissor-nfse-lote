@@ -144,7 +144,7 @@ export function ReportPreview({ companies, saveAction, initialCompanyId,automati
         {saved && <p className="save-notice" role="status">{saved.duplicate ? "Este arquivo já estava salvo nesta empresa." : "Importação salva. O processamento continua sem precisar manter esta página aberta."} <Link className="text-link" href={`/painel/importacoes/historico/${saved.id}`}>Abrir importação</Link></p>}
       </form>
 
-      {preview && <ReportResults preview={preview} companyName={selectedCompany?.legal_name ?? ""} headingRef={resultHeading} />}
+      {preview && !automatic && <ReportResults preview={preview} companyName={selectedCompany?.legal_name ?? ""} headingRef={resultHeading} />}
     </>
   );
 }

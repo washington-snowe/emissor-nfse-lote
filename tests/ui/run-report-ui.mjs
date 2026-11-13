@@ -136,6 +136,7 @@ try {
   assert.equal(await page.getByRole("button",{name:"Conferir relatório",exact:true}).count(),0);
   await page.getByLabel("Relatório mensal da Shopee",{exact:true}).setInputFiles(fixture);
   await page.waitForFunction(()=>Boolean(window.workflowUiTest.path));
+  assert.equal(await page.locator('.report-result, .report-table').count(),0,"automatic upload must not show a second list before the review opens");
   assert.equal(await page.evaluate(()=>window.workflowUiTest.calls),1);
   assert.equal(await page.evaluate(()=>window.workflowUiTest.path),"/painel/importacoes?empresa=test-company-a&relatorio=00000000-0000-4000-8000-000000000088");
   await page.goto(`${origin}/?screen=upload`);
@@ -145,11 +146,11 @@ try {
   await page.goto(`${origin}/?screen=quick&transmission-off=1`);
   await page.getByText(/Você pode marcar a revisão e preparar o lote/).waitFor();
   await page.getByRole("checkbox",{name:/Revisei os valores/}).check();
-  assert.equal(await page.getByRole("button",{name:"Confirmar e emitir em homologação",exact:true}).isDisabled(),false,"disabled transmission must not disable review or preparation");
+  assert.equal(await page.getByRole("button",{name:"Revisei, confirmar e emitir em homologação",exact:true}).isDisabled(),false,"disabled transmission must not disable review or preparation");
   assert.equal(await page.evaluate(()=>window.workflowUiTest.calls),0);
   await page.goto(`${origin}/?screen=quick&preview-pending=1`);
   await page.getByRole("checkbox",{name:/Revisei os valores/}).check();
-  assert.equal(await page.getByRole("button",{name:"Confirmar e emitir em homologação",exact:true}).isDisabled(),true,"review acknowledgement cannot bypass invalid preview");
+  assert.equal(await page.getByRole("button",{name:"Revisei, confirmar e emitir em homologação",exact:true}).isDisabled(),true,"review acknowledgement cannot bypass invalid preview");
   assert.ok(await page.locator('#quick-review-hint').innerText().then(text=>text.includes('vigência do perfil fiscal')));
   assert.equal(await page.getByRole("checkbox",{name:/Revisei os valores/}).getAttribute('aria-describedby'),'quick-review-hint');
   await page.getByRole("button",{name:"Conferir prévia",exact:true}).click();
@@ -160,11 +161,44 @@ try {
   assert.equal(await page.getByRole("checkbox",{name:/Revisei os valores/}).isDisabled(),false);
   assert.equal(await page.evaluate(()=>window.workflowUiTest.calls),0);
   console.log('Review checkbox: transmission warning permits acknowledgement; invalid preview still blocks emission; pending reason and refresh are adjacent and accessible; new data clears consent');
+  for(const width of [1440,820,390,320]){
+    await page.setViewportSize({width,height:width<640?640:900});await page.goto(`${origin}/?screen=quick&many-notes=1`);
+    const modal=page.getByRole('dialog',{name:'Revise e emita seu lote.',exact:true});
+    await modal.waitFor();
+    assert.equal(await modal.evaluate(element=>element.matches(':modal')),true,'review must use a real modal with an inert background');
+    assert.equal(await page.locator('.report-table').count(),1,'only one invoice list must exist');
+    assert.equal(await modal.locator('tbody tr').count(),38);
+    assert.equal(await page.evaluate(()=>document.body.style.overflow),'hidden');
+    assert.equal(await page.evaluate(()=>document.activeElement.id),'quick-review-title');
+    const bounds=await modal.boundingBox();assert.ok(bounds.x>=0&&bounds.y>=0&&bounds.x+bounds.width<=width&&bounds.y+bounds.height<=(width<640?640:900)+1,`Modal bounds ${width}`);
+    const body=modal.getByRole('region',{name:'Dados e notas para revisão',exact:true});
+    assert.ok(await body.evaluate(element=>element.scrollHeight>element.clientHeight),`Review must scroll inside the popup at ${width}`);
+    const submit=modal.getByRole('button',{name:'Revisei, confirmar e emitir em homologação',exact:true});
+    const before=await submit.boundingBox();
+    await body.evaluate(element=>{element.scrollTop=element.scrollHeight;});
+    const after=await submit.boundingBox();assert.equal(after.y,before.y,'confirmation stays fixed while the notes scroll');
+    assert.ok(after.y+after.height<=(width<640?640:900),`Confirmation visible ${width}`);
+    assert.ok(await modal.evaluate(element=>element.scrollWidth<=element.clientWidth),`No popup overflow ${width}`);
+    await modal.getByRole('checkbox',{name:/Revisei os valores/}).check();
+    await page.screenshot({path:path.join(root,`shots/reports/quick-dialog-${width}.png`),fullPage:true});
+    // Native dialogs may let Tab reach browser chrome (activeElement=body), never background controls.
+    for(let i=0;i<8;i++){await page.keyboard.press('Tab');assert.ok(await modal.evaluate(element=>element.contains(document.activeElement)||document.activeElement===document.body),'keyboard cannot focus background controls while the modal is open');}
+    await page.keyboard.press('Escape');await modal.waitFor({state:'hidden'});
+    await page.waitForFunction(()=>document.body.style.overflow!=='hidden');
+    assert.equal(await page.evaluate(()=>document.body.style.overflow),'');
+    assert.equal(await page.getByRole('button',{name:'Revisar notas',exact:true}).evaluate(element=>document.activeElement===element),true,'closing restores focus to the review button');
+    assert.equal(await page.locator('.report-table:visible').count(),0,'closed review leaves no second list on the page');
+    await page.getByRole('button',{name:'Revisar notas',exact:true}).click();await modal.waitFor();
+    assert.equal(await modal.getByRole('checkbox',{name:/Revisei os valores/}).isChecked(),false,'reopening never reuses review consent');
+    await modal.getByRole('button',{name:'Fechar revisão',exact:true}).click();await modal.waitFor({state:'hidden'});
+    assert.equal(await page.evaluate(()=>window.workflowUiTest.calls),0,'opening, scrolling and closing cannot queue invoices');
+    console.log(`Review popup ${width}px: one list of 38 notes, internal scrolling, fixed confirmation, trapped/restored focus, close/reopen clears consent, no invoice queued`);
+  }
   for(const width of [1440,390,320]){
     await page.setViewportSize({width,height:900});await page.goto(`${origin}/?screen=quick&validity-case=1`);
     await page.getByRole("heading",{name:"A competência está certa? Ajuste a vigência do serviço.",exact:true}).waitFor();
     const consent=page.getByRole("checkbox",{name:/Revisei os valores/});await consent.check();
-    assert.equal(await page.getByRole("button",{name:"Confirmar e emitir em homologação",exact:true}).isDisabled(),true);
+    assert.equal(await page.getByRole("button",{name:"Revisei, confirmar e emitir em homologação",exact:true}).isDisabled(),true);
     await page.getByRole("button",{name:/Os mesmos parâmetros já valiam em 31\/10\/2026/}).click();
     await page.getByRole("status").filter({hasText:"Vigência conferida"}).waitFor();
     assert.equal(await consent.isChecked(),false);assert.equal(await consent.isDisabled(),false);
@@ -172,14 +206,14 @@ try {
     assert.equal(await page.evaluate(()=>window.workflowUiTest.validityAdjustments),1);
     const adjustedInput=JSON.parse(await page.evaluate(()=>window.workflowUiTest.validityInput));assert.equal(adjustedInput.competenceDate,"2026-10-31");
     assert.equal(await page.locator('[name="competenceDate"]').inputValue(),"2026-10-31");
-    await consent.check();assert.equal(await page.getByRole("button",{name:"Confirmar e emitir em homologação",exact:true}).isDisabled(),false);
+    await consent.check();assert.equal(await page.getByRole("button",{name:"Revisei, confirmar e emitir em homologação",exact:true}).isDisabled(),false);
     assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),`Validity adjustment overflow ${width}`);
     console.log(`Profile validity ${width}px: date-only acknowledgement, competence preserved, consent reset and no invoice queued`);
   }
   for(const width of [1440,820,390,320]){
     await page.setViewportSize({width,height:900});await page.goto(`${origin}/?screen=quick`);
     const consent=page.getByRole("checkbox",{name:/Revisei os valores/});
-    const submit=page.getByRole("button",{name:"Confirmar e emitir em homologação",exact:true});
+    const submit=page.getByRole("button",{name:"Revisei, confirmar e emitir em homologação",exact:true});
     await page.getByRole("heading",{name:"Revise e emita seu lote.",exact:true}).waitFor();
     assert.equal(await page.evaluate(()=>window.workflowUiTest.calls),0);
     assert.equal(await submit.isDisabled(),true);assert.equal(await consent.isChecked(),false);
@@ -202,7 +236,7 @@ try {
     await page.locator('[name="competenceDate"]').fill("2026-11-01");
     assert.equal(await page.getByRole("checkbox",{name:/Revisei os valores/}).isChecked(),false);
     assert.equal(await page.getByRole("checkbox",{name:/Revisei os valores/}).isDisabled(),false,"dirty preview permits acknowledgement, while emission remains blocked until refreshed");
-    assert.equal(await page.getByRole("button",{name:"Confirmar e emitir em homologação",exact:true}).isDisabled(),true);
+    assert.equal(await page.getByRole("button",{name:"Revisei, confirmar e emitir em homologação",exact:true}).isDisabled(),true);
     await page.getByRole("button",{name:"Atualizar prévia",exact:true}).click();
     await page.waitForFunction(()=>document.querySelector('.quick-review .report-totals')?.textContent.includes('01/11/2026'));
     assert.equal(await page.getByRole("checkbox",{name:/Revisei os valores/}).isChecked(),false);
