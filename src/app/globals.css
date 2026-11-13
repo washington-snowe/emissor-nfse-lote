@@ -647,6 +647,24 @@ strong {
 .fiscal-profile-form select { width: 100%; min-width: 0; }
 .fiscal-checkbox { display: flex; align-items: flex-start; gap: 10px; line-height: 1.6; }
 .fiscal-checkbox input { flex: none; margin-top: 6px; }
+.mei-setup { max-width: 760px; margin-top: 28px; padding: clamp(20px, 4vw, 36px); background: white; border: 1px solid var(--line); border-radius: 12px; }
+.mei-setup-heading { display: flex; align-items: flex-start; gap: 16px; }
+.mei-setup-heading h2 { font-size: clamp(22px, 3vw, 28px); font-weight: 500; margin: 0 0 12px; }
+.mei-setup-heading p { margin: 0; }
+.mei-setup-icon { display: grid; place-items: center; flex: none; width: 42px; height: 42px; border-radius: 50%; background: #eaf0e6; color: #244c33; }
+.mei-setup-summary { display: grid; gap: 20px; padding-block: 24px; margin-block: 24px; border-block: 1px solid var(--line); }
+.mei-setup-summary dt { font-size: 13px; color: var(--muted); margin-bottom: 5px; }
+.mei-setup-summary dd { margin: 0; overflow-wrap: anywhere; line-height: 1.6; }
+.mei-setup-form fieldset { min-width: 0; border: 0; padding: 0; margin: 0; }
+.mei-setup-details { margin-block: 24px; }
+.mei-setup-details summary { cursor: pointer; font-size: 14px; }
+.mei-setup-details .field { margin-top: 18px; }
+.mei-setup-details input { max-width: 100%; }
+.mei-setup-footer { margin-top: 24px; }
+.mei-setup-footer .text-link { display: inline-flex; align-items: center; gap: 8px; }
+.mei-setup-footer p { margin-top: 20px; }
+.mei-setup .btn { max-width: 100%; white-space: normal; }
+@media (max-width: 480px) { .mei-setup-heading { flex-direction: column; } .mei-setup .btn { width: 100%; } }
 .review-candidates { margin: 24px 0; }
 .review-candidates details { padding: 16px 0; border-bottom: 1px solid var(--line); }
 .review-candidates summary { overflow-wrap: anywhere; }

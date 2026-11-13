@@ -1,0 +1,65 @@
+{
+  "model": "mei-promocao-vendas-br-v1",
+  "verified_on_utc": "2026-11-13",
+  "url": "https://www.gov.br/nfse/pt-br/biblioteca/documentacao-tecnica/documentacao-atual/anexo_i-sefin_adn-dps_nfse-snnfse-v1-01-20260209.xlsx",
+  "sha256": "de5bc492959eadc8bfa7540e16939995924f2188f743648eaf84d3b31e9eeb7c",
+  "evidence": [
+    {
+      "sheet": "MUN.INCID_INFO.SERV.",
+      "row": 278,
+      "code": "170601",
+      "description": "Propaganda e publicidade, inclusive promoção de vendas, planejamento de campanhas ou sistemas de publicidade, elaboração de desenhos, textos e demais materiais publicitários."
+    },
+    {
+      "sheet": "RN DPS_NFS-e",
+      "row": 147,
+      "rule": 144,
+      "text": "A série informada na DPS não pertence à faixa definida para o tipo de emissor utilizado para a sua emissão.",
+      "notes": "Faixas de utilização da série da DPS:\n\n00001 a 49999 - Emissão com aplicativo pŕoprio;\n50000 a 69999 - Emissor Móvel;\n70000 a 79999 - Emissor Web;\n80000 a 89999 - Emissão com *transcrissão manual (Web);\n\n*O emitente deve informar o número de série (transcrever o número de série) que foi repassado ao não emitente da NFS-e."
+    },
+    {
+      "sheet": "RN DPS_NFS-e",
+      "row": 166,
+      "rule": 163,
+      "text": "Se tpEmit for igual a 1 (prestador) e a opção pelo simples nacional for igual a 2 (MEI), \nentão o município emissor deve corresponder ao município do endereço do emitente no cadastro CNPJ."
+    },
+    {
+      "sheet": "RN DPS_NFS-e",
+      "row": 201,
+      "rule": 198,
+      "text": "Se o emitente for o prestador de serviço (tpEmit = 1) e, se houver registro complementar do contribuinte no CNC do município correspondente ao município emissor da DPS, então a IM deve ser informada na DPS.\n\nUtilizar o identificador federal (CNPJ ou CPF) do prestador de serviço e o codigo do município emissor (cLocEmi), ambos informados na DPS, para identificar as ocorrências no CNC NFS-e. Se houver pelo menos uma ocorrência, então o emitente da DPS deve informar o IM correspondente registrado no CNC NFS-e, que identifique unicamente o registro complementar.\n\nExceto quando o emitente da DPS for MEI na data de competência da emissão da NFS-e."
+    },
+    {
+      "sheet": "RN DPS_NFS-e",
+      "row": 232,
+      "rule": 229,
+      "text": "O tipo de regime especial de tributação deve ser \"Nenhum\", quando o prestador for MEI (opSimpNac = 2)."
+    },
+    {
+      "sheet": "RN DPS_NFS-e",
+      "row": 494,
+      "rule": 491,
+      "text": "Se o prestador do serviço tiver opção perante o Simples Nacional MEI (opSimpNac = 2) na data de competência informada na DPS, então não é permitido ocorrer retenção do ISSQN (tpRetISSQN igual a 2 ou 3), ou seja, tpRetISSQN tem que ser igual a 1 (tpRetISSQN = 1)."
+    },
+    {
+      "sheet": "RN DPS_NFS-e",
+      "row": 505,
+      "rule": 502,
+      "text": "Não é permitido informar alíquota quando o prestador é optante do simples nacional do tipo MEI (opSimpNac = 2)."
+    },
+    {
+      "sheet": "RN DPS_NFS-e",
+      "row": 544,
+      "rule": 541,
+      "text": "Se a situação do emitente da DPS perante o Simples Nacional na data de competência informada for MEI, o choice pTotTribSN nunca poderá ser informado."
+    }
+  ],
+  "application_choices": {
+    "service": "170601 only after owner confirms sales promotion as affiliate, not inferred from MEI or CNAE",
+    "service_location": "company municipality only after explicit owner confirmation of that location in Brazil",
+    "series": "1 for initial setup only, within own-application range; never reset an existing profile/counter",
+    "effective_date": "today in America/Sao_Paulo by default; editable for prior commissions",
+    "optional_fields": "no guessed IM, municipal tax code, NBS or tax rate"
+  },
+  "limitations": "Local model and XML validation do not establish SIMEI status at competence, certificate authority, eligibility or real homologation. Existing server-owned profiles, numbering proof, confirmation and transmission guards remain required."
+}

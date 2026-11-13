@@ -11,8 +11,8 @@ export function fiscalProbeFeedback(access: FiscalAccessResult, regime: string, 
     "A documentação fiscal ainda não pôde ser obtida. O envio continua bloqueado. Referência: NFSE_CONTRACT_PENDING.";
   if (regime === "mei" && access.status === 404 && access.responseFormat === "json" && contract === "recognized") {
     return {
-      success: "Documentação da SEFIN recebida e estrutura da API reconhecida. A consulta municipal auxiliar não impede a próxima etapa de validação do MEI.",
-      notice: "O ADN retornou 404 para os parâmetros municipais em homologação. Para MEI, esse retorno não deve ser tratado como exigência de adesão municipal. Confira os dados fiscais; o certificado e a operação ainda serão validados na SEFIN antes do envio. Nenhuma nota foi enviada.",
+      success: "Documentação da SEFIN conferida. Continue com a configuração simplificada do MEI.",
+      notice: "A consulta municipal auxiliar não bloqueia esta etapa do MEI. O certificado e a operação ainda serão validados na SEFIN antes do envio. Nenhuma nota foi enviada.",
       canReviewProfile: true,
     };
   }

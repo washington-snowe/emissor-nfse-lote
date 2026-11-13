@@ -12,6 +12,7 @@ import { ReportReviewForm } from "../../src/components/report-review-form";
 import { ReviewConfirmation } from "../../src/components/review-confirmation";
 import { StandaloneInvoiceForm } from "../../src/components/standalone-invoice-form";
 import { FiscalOperationList } from "../../src/components/fiscal-operation-list";
+import { MeiFiscalSetup } from "../../src/components/mei-fiscal-setup";
 
 const parameters = new URLSearchParams(location.search);
 const screen = parameters.get("screen");
@@ -20,6 +21,14 @@ const companies = parameters.has("empty") ? [] : [
   { id: "test-company-a", legal_name: "Empresa sintética A", cnpj: "11222333000181" },
   { id: "test-company-b", legal_name: "Empresa sintética B", cnpj: "12ABC34501DE35" },
 ];
+const meiSetup = <MeiFiscalSetup companyId="test-company" municipality="São Paulo / SP" today="2026-11-12"
+  initial={parameters.has("saved") ? {version: 4, valid_from: "2026-10-01", configuration: { issuerMunicipality: "3550308", series: "77", simplesOption: "2", specialRegime: "0", serviceMunicipality: "3550308", nationalTaxCode: "010101", description: "Configuração personalizada já salva", issTaxation: "1", issWithholding: "1", totals: { mode: "not_informed" } }} : undefined}
+  action={async (_state, form) => {
+    window.workflowUiTest.calls++;
+    window.workflowUiTest.reviewJson = JSON.stringify(Object.fromEntries(form.entries()));
+    await new Promise(resolve => setTimeout(resolve, 100));
+    return window.workflowUiTest.calls === 1 ? { error: "Falha sintética, confirmação preservada." } : {version: 1, success: "Configuração MEI sintética salva, sem banco ou emissão."};
+  }} />;
 const review = <ReportReviewForm candidates={[
   { row: 2, storeName: "Loja sintética A", referencePeriod: "2026-10", amount: "1.10", person: { kind: "cnpj", document: "11222333000181", country: "BR", legalName: "Empresa sintética A" } },
   { row: 3, storeName: "Loja sintética exterior", referencePeriod: "2026-10", amount: "2.20", person: { kind: "foreign", document: "SYNTHETIC-NIF", country: "CN", legalName: "Synthetic foreign company" } },
@@ -50,7 +59,7 @@ createRoot(document.getElementById("root")!).render(
       <span className="eyebrow">{["profile","login","plans","referrals"].includes(screen ?? "") ? "Conta" : "Relatórios de comissões"}</span>
       <h1>{screen === "plans" ? "Sua assinatura." : screen === "profile" ? "Seu perfil." : screen === "login" ? "Seus dados de acesso." : screen === "standalone" ? "Sua nota de afiliado, sem começar do zero." : screen === "operations" ? "Acompanhe suas emissões." : "Confira seu relatório da Shopee."}</h1>
       <p>Escolha sua empresa e confira o CSV mensal por vendedor antes de preparar a emissão.</p>
-      {screen === "profile" ? <AccountProfileForm name="Pessoa sintética" phone="" /> : screen === "login" ? <LoginChangeForm kind="password" /> : screen === "plans" ? <SubscriptionPlans ready={!parameters.has("unavailable")} request="00000000-0000-4000-8000-000000000099" /> : screen === "referrals" ? <ReferralLink url="https://emissor.example/criar-conta?ref=aaaaaaaaaaaaaaaaaaaa" /> : screen === "standalone" ? standalone : screen === "operations" ? operations : screen === "review" ? review : screen === "review-confirmation" ? <ReviewConfirmation id="test-review" sha256={"a".repeat(64)} /> : screen === "fiscal" ? <FiscalProfileForm municipality="3550308" regime={parameters.has("simples") ? "simples" : "mei"} action={async (_state, form) => {
+      {screen === "mei" ? meiSetup : screen === "profile" ? <AccountProfileForm name="Pessoa sintética" phone="" /> : screen === "login" ? <LoginChangeForm kind="password" /> : screen === "plans" ? <SubscriptionPlans ready={!parameters.has("unavailable")} request="00000000-0000-4000-8000-000000000099" /> : screen === "referrals" ? <ReferralLink url="https://emissor.example/criar-conta?ref=aaaaaaaaaaaaaaaaaaaa" /> : screen === "standalone" ? standalone : screen === "operations" ? operations : screen === "review" ? review : screen === "review-confirmation" ? <ReviewConfirmation id="test-review" sha256={"a".repeat(64)} /> : screen === "fiscal" ? <FiscalProfileForm municipality="3550308" regime={parameters.has("simples") ? "simples" : "mei"} action={async (_state, form) => {
         window.workflowUiTest.calls++;
         await new Promise(resolve => setTimeout(resolve, 100));
         return window.workflowUiTest.calls === 1 ? { error: "Falha sintética de validação; confira os campos." } :

@@ -6,8 +6,30 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { parseFiscalProfile, profileFromForm, validProfileEvidence, mergeFiscalSection } from "@/lib/nfse/profile";
 import { buildDps } from "@/lib/nfse/dps";
 import { validateFiscalSchema } from "@/lib/nfse/schema";
+import { prepareMeiAffiliateProfile } from "@/lib/nfse/mei-affiliate";
+import { todayInBrazil } from "@/lib/nfse/standalone";
 
 export type FiscalProfileState = { error?: string; success?: string; version?: number };
+
+export async function activateMeiAffiliateProfile(companyId: string, previous: FiscalProfileState, form: FormData): Promise<FiscalProfileState> {
+  const { client, context } = await requireWorkspace();
+  if (!/^[0-9a-f-]{36}$/i.test(companyId)) return { error: "Empresa inválida." };
+  const company = await client.from("companies").select("cnpj,tax_regime,address").eq("id", companyId).eq("tenant_id", context.tenantId).maybeSingle();
+  if (company.error || !company.data) return { error: "Empresa não encontrada no seu espaço." };
+  const current = await client.from("company_fiscal_profiles").select("version").eq("company_id", companyId).eq("tenant_id", context.tenantId).order("version", { ascending: false }).limit(1).maybeSingle();
+  if (current.error) return { error: "Não foi possível conferir a configuração atual. Tente novamente." };
+  const prepared = prepareMeiAffiliateProfile(company.data, current.data?.version ?? 0, form, todayInBrazil());
+  if (!prepared.profile) return { error: prepared.error };
+  // Build a new server-owned form: tax fields/identity/evidence from the browser are never copied.
+  const canonical = new FormData();
+  for (const [key, value] of Object.entries(prepared.profile)) if (typeof value === "string") canonical.set(key, value);
+  canonical.set("totals.mode", prepared.profile.totals.mode);
+  canonical.set("version", String(prepared.expectedVersion));
+  canonical.set("validFrom", prepared.validFrom);
+  canonical.set("evidence", prepared.evidence);
+  // Same XSD validation, rate limit, owner checks and optimistic database transaction as manual setup.
+  return saveFiscalProfile(companyId, previous, canonical);
+}
 
 export async function saveFiscalProfile(companyId: string, _previous: FiscalProfileState, form: FormData): Promise<FiscalProfileState> {
   const { client, context } = await requireWorkspace();

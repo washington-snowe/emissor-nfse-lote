@@ -156,6 +156,35 @@ try {
   }
   for (const width of [1440, 820, 390, 320]) {
     await page.setViewportSize({ width, height: 900 });
+    await page.goto(`${origin}/?screen=mei`);
+    const activate = page.getByRole("button", {name: "Usar configuração MEI", exact: true});
+    assert.equal(await activate.isDisabled(), true);
+    assert.equal(await page.locator('.mei-setup input[type="text"], .mei-setup select, .mei-setup textarea').count(), 0, "simple MEI setup must not require typing technical fields");
+    await page.screenshot({path:path.join(root,`shots/reports/mei-initial-${width}.png`),fullPage:true});
+    assert.equal(await page.evaluate(() => window.workflowUiTest.calls), 0);
+    await page.getByRole("checkbox").check();
+    await activate.click();
+    await page.getByRole("alert").filter({hasText: "Falha sintética"}).waitFor();
+    assert.equal(await page.getByRole("checkbox").isChecked(), true);
+    await page.getByText("Vou emitir comissões de um período anterior", {exact:true}).click();
+    await page.getByLabel("Usar esta configuração a partir de", {exact:true}).fill("2026-10-01");
+    await activate.click();
+    await page.getByRole("link", {name:"Preparar nota avulsa", exact:true}).waitFor();
+    assert.equal(await page.getByRole("button", {name:"Usar configuração MEI",exact:true}).count(), 0);
+    const payload = JSON.parse(await page.evaluate(() => window.workflowUiTest.reviewJson));
+    assert.deepEqual(payload, {version:"0",confirmActivity:"on",validFrom:"2026-10-01"});
+    assert.equal(await page.getByRole("link",{name:"Preparar nota avulsa",exact:true}).getAttribute("href"), "/painel/notas/nova?empresa=test-company");
+    assert.equal(await page.getByRole("link",{name:"Personalizar serviço e configurações",exact:true}).getAttribute("href"), "/painel/empresas/test-company/fiscal?modo=completo");
+    assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), `MEI overflow ${width}`);
+    await page.screenshot({path:path.join(root,`shots/reports/mei-${width}.png`),fullPage:true});
+    await page.goto(`${origin}/?screen=mei&saved=1`);
+    await page.getByText("Configuração personalizada já salva",{exact:true}).waitFor();
+    assert.equal(await page.getByRole("checkbox").count(),0);
+    assert.equal(await page.evaluate(() => window.workflowUiTest.calls),0,"opening an existing MEI configuration must not overwrite it");
+    console.log(`MEI ${width}px: confirmation without technical fields, preserved retry/date, no overwrite or overflow`);
+  }
+  for (const width of [1440, 820, 390, 320]) {
+    await page.setViewportSize({ width, height: 900 });
     await page.goto(`${origin}/?screen=fiscal`);
     assert.equal(await page.getByLabel("Município emissor · código IBGE", { exact: false }).inputValue(), "3550308");
     assert.equal(await page.locator('[name="nationalTaxCode"]').inputValue(), "");
