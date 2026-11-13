@@ -82,7 +82,7 @@ O Cron de recuperação continua diário, compatível com Hobby. Não há promes
 
 ## Roteiro para o A1
 
-O usuário já confirmou armazenamento protegido do A1, seguido de erro genérico na consulta. A correção de transporte/diagnóstico e o próximo teste estão em [diagnóstico de homologação](diagnostico-homologacao.md). Não exigir novo upload ou repetição de migrações por essa falha.
+O usuário já confirmou armazenamento protegido do A1, seguido de erro genérico na consulta e depois `NFSE_HTTP_404`. A correção de transporte/diagnóstico e o ajuste posterior do prefixo estão em [diagnóstico de homologação](diagnostico-homologacao.md). Não exigir novo upload nem repetir migrações anteriores. O ajuste de origem documental usa somente a migração 15.
 
 1. Cadastrar o A1 pela aplicação e executar “Verificar acesso à homologação”. Não enviar certificado/senha por chat.
 2. Conferir captura/versão do contrato oficial e compatibilidade dos algoritmos/campos; documentação desconhecida mantém o envio bloqueado.

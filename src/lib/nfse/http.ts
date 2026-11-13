@@ -17,9 +17,10 @@ export function nfseTlsCredentials(credentials: NfseCredentials) {
 }
 
 export type NfseEnvironment = "homologation" | "production";
-// Published in the Portal Nacional's "APIs - Prod. Restrita e Produção" page, checked 2026-11-11.
+// The portal's restricted Swagger link still includes /API. Read-only testing returned 404 there.
+// Canonical application prefix and sources: integrations/nfse/access-provenance.json.
 export const NFSE_BASES = {
-  homologation: "https://sefin.producaorestrita.nfse.gov.br/API/SefinNacional",
+  homologation: "https://sefin.producaorestrita.nfse.gov.br/SefinNacional",
   production: "https://sefin.nfse.gov.br/SefinNacional",
 } as const;
 

@@ -1,6 +1,8 @@
 {
   "retrieved_on": "2026-11-12",
   "purpose": "Recheck the existing read-only municipal-parameters probe after the user reported a real A1 access failure.",
+  "configured_restricted_base": "https://sefin.producaorestrita.nfse.gov.br/SefinNacional",
+  "observed_discrepancy": "The portal still links /API/SefinNacional. The user reported HTTP 404 for that municipal-parameters probe after the TLS compatibility change. Public integration clients use /SefinNacional without /API. The new base still requires a real authenticated check; 404 alone does not prove certificate acceptance or taxpayer eligibility.",
   "sources": [
     {
       "url": "https://www.gov.br/nfse/pt-br/biblioteca/documentacao-tecnica/apis-prod-restrita-e-producao",
@@ -10,6 +12,16 @@
       "url": "https://www.gov.br/nfse/pt-br/biblioteca/documentacao-tecnica/documentacao-atual/manual-contribuintes-emissor-publico-api-sistema-nacional-nfs-e-v1-2-out2025.pdf",
       "sha256": "ac2f36e34ff565cc36d67c5d67415c33cc09f27b2dea006e8da9bcd2ddce5581",
       "evidence": "Section 1 (Sefin Nacional), municipal-parameters processing: GET /parametros_municipais/{codigoMunicipio}/convenio. Filename v1.2; embedded history v1.0 dated 2025-03-17."
+    },
+    {
+      "url": "https://github.com/nfse-nacional/nfse-php/blob/24a85301ddf915321178c6491a14b108fc2660e5/endpoints.md",
+      "classification": "Secondary integration reference, not official fiscal authorization evidence.",
+      "evidence": "The default homologation endpoint is https://sefin.producaorestrita.nfse.gov.br/SefinNacional. No municipal custom endpoints from this document are accepted by the application."
+    },
+    {
+      "url": "https://github.com/nfe/poc-nfse-nacional/blob/903acf514e01078e3e4a5c9dcd3b67d21a718b77/README.md",
+      "classification": "Historical secondary reference from the 2022 official technical event; not proof of the present contract.",
+      "evidence": "Explicitly notes the restricted SEFIN address without /API and links the official Swagger. That historical public Swagger currently redirects to the portal."
     }
   ],
   "limitations": "No real A1 available to the executor. Unauthenticated Swagger access returned 503/reset; does not establish the authenticated service status. No taxpayer eligibility or issuance authority was established."

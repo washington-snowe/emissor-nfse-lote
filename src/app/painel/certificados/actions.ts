@@ -8,7 +8,7 @@ import { loadCertificateMaterial } from "@/lib/certificate-material";
 import { checkHomologationAccess } from "@/lib/nfse/access-check";
 import { discoverOfficialContract } from "@/lib/nfse/contract";
 
-export type CertificateState = { error?: string; success?: string };
+export type CertificateState = { error?: string; success?: string; notice?: string };
 const errors: Record<string, string> = {
   file_or_password: "Não foi possível abrir o A1. Confira o arquivo e a senha.",
   processing_timeout: "O arquivo excedeu o limite seguro de processamento. Confira o certificado e tente novamente.",
@@ -74,12 +74,16 @@ export async function probeCertificate(id: string): Promise<CertificateState> {
     material=await loadCertificateMaterial({tenantId:context.tenantId,companyId:certificate.data.company_id,certificateId:certificate.data.id},"access_check");
     const access = await checkHomologationAccess(municipality, material);
     const documented=Date.now()+5000<deadline ? await discoverOfficialContract("homologation",material,deadline).catch(()=>null) : null;
-    if (documented && !JSON.stringify(documented.contract).includes(material.metadata.subject_cnpj))
-      await admin.rpc("store_official_nfse_contract",{p_environment:"homologation",p_url:documented.url,p_sha256:documented.sha256,p_contract:documented.contract});
+    let notice = "A documentação fiscal ainda não pôde ser obtida. O envio continua bloqueado. Referência: NFSE_CONTRACT_PENDING.";
+    if (documented && !JSON.stringify(documented.contract).includes(material.metadata.subject_cnpj)) {
+      const stored = await admin.rpc("store_official_nfse_contract",{p_environment:"homologation",p_url:documented.url,p_sha256:documented.sha256,p_contract:documented.contract});
+      notice = stored.error ? "A documentação foi encontrada, mas a configuração de armazenamento fiscal precisa ser concluída. Referência: NFSE_CONTRACT_STORAGE." :
+        "Documentação fiscal obtida e registrada para análise de compatibilidade. Isso não libera emissão automaticamente.";
+    }
     const recorded = await admin.rpc("record_fiscal_access",{p_actor:context.user.id,p_certificate:certificate.data.id,p_status:access.status,p_outcome:access.connected ? "response_received" : "unavailable"});
     revalidatePath("/painel/certificados");
     if (recorded.error) return { error: `${access.message} O registro desta verificação não pôde ser salvo; repita a consulta antes de prosseguir.` };
-    return access.connected ? { success: access.message } : { error: access.message };
+    return access.connected ? { success: access.message, notice } : { error: access.message, notice };
   } catch { return { error: "Não foi possível acessar o certificado protegido para esta verificação." }; }
   finally { material?.pfx.fill(0); }
 }

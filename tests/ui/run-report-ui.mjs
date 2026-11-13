@@ -142,6 +142,7 @@ try {
     assert.equal(await page.locator("#certificate-password").inputValue(), "");
     await page.getByRole("button", { name: "Verificar acesso à homologação", exact: true }).click();
     await page.getByText("Verificação sintética sem conexão fiscal.", { exact: true }).waitFor();
+    await page.getByText("Documentação sintética pendente; nenhuma conexão oficial. Referência: NFSE_CONTRACT_PENDING.", { exact: true }).waitFor();
     assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
     await page.screenshot({ path: path.join(root, `shots/reports/certificate-${width}.png`), fullPage: true });
     console.log(`Workflow ${width}px: A1 fixture form and cleared password, no overflow`);

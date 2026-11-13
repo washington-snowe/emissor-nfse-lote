@@ -26,6 +26,25 @@ do $$ begin
 end $$;
 -- Synthetic metadata only; never run this fixture in the hosted project.
 select public.store_official_nfse_contract('homologation','https://sefin.producaorestrita.nfse.gov.br/API/SefinNacional/docs/test-fixture',repeat('a',64),'{"paths":{"/nfse":{"post":{}}},"models":{}}');
+select public.store_official_nfse_contract('homologation','https://sefin.producaorestrita.nfse.gov.br/SefinNacional/swagger/docs/v1',repeat('b',64),'{"paths":{"/nfse":{"post":{}}},"models":{}}');
+select pg_temp.access_check((public.nfse_contract_status()->0->>'source_url')='https://sefin.producaorestrita.nfse.gov.br/SefinNacional/swagger/docs/v1','canonical source stored without rewriting its URL');
+do $$ declare v_url text; v_index integer:=0; begin
+ foreach v_url in array array[
+  'https://sefin.nfse.gov.br/SefinNacional/swagger/docs/v1',
+  'https://sefin.producaorestrita.nfse.gov.br.evil.invalid/SefinNacional/swagger/docs/v1',
+  'https://user:secret@sefin.producaorestrita.nfse.gov.br/SefinNacional/swagger/docs/v1',
+  'http://sefin.producaorestrita.nfse.gov.br/SefinNacional/swagger/docs/v1',
+  'https://sefin.producaorestrita.nfse.gov.br/SefinNacional/../other',
+  'https://sefin.producaorestrita.nfse.gov.br/SefinNacional/swagger/docs/v1#fragment',
+  'https://sefin.producaorestrita.nfse.gov.br/SefinNacional/swagger/docs/v1?secret=fixture'
+ ] loop
+  v_index:=v_index+1;
+  begin
+   perform public.store_official_nfse_contract('homologation',v_url,repeat('a',64),'{"paths":{"/nfse":{}}}');
+   raise exception 'Unsafe canonical source accepted';
+  exception when invalid_parameter_value then perform pg_temp.access_check(true,'canonical source rejects unsafe URL '||v_index); end;
+ end loop;
+end $$;
 select public.record_fiscal_access('00000000-0000-4000-8000-000000000001',current_setting('test.access_cert')::uuid,200,'response_received');
 reset role;
 set role authenticated;

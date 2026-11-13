@@ -35,40 +35,84 @@ export function structuralContract(input: unknown) {
   };
 }
 
-export async function discoverOfficialContract(environment: NfseEnvironment, credentials: NfseCredentials, deadline: number) {
-  const base=NFSE_BASES[environment];
-  const indexUrl=base+"/docs/index";
-  const html=await nfseGet(environment,indexUrl,credentials,Math.min(5000,deadline-Date.now()));
-  if (html.status!==200) return null;
-  let script=html.body.toString("utf8");
-  if (!/swagger\.json|swagger\/docs|["']url["']\s*:|\burl\s*:/.test(script)) {
-    const initializer=/src=["']([^"']*swagger-initializer\.js)["']/.exec(script);
-    if (initializer && Date.now()+1000<deadline) {
-      const url=new URL(initializer[1],indexUrl).href;
-      if (!allowedNfseUrl(environment,url)) return null;
-      const loaded=await nfseGet(environment,url,credentials,Math.min(5000,deadline-Date.now()));
-      if (loaded.status===200) script=loaded.body.toString("utf8");
+function quotedValue(literal: string): string | null {
+  if (literal[0] === '"') {
+    try { const value: unknown = JSON.parse(literal); return typeof value === "string" ? value : null; }
+    catch { return null; }
+  }
+  let valid = true;
+  const simple: Record<string, string> = { "'": "'", '"': '"', "\\": "\\", "/": "/", n: "\n", r: "\r", t: "\t", b: "\b", f: "\f" };
+  const value = literal.slice(1, -1).replace(/\\(u[0-9a-fA-F]{4}|x[0-9a-fA-F]{2}|[\s\S])/g, (_match, escape: string) => {
+    if (/^[ux]/.test(escape) && escape.length > 2) return String.fromCharCode(parseInt(escape.slice(1), 16));
+    if (escape in simple) return simple[escape];
+    valid = false; return "";
+  });
+  return valid ? value : null;
+}
+
+// Parse only quoted configuration data; never execute the Swagger page or its scripts.
+export function swaggerDocumentReferences(script: string): string[] {
+  if (script.length > 1_000_000) return [];
+  const urls: string[] = [];
+  for (const match of script.matchAll(/\burl["']?\s*:\s*("(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*')/gi)) {
+    const value = quotedValue(match[1]); if (value) urls.push(value);
+  }
+  for (const match of script.matchAll(/JSON\.parse\(\s*("(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*')\s*\)/g)) {
+    try {
+      const serialized = quotedValue(match[1]);
+      if (!serialized) continue;
+      const data: unknown = JSON.parse(serialized);
+      if (!data || typeof data !== "object" || !("urls" in data) || !Array.isArray(data.urls)) continue;
+      for (const item of data.urls.slice(0, 10))
+        if (item && typeof item === "object" && typeof item.url === "string") urls.push(item.url);
+    } catch { /* Unknown configuration remains unavailable. */ }
+  }
+  // Swashbuckle 5 embeds discoveryPaths: arrayFrom('...|...'), not url: '...'.
+  for (const match of script.matchAll(/\bdiscoveryPaths\s*:\s*arrayFrom\(\s*("(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*')\s*\)/g)) {
+    const value = quotedValue(match[1]); if (value) urls.push(...value.split("|"));
+  }
+  return [...new Set(urls)].slice(0, 10);
+}
+
+function officialReference(environment: NfseEnvironment, reference: string, from: string): string | null {
+  try {
+    if (reference.includes("\\") || /[\s\u0000-\u001f]/.test(reference)) return null;
+    const url = new URL(reference, from).href;
+    return allowedNfseUrl(environment, url) ? url : null;
+  } catch { return null; }
+}
+
+export async function discoverOfficialContract(environment: NfseEnvironment, credentials: NfseCredentials, deadline: number, request = nfseGet) {
+  const base = NFSE_BASES[environment];
+  let indexUrl = base + "/docs/index";
+  if (Date.now() + 1000 >= deadline) return null;
+  let html = await request(environment, indexUrl, credentials, Math.min(5000, deadline - Date.now()));
+  // Explicitly bounded document filename alternatives, never redirects carrying the certificate.
+  if ([301, 302, 307, 308, 404].includes(html.status) && Date.now() + 1000 < deadline) {
+    indexUrl = base + "/docs/index.html";
+    html = await request(environment, indexUrl, credentials, Math.min(5000, deadline - Date.now()));
+  }
+  if (html.status !== 200) return null;
+  let script = html.body.toString("utf8");
+  let references = swaggerDocumentReferences(script);
+  if (!references.length) {
+    const initializer = /src=["']([^"']*swagger-initializer\.js)["']/.exec(script);
+    const url = initializer ? officialReference(environment, initializer[1], indexUrl) : null;
+    if (url && Date.now() + 1000 < deadline) {
+      const loaded = await request(environment, url, credentials, Math.min(5000, deadline - Date.now()));
+      if (loaded.status === 200) { script = loaded.body.toString("utf8"); references = swaggerDocumentReferences(script); }
     }
   }
-  const urls=[...script.matchAll(/\burl["']?\s*:\s*["']([^"']+)["']/gi)].map(match=>match[1]);
-  // Swashbuckle may embed its URL configuration as a JSON string; parse data, never evaluate JS.
-  const config=/JSON\.parse\(\s*('(?:\\.|[^'\\])*')\s*\)/.exec(script);
-  if (config) {
+  const urls = [...new Set(references.map(reference => officialReference(environment, reference, indexUrl)).filter((url): url is string => url !== null))];
+  for (const url of urls.slice(0, 3)) {
+    if (Date.now() + 1000 >= deadline) break;
+    const response = await request(environment, url, credentials, Math.min(5000, deadline - Date.now()));
+    if (response.status !== 200) continue;
     try {
-      const serialized=JSON.parse('"'+config[1].slice(1,-1).replaceAll('"','\\"').replaceAll("\\'","'")+'"');
-      const decoded=JSON.parse(serialized) as { urls?: { url: string }[] };
-      urls.push(...(decoded.urls ?? []).map(item=>item.url));
-    } catch { /* Unknown configuration is not executed or guessed. */ }
-  }
-  for (const candidate of urls.slice(0,3)) {
-    if (Date.now()+1000>=deadline) break;
-    const url=new URL(candidate,indexUrl).href;
-    if (!allowedNfseUrl(environment,url)) continue;
-    const response=await nfseGet(environment,url,credentials,Math.min(5000,deadline-Date.now()));
-    if (response.status!==200) continue;
-    try {
-      const parsed=structuralContract(JSON.parse(response.body.toString("utf8")));
-      if (parsed) return { url,sha256:createHash("sha256").update(response.body).digest("hex"),contract:parsed };
+      const raw = JSON.parse(response.body.toString("utf8"));
+      if (raw.basePath !== undefined && raw.basePath !== new URL(base).pathname) continue;
+      const parsed = structuralContract(raw);
+      if (parsed) return { url, sha256: createHash("sha256").update(response.body).digest("hex"), contract: parsed };
     } catch { /* No provider content or error text is logged. */ }
   }
   return null;
