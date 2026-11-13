@@ -82,6 +82,8 @@ O Cron de recuperação continua diário, compatível com Hobby. Não há promes
 
 ## Roteiro para o A1
 
+Estado atual: a migração 15 foi confirmada, seguida de 404/contrato pendente. A atualização da consulta ADN, leitor Redoc e relatório copiável está em [diagnóstico de homologação](diagnostico-homologacao.md). Não repetir a 15. A consulta do botão é informativa; o guard da fila exige resposta de consulta SEFIN própria conforme o contrato capturado, sem liberar números apenas por parâmetros do ADN.
+
 O usuário já confirmou armazenamento protegido do A1, seguido de erro genérico na consulta e depois `NFSE_HTTP_404`. A correção de transporte/diagnóstico e o ajuste posterior do prefixo estão em [diagnóstico de homologação](diagnostico-homologacao.md). Não exigir novo upload nem repetir migrações anteriores. O ajuste de origem documental usa somente a migração 15.
 
 1. Cadastrar o A1 pela aplicação e executar “Verificar acesso à homologação”. Não enviar certificado/senha por chat.

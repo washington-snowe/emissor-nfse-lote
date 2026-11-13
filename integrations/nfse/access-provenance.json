@@ -2,6 +2,8 @@
   "retrieved_on": "2026-11-12",
   "purpose": "Recheck the existing read-only municipal-parameters probe after the user reported a real A1 access failure.",
   "configured_restricted_base": "https://sefin.producaorestrita.nfse.gov.br/SefinNacional",
+  "configured_restricted_parameters_base": "https://adn.producaorestrita.nfse.gov.br/parametrizacao",
+  "current_findings": "After migration 15 the user still received NFSE_HTTP_404 and NFSE_CONTRACT_PENDING. Reviewed SEFIN OpenAPI mirror declares /ParametrosMunicipais as moved to ADN. ADN mirror declares GET /{codigoMunicipio}/convenio, servers /parametrizacao. The portal independently publishes the ADN Parametrização documentation URL. Documentation readers must also handle Redoc openApi/spec-url/specUrl, referenced index.js and the known live SEFIN schema URL. Mirrors are research evidence only and are never imported as a captured official contract.",
   "observed_discrepancy": "The portal still links /API/SefinNacional. The user reported HTTP 404 for that municipal-parameters probe after the TLS compatibility change. Public integration clients use /SefinNacional without /API. The new base still requires a real authenticated check; 404 alone does not prove certificate acceptance or taxpayer eligibility.",
   "sources": [
     {
@@ -11,6 +13,7 @@
     {
       "url": "https://www.gov.br/nfse/pt-br/biblioteca/documentacao-tecnica/documentacao-atual/manual-contribuintes-emissor-publico-api-sistema-nacional-nfs-e-v1-2-out2025.pdf",
       "sha256": "ac2f36e34ff565cc36d67c5d67415c33cc09f27b2dea006e8da9bcd2ddce5581",
+      "status_note": "Its municipal-parameters route is legacy; the reviewed OpenAPI mirror explicitly points to ADN instead.",
       "evidence": "Section 1 (Sefin Nacional), municipal-parameters processing: GET /parametros_municipais/{codigoMunicipio}/convenio. Filename v1.2; embedded history v1.0 dated 2025-03-17."
     },
     {
@@ -22,6 +25,28 @@
       "url": "https://github.com/nfe/poc-nfse-nacional/blob/903acf514e01078e3e4a5c9dcd3b67d21a718b77/README.md",
       "classification": "Historical secondary reference from the 2022 official technical event; not proof of the present contract.",
       "evidence": "Explicitly notes the restricted SEFIN address without /API and links the official Swagger. That historical public Swagger currently redirects to the portal."
+    },
+    {
+      "url": "https://adn.producaorestrita.nfse.gov.br/parametrizacao/docs/index.html",
+      "classification": "Official documentation URL published under ADN Parametrização in the National Portal.",
+      "evidence": "Official parameter service host and application prefix, distinct from SEFIN emission. Request without A1 in this executor returned 503/reset; authenticated access remains unverified."
+    },
+    {
+      "url": "https://github.com/nfse-nacional/nfse-php/blob/24a85301ddf915321178c6491a14b108fc2660e5/references/api-specs/homologation/API-NFS-e-ADN-Parametros-Municipais-(v1).json",
+      "sha256": "fe11afdc72ee27161af5d906206e4f1d422f48e7556525324ca52a72867d3bd5",
+      "classification": "Secondary OpenAPI mirror, v1, not an authenticated capture by this application.",
+      "evidence": "servers /parametrizacao; GET /{codigoMunicipio}/convenio; response wrapper parametrosConvenio."
+    },
+    {
+      "url": "https://github.com/nfse-nacional/nfse-php/blob/24a85301ddf915321178c6491a14b108fc2660e5/references/api-specs/homologation/API-NFS-e-Sefin-Nacional-(v1).json",
+      "sha256": "87b717718e030eb3541cca710c62cf822ba78061cecbc9aa14253479ee18e689",
+      "classification": "Secondary Swagger 2 mirror, v1, not used to enable transmission.",
+      "evidence": "GET /ParametrosMunicipais explicitly says service moved to the official ADN Parametrização docs. GET /dps/{id} declares lookup and response schemas."
+    },
+    {
+      "url": "https://github.com/rodrigoma/spring-boot-nfse-starter/blob/f04811dcbf01916ee01c4715e4ed76c2b29acd8b/scripts/fetch-swagger.sh",
+      "classification": "Secondary document-fetch reference only; not executed or installed.",
+      "evidence": "Documents Redoc openApi/spec-url/specUrl, referenced index.js and SEFIN /swagger/docs/v1. Only live official-origin responses can be persisted by this application."
     }
   ],
   "limitations": "No real A1 available to the executor. Unauthenticated Swagger access returned 503/reset; does not establish the authenticated service status. No taxpayer eligibility or issuance authority was established."

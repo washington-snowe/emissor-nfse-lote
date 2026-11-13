@@ -3,7 +3,7 @@ import { EventEmitter } from "node:events";
 import https from "node:https";
 import { mock, test } from "node:test";
 import { checkHomologationAccess } from "../src/lib/nfse/access-check.ts";
-import { nfseRequest, NFSE_BASES, nfseTlsCredentials } from "../src/lib/nfse/http.ts";
+import { nfseRequest, NFSE_BASES, nfseTlsCredentials, NFSE_PARAMETER_BASES, municipalParametersUrl, allowedNfseReadUrl } from "../src/lib/nfse/http.ts";
 import { fiscalTransportError, NfseTransportError } from "../src/lib/nfse/transport-error.ts";
 
 const credentials = { pfx: Buffer.from("SYNTHETIC-NOT-A-REAL-PFX"), password: "SYNTHETIC-PRIVATE-DO-NOT-EXPOSE" };
@@ -31,10 +31,10 @@ test("consulta de acesso usa somente GET oficial e distingue resposta JSON, HTML
   for (const status of [200, 204, 301, 400, 401, 403, 404, 422, 429, 500, 503]) {
     const result = await checkHomologationAccess("3550308", credentials, async (environment, url, passed, timeout) => {
       assert.equal(environment, "homologation");
-      assert.equal(url, `${NFSE_BASES.homologation}/parametros_municipais/3550308/convenio`);
+      assert.equal(url, `${NFSE_PARAMETER_BASES.homologation}/3550308/convenio`);
       assert.equal(passed, credentials);
       assert.equal(timeout, 15000);
-      return { status, body: Buffer.from(status === 200 ? '{"synthetic":true}' : secretText), contentType: "application/json" };
+      return { status, body: Buffer.from(status === 200 ? '{"parametrosConvenio":{"aderenteAmbienteNacional":1}}' : secretText), contentType: "application/json" };
     });
     assert.equal(result.status, status);
     assert.equal(result.connected, status === 200);
@@ -42,13 +42,24 @@ test("consulta de acesso usa somente GET oficial e distingue resposta JSON, HTML
     assert.match(result.message, /Nenhuma nota foi enviada/);
     if (status >= 300) assert.match(result.message, new RegExp(`HTTP ${status}`));
   }
-  for (const body of ["null", "[]", '"text"', "<html>" + secretText + "</html>"]) {
+  for (const body of ["null", "[]", '"text"', '{"synthetic":true}', '{"parametrosConvenio":null}', "<html>" + secretText + "</html>"]) {
     const result = await checkHomologationAccess("3550308", credentials, async () => ({ status: 200, body: Buffer.from(body), contentType: "text/html" }));
     assert.equal(result.connected, false);
     assert.equal(result.diagnostic, "NFSE_INVALID_RESPONSE");
     assert.ok(!result.message.includes(secretText));
   }
   await assert.rejects(checkHomologationAccess("../" + secretText, credentials, async () => { throw new Error("Must not request"); }), /Invalid municipality/);
+});
+
+test("ADN permite apenas GET do convênio no ambiente escolhido, sem ampliar destinos de escrita", async () => {
+  const url = municipalParametersUrl("homologation", "3550308");
+  assert.equal(url, "https://adn.producaorestrita.nfse.gov.br/parametrizacao/3550308/convenio");
+  assert.ok(allowedNfseReadUrl("homologation", url));
+  assert.equal(allowedNfseReadUrl("production", url), null);
+  for (const bad of [url + "?cnpj=private", url + "#fragment", url.replace("adn.", "adn.evil."), url.replace("/convenio", "/retencoes"), url.replace("https:", "http:")])
+    assert.equal(allowedNfseReadUrl("homologation", bad), null);
+  await assert.rejects(nfseRequest("homologation", "POST", url, credentials, Buffer.from("{}")), /Invalid fiscal destination/);
+  await assert.rejects(nfseRequest("homologation", "POST", "https://sefin.producaorestrita.nfse.gov.br/API/SefinNacional/nfse", credentials, Buffer.from("{}")), /Invalid fiscal destination/);
 });
 
 test("falhas de transporte ganham referência segura, sem atribuir tudo a credenciamento", async () => {

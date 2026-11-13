@@ -24,6 +24,39 @@ export const NFSE_BASES = {
   production: "https://sefin.nfse.gov.br/SefinNacional",
 } as const;
 
+// Official portal lists ADN Parametrização separately from SEFIN emission.
+export const NFSE_PARAMETER_BASES = {
+  homologation: "https://adn.producaorestrita.nfse.gov.br/parametrizacao",
+  production: "https://adn.nfse.gov.br/parametrizacao",
+} as const;
+export const NFSE_DOCUMENT_INDEXES = {
+  homologation: [
+    "https://sefin.producaorestrita.nfse.gov.br/API/SefinNacional/docs/index",
+    "https://sefin.producaorestrita.nfse.gov.br/SefinNacional/docs/index",
+  ],
+  production: ["https://sefin.nfse.gov.br/SefinNacional/docs/index"],
+} as const;
+
+export function municipalParametersUrl(environment: NfseEnvironment, municipality: string) {
+  if (!/^[1-9]\d{6}$/.test(municipality)) throw new Error("Invalid municipality for fiscal access.");
+  return `${NFSE_PARAMETER_BASES[environment]}/${municipality}/convenio`;
+}
+
+export function allowedNfseReadUrl(environment: NfseEnvironment, url: string): URL | null {
+  const sefin = allowedNfseUrl(environment, url);
+  if (sefin) return sefin;
+  try {
+    const target = new URL(url), parameters = new URL(NFSE_PARAMETER_BASES[environment]);
+    if (target.protocol !== "https:" || target.username || target.password || target.hash || target.search) return null;
+    if (target.origin === parameters.origin && /^\/parametrizacao\/[1-9]\d{6}\/convenio$/.test(target.pathname)) return target;
+    // Portal's historical UI mount: GET documentation only, never invoice routes or writes.
+    const official = new URL(NFSE_BASES[environment]);
+    if (environment === "homologation" && target.origin === official.origin &&
+      /^\/API\/SefinNacional\/(?:docs\/(?:index(?:\.html)?|index\.js|swagger-initializer\.js)|swagger\/(?:docs\/v1|v1\/swagger\.json))$/.test(target.pathname)) return target;
+  } catch { /* Unknown destinations remain blocked. */ }
+  return null;
+}
+
 export function allowedNfseUrl(environment: NfseEnvironment, url: string): URL | null {
   try {
     const base = new URL(NFSE_BASES[environment]);
@@ -38,7 +71,7 @@ export function nfseGet(environment: NfseEnvironment, url: string, credentials: 
 }
 
 export function nfseRequest(environment: NfseEnvironment, method: "GET" | "POST", url: string, credentials: NfseCredentials, body?: Buffer, timeoutMs = 5000): Promise<{ status: number; body: Buffer; contentType: string }> {
-  const target = allowedNfseUrl(environment,url);
+  const target = method === "GET" ? allowedNfseReadUrl(environment,url) : allowedNfseUrl(environment,url);
   if (!target || !["GET", "POST"].includes(method) || method === "POST" && (target.href !== NFSE_BASES[environment] + "/nfse" || !body || body.length > 512_000)) return Promise.reject(new NfseTransportError("invalid_destination"));
   return new Promise((resolve,reject) => {
     let request: ReturnType<typeof https.request> | undefined;

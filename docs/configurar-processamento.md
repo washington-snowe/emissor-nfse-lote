@@ -6,6 +6,8 @@ Nenhuma VPS é necessária para esta etapa. A fila fica no PostgreSQL; a Vercel 
 
 Atualização da consulta A1: após o armazenamento confirmado, o usuário recebeu HTTP 404. O ajuste de prefixo/descoberta e a migração adicional **15**, que aceita a origem documental corrigida, estão em [diagnóstico de homologação](diagnostico-homologacao.md). Não repetir migrações anteriores nem recadastrar o A1. A consulta de acesso não exige habilitar `NFSE_HOMOLOGATION_ENABLED`.
 
+A migração 15 já foi confirmada. A atualização posterior usa o ADN para parâmetros municipais, reconhece Redoc e mostra **Copiar diagnóstico**. Não há nova migração para essa atualização; a confirmação seguinte deve ser feita somente pelo botão da aplicação, sem enviar A1/senha ao chat.
+
 Migrações 1–12 já confirmadas. Para a nova etapa, aplicar somente `202611120013_account_and_referrals.sql` e depois `202611120014_stripe_billing.sql`, encaminhadas após os testes. Não repetir as anteriores. Variáveis privadas Stripe, URL do webhook, eventos e roteiro de teste estão em [menu, conta e Stripe](menu-conta-stripe.md). Isso não libera emissão fiscal em produção.
 
 ## 1. Banco

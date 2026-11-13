@@ -74,6 +74,32 @@ export function readFiscalJson(body: Buffer): ObjectValue | null {
     return value && typeof value === "object" && !Array.isArray(value) ? value as ObjectValue : null;
   } catch { return null; }
 }
+
+/** A generic 404/HTML or municipal-parameter response cannot prove SEFIN access. */
+export function verifiedSefinLookup(status: number, body: Buffer, requestedId: string, rawContract: unknown): boolean {
+  try {
+    if (status !== 200 && status !== 404) return false;
+    const supported = supportedNfseContract(rawContract), data = readFiscalJson(body);
+    if (!supported || !data || data.tipoAmbiente !== 2) return false;
+    const contract = object(rawContract), models = object(contract.models);
+    const operation = object(object(object(contract.paths)[supported.dpsPath]).get);
+    const response = object(object(operation.responses)[String(status)]);
+    const shape = model(response.schema ?? object(object(response.content)["application/json"]).schema, models);
+    const properties = object(shape.properties);
+    if (object(properties.tipoAmbiente).type !== "integer") return false;
+    if (status === 200) return object(properties.idDps).type === "string" && object(properties.chaveAcesso).type === "string" &&
+      data.idDps === requestedId && typeof data.chaveAcesso === "string" && /^\d{50}$/.test(data.chaveAcesso);
+    const errorKey = Object.keys(properties).find(key => /^erros?$/i.test(key));
+    if (!errorKey) return false;
+    const errors = model(properties[errorKey], models);
+    const entry = errors.type === "array" ? model(errors.items, models) : errors;
+    const codeKey = Object.keys(object(entry.properties)).find(key => /^codigo$/i.test(key) && object(object(entry.properties)[key]).type === "string");
+    if (!codeKey) return false;
+    const values = errors.type === "array" ? data[errorKey] : [data[errorKey]];
+    return Array.isArray(values) && values.length > 0 && values.length <= 100 && values.every(value =>
+      typeof object(value)[codeKey] === "string" && /^E\d{4}$/.test(object(value)[codeKey] as string));
+  } catch { return false; }
+}
 export function readCompressedNfse(value: unknown): string | null {
   try {
     if (typeof value !== "string" || value.length > 700_000 || value.length % 4 !== 0 || !/^[A-Za-z0-9+/]*={0,2}$/.test(value)) return null;

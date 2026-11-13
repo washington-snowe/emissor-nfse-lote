@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { allowedNfseUrl, NFSE_BASES, nfseGet } from "../src/lib/nfse/http.ts";
+import { allowedNfseUrl, NFSE_BASES, NFSE_DOCUMENT_INDEXES, nfseGet } from "../src/lib/nfse/http.ts";
 import { createHash } from "node:crypto";
 import { structuralContract, swaggerDocumentReferences, discoverOfficialContract } from "../src/lib/nfse/contract.ts";
 
@@ -20,6 +20,9 @@ test("Swagger lê url, JSON serializado e discoveryPaths sem executar JavaScript
     `SwaggerUIBundle({url: '${url}'});`,
     `var config = JSON.parse(${JSON.stringify(JSON.stringify({ urls: [{ url }] }))});`,
     `var swashbuckleConfig = {discoveryPaths: arrayFrom('${url}')};`,
+    `const options = {openApi: '${url}'};`,
+    `<redoc spec-url="${url}"></redoc>`,
+    `Redoc.init('${url}', {});`,
   ]) assert.deepEqual(swaggerDocumentReferences(script), [url]);
   assert.deepEqual(swaggerDocumentReferences("discoveryPaths: arrayFrom('../a|../b')"), ["../a", "../b"]);
   assert.deepEqual(swaggerDocumentReferences("url: 'broken\\z'; JSON.parse('not json')"), []);
@@ -31,8 +34,10 @@ test("descoberta segue somente referências oficiais do Swagger no prefixo canô
   const url = base + "/swagger/docs/v1";
   const body = Buffer.from(JSON.stringify({ swagger: "2.0", basePath: "/SefinNacional", paths: { "/nfse": { post: { description: "PRIVATE-FIXTURE" } } } }));
   const calls: string[] = [];
+  const portal = NFSE_DOCUMENT_INDEXES.homologation[0];
   const contract = await discoverOfficialContract("homologation", { pfx: Buffer.from("SYNTHETIC"), password: "SYNTHETIC" }, Date.now() + 30000, async (_env, target) => {
     calls.push(target);
+    if (target.startsWith(portal)) return {status: 404, contentType: "text/html", body: Buffer.from("missing")};
     if (target === base + "/docs/index") return { status: 200, contentType: "text/html", body: Buffer.from(`discoveryPaths: arrayFrom('https://example.invalid/schema|${url}'); globalThis.doNotExecuteFixture = true;`) };
     assert.equal(target, url);
     return { status: 200, contentType: "application/json", body };
@@ -41,13 +46,16 @@ test("descoberta segue somente referências oficiais do Swagger no prefixo canô
   assert.equal(contract.url, url);
   assert.equal(contract.sha256, createHash("sha256").update(body).digest("hex"));
   assert.equal(JSON.stringify(contract.contract).includes("PRIVATE-FIXTURE"), false);
-  assert.deepEqual(calls, [base + "/docs/index", url]);
+  assert.deepEqual(calls, [portal, portal + ".html", base + "/docs/index", url]);
   assert.equal("doNotExecuteFixture" in globalThis, false);
 });
 
 test("descoberta aceita index.html e inicializador referenciado, sem tentar alternativas após 403 ou prazo esgotado", async () => {
   const base = NFSE_BASES.homologation, calls: string[] = [];
+  const portal = NFSE_DOCUMENT_INDEXES.homologation[0];
   const sources: Record<string, {status: number; body: string}> = {
+    [portal]: {status: 404, body: "missing"},
+    [portal + ".html"]: {status: 404, body: "missing"},
     [base + "/docs/index"]: {status: 404, body: "missing"},
     [base + "/docs/index.html"]: {status: 200, body: '<script src="swagger-initializer.js"></script>'},
     [base + "/docs/swagger-initializer.js"]: {status: 200, body: 'url: "../swagger/v1/swagger.json"'},
@@ -64,7 +72,7 @@ test("descoberta aceita index.html e inicializador referenciado, sem tentar alte
   assert.equal(await discoverOfficialContract("homologation", credentials, Date.now() + 30000, async (_env, target) => {
     calls.push(target); return {status: 403, contentType: "text/html", body: Buffer.from("SYNTHETIC")};
   }), null);
-  assert.deepEqual(calls, [base + "/docs/index"]);
+  assert.deepEqual(calls, [portal]);
   assert.equal(await discoverOfficialContract("homologation", credentials, Date.now(), async () => { throw new Error("Must not request after deadline"); }), null);
 });
 
@@ -73,12 +81,41 @@ test("contrato com basePath diferente e referências externas ou inválidas não
   let calls = 0;
   const result = await discoverOfficialContract("homologation", {pfx: Buffer.from("SYNTHETIC"), password: "SYNTHETIC"}, Date.now() + 30000, async (_env, target) => {
     calls++;
+    if (target.includes("/API/")) return {status: 404, contentType: "text/html", body: Buffer.from("missing")};
     if (target.endsWith("/docs/index")) return {status: 200, contentType: "text/html", body: Buffer.from(`url: 'https://['; url: 'https://example.invalid/data'; url: '${base}/swagger/docs/v1'`)};
     assert.equal(target, base + "/swagger/docs/v1");
     return {status: 200, contentType: "application/json", body: Buffer.from('{"swagger":"2.0","basePath":"/DifferentService","paths":{"/nfse":{}}}')};
   });
   assert.equal(result, null);
-  assert.equal(calls, 2);
+  assert.equal(calls, 4);
+});
+
+test("Redoc usa openApi em index.js e registra etapas sem executar o leitor", async () => {
+  const portal = NFSE_DOCUMENT_INDEXES.homologation[0], base = NFSE_BASES.homologation;
+  const calls: string[] = [], steps: import("../src/lib/nfse/contract.ts").ContractDiscoveryStep[] = [];
+  const result = await discoverOfficialContract("homologation", {pfx: Buffer.from("SYNTHETIC"), password: "SYNTHETIC"}, Date.now() + 30000, async (_env, url) => {
+    calls.push(url);
+    if (url === portal) return {status: 200, contentType: "text/html", body: Buffer.from('<script src="index.js"></script>')};
+    if (url.endsWith("/docs/index.js")) return {status: 200, contentType: "application/javascript", body: Buffer.from(`const options={openApi:'${base}/swagger/docs/v1'}; globalThis.doNotRunRedoc=true;`)};
+    assert.equal(url, base + "/swagger/docs/v1");
+    return {status: 200, contentType: "application/json", body: Buffer.from('{"swagger":"2.0","basePath":"/SefinNacional","paths":{"/nfse":{"post":{}}}}')};
+  }, step => steps.push(step));
+  assert.ok(result);
+  assert.equal(calls.length, 3);
+  assert.equal(steps.at(-1)?.outcome, "captured");
+  assert.equal("doNotRunRedoc" in globalThis, false);
+});
+
+test("contrato JSON oficial pode ser lido diretamente quando as interfaces retornam 404", async () => {
+  const base = NFSE_BASES.homologation, calls: string[] = [];
+  const result = await discoverOfficialContract("homologation", {pfx: Buffer.from("SYNTHETIC"), password: "SYNTHETIC"}, Date.now() + 30000, async (_env, url) => {
+    calls.push(url);
+    if (url.endsWith("/swagger/docs/v1")) return {status: 200, contentType: "application/json", body: Buffer.from('{"swagger":"2.0","basePath":"/SefinNacional","paths":{"/nfse":{"post":{}}}}')};
+    return {status: 404, contentType: "text/html", body: Buffer.from("missing")};
+  });
+  assert.ok(result);
+  assert.equal(result.url, base + "/swagger/docs/v1");
+  assert.equal(calls.length, 5);
 });
 
 test("documentação descoberta publica somente estrutura, sem exemplos ou descrições arbitrárias",()=>{

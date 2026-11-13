@@ -143,6 +143,12 @@ try {
     await page.getByRole("button", { name: "Verificar acesso à homologação", exact: true }).click();
     await page.getByText("Verificação sintética sem conexão fiscal.", { exact: true }).waitFor();
     await page.getByText("Documentação sintética pendente; nenhuma conexão oficial. Referência: NFSE_CONTRACT_PENDING.", { exact: true }).waitFor();
+    await page.getByText("Detalhes da verificação", { exact: true }).click();
+    await page.getByText(/Diagnóstico: nfse-adn-v1/).waitFor();
+    await page.evaluate(() => Object.defineProperty(navigator, "clipboard", {configurable: true, value: {writeText: async text => {window.workflowUiTest.clipboard = text;}}}));
+    await page.getByRole("button", {name: "Copiar diagnóstico", exact: true}).click();
+    await page.getByText("Diagnóstico copiado.", {exact: true}).waitFor();
+    assert.ok(await page.evaluate(() => window.workflowUiTest.clipboard?.includes("nfse-adn-v1")));
     assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
     await page.screenshot({ path: path.join(root, `shots/reports/certificate-${width}.png`), fullPage: true });
     console.log(`Workflow ${width}px: A1 fixture form and cleared password, no overflow`);

@@ -6,9 +6,10 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { inspectA1, MAX_A1_BYTES, sealCertificate } from "@/lib/certificates";
 import { loadCertificateMaterial } from "@/lib/certificate-material";
 import { checkHomologationAccess } from "@/lib/nfse/access-check";
-import { discoverOfficialContract } from "@/lib/nfse/contract";
+import { discoverOfficialContract, type ContractDiscoveryStep } from "@/lib/nfse/contract";
+import { fiscalProbeReport } from "@/lib/nfse/probe-report";
 
-export type CertificateState = { error?: string; success?: string; notice?: string };
+export type CertificateState = { error?: string; success?: string; notice?: string; details?: string };
 const errors: Record<string, string> = {
   file_or_password: "Não foi possível abrir o A1. Confira o arquivo e a senha.",
   processing_timeout: "O arquivo excedeu o limite seguro de processamento. Confira o certificado e tente novamente.",
@@ -73,7 +74,9 @@ export async function probeCertificate(id: string): Promise<CertificateState> {
   try {
     material=await loadCertificateMaterial({tenantId:context.tenantId,companyId:certificate.data.company_id,certificateId:certificate.data.id},"access_check");
     const access = await checkHomologationAccess(municipality, material);
-    const documented=Date.now()+5000<deadline ? await discoverOfficialContract("homologation",material,deadline).catch(()=>null) : null;
+    const discoverySteps: ContractDiscoveryStep[] = [];
+    const documented=Date.now()+1000<deadline ? await discoverOfficialContract("homologation",material,deadline,undefined,step => discoverySteps.push(step)).catch(()=>null) : null;
+    const details = fiscalProbeReport(access, discoverySteps, process.env.VERCEL_GIT_COMMIT_SHA);
     let notice = "A documentação fiscal ainda não pôde ser obtida. O envio continua bloqueado. Referência: NFSE_CONTRACT_PENDING.";
     if (documented && !JSON.stringify(documented.contract).includes(material.metadata.subject_cnpj)) {
       const stored = await admin.rpc("store_official_nfse_contract",{p_environment:"homologation",p_url:documented.url,p_sha256:documented.sha256,p_contract:documented.contract});
@@ -82,8 +85,8 @@ export async function probeCertificate(id: string): Promise<CertificateState> {
     }
     const recorded = await admin.rpc("record_fiscal_access",{p_actor:context.user.id,p_certificate:certificate.data.id,p_status:access.status,p_outcome:access.connected ? "response_received" : "unavailable"});
     revalidatePath("/painel/certificados");
-    if (recorded.error) return { error: `${access.message} O registro desta verificação não pôde ser salvo; repita a consulta antes de prosseguir.` };
-    return access.connected ? { success: access.message, notice } : { error: access.message, notice };
+    if (recorded.error) return { error: `${access.message} O registro desta verificação não pôde ser salvo; repita a consulta antes de prosseguir.`, notice, details };
+    return access.connected ? { success: access.message, notice, details } : { error: access.message, notice, details };
   } catch { return { error: "Não foi possível acessar o certificado protegido para esta verificação." }; }
   finally { material?.pfx.fill(0); }
 }

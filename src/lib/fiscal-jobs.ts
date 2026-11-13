@@ -1,9 +1,10 @@
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { loadCertificateMaterial } from "@/lib/certificate-material";
-import { supportedNfseContract, readFiscalJson } from "@/lib/nfse/api-contract";
+import { supportedNfseContract } from "@/lib/nfse/api-contract";
 import { executeFiscalJob, type FiscalJob } from "@/lib/nfse/execute";
-import { NFSE_BASES, nfseRequest } from "@/lib/nfse/http";
+import { nfseRequest } from "@/lib/nfse/http";
+import { verifyOwnSefinTransport } from "@/lib/nfse/transport-proof";
 import { signDps } from "@/lib/nfse/signature";
 import { validateFiscalSchema } from "@/lib/nfse/schema";
 import { verifyOfficialNfseContents } from "@/lib/nfse/receipt";
@@ -45,11 +46,13 @@ export async function processFiscalJobs(tenantId?: string, deadline = Date.now()
         if (job.mode === "prepare") {
           if (deadline - Date.now() < 15_000) throw new Error();
           const municipality = (job.profile_snapshot as { issuerMunicipality?: string })?.issuerMunicipality;
-          if (!municipality || !/^[1-9]\d{6}$/.test(municipality)) throw new Error();
+          const series = (job.profile_snapshot as { series?: string })?.series;
+          if (!municipality || !series || !/^[1-9]\d{6}$/.test(municipality)) throw new Error();
           // A self-declared subject in a PKCS#12 is insufficient for the shared legal namespace.
           // Require the documented official mTLS service to respond before reserving an issuer number.
-          const probe = await nfseRequest("homologation", "GET", `${NFSE_BASES.homologation}/parametros_municipais/${municipality}/convenio`, material);
-          if (probe.status !== 200 || !readFiscalJson(probe.body)) throw new Error();
+          // ADN parameter access alone must never unlock the shared SEFIN numbering namespace.
+          const sefinAccess = await verifyOwnSefinTransport({municipality, cnpj: job.issuer_cnpj, holderCnpj: material.metadata.subject_cnpj, series}, material, contractResult.data);
+          if (!sefinAccess) throw new Error();
           const recorded = await rpc("record_fiscal_transport", { p_operation: job.id, p_token: job.lease_token, p_certificate: certificateId });
           if (recorded !== true) throw new Error();
         }

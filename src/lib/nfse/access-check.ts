@@ -1,4 +1,4 @@
-import { NFSE_BASES, nfseGet, type NfseCredentials } from "./http.ts";
+import { municipalParametersUrl, nfseGet, type NfseCredentials } from "./http.ts";
 import { fiscalTransportError, type NfseTransportFailure } from "./transport-error.ts";
 
 const transportMessages: Record<NfseTransportFailure, string> = {
@@ -25,7 +25,7 @@ export async function checkHomologationAccess(municipality: string, credentials:
   if (!/^[1-9]\d{6}$/.test(municipality)) throw new Error("Invalid municipality for fiscal access.");
   let response: Awaited<ReturnType<AccessRequest>>;
   try {
-    response = await request("homologation", `${NFSE_BASES.homologation}/parametros_municipais/${municipality}/convenio`, credentials, 15000);
+    response = await request("homologation", municipalParametersUrl("homologation", municipality), credentials, 15000);
   } catch (error) {
     const { reason } = fiscalTransportError(error);
     return result(false, 0, `NFSE_${reason.toUpperCase()}`, transportMessages[reason]);
@@ -37,8 +37,9 @@ export async function checkHomologationAccess(municipality: string, credentials:
     try {
       // A successful transport probe is not proof of fiscal eligibility or issuance authority.
       const data: unknown = JSON.parse(response.body.toString("utf8"));
-      if (data && typeof data === "object" && !Array.isArray(data))
-        return result(true, status, "NFSE_RESPONSE_RECEIVED", "Recebemos uma resposta da consulta de parâmetros em homologação. Isso ainda não comprova autorização para emitir.");
+      if (data && typeof data === "object" && !Array.isArray(data) && "parametrosConvenio" in data &&
+        data.parametrosConvenio && typeof data.parametrosConvenio === "object" && !Array.isArray(data.parametrosConvenio))
+        return result(true, status, "NFSE_RESPONSE_RECEIVED", "Recebemos os parâmetros municipais do ADN em homologação. Isso ainda não comprova autorização para emitir pela SEFIN.");
     } catch { /* Do not expose HTML, provider text, parsing errors or taxpayer data. */ }
     return result(false, status, "NFSE_INVALID_RESPONSE", `A consulta respondeu HTTP ${status}, mas não trouxe os parâmetros no formato esperado.`);
   }

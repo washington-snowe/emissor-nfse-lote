@@ -1,8 +1,24 @@
 # Diagnóstico de acesso com A1
 
-O usuário confirmou o armazenamento protegido de seu A1 pela aplicação e informou falha na consulta de homologação. Depois do ajuste de TLS, a nova tentativa retornou `NFSE_HTTP_404`. Isso mostra uma resposta HTTP, sem provar que o certificado foi aceito pelo serviço fiscal. O executor não recebeu certificado ou senha, não consultou o material privado e não transmitiu DPS.
+O usuário confirmou o armazenamento protegido de seu A1 pela aplicação e informou falha na consulta de homologação. Depois do ajuste de TLS, a nova tentativa retornou `NFSE_HTTP_404`. A migração 15 foi confirmada sem erros; o teste seguinte continuou com 404 e `NFSE_CONTRACT_PENDING`. Isso mostra uma resposta HTTP, sem provar que o certificado foi aceito pelo serviço fiscal. O executor não recebeu certificado ou senha, não consultou o material privado e não transmitiu DPS.
 
-## Ajuste após o HTTP 404
+## Separação entre parâmetros ADN e emissão SEFIN
+
+A pesquisa posterior identificou que a API de parâmetros municipais foi movida para o **ADN**. O portal oficial lista sua documentação separadamente; a cópia Swagger v1 consultada da SEFIN marca `/ParametrosMunicipais` como movido, e a cópia OpenAPI do ADN declara `GET /{codigoMunicipio}/convenio` sob `/parametrizacao`. As cópias são referências secundárias identificadas, não contratos oficiais capturados pela aplicação. Fontes, hashes e limitações estão em `integrations/nfse/access-provenance.json`.
+
+A consulta do botão passa a usar `https://adn.producaorestrita.nfse.gov.br/parametrizacao/{codigoMunicipio}/convenio`. Só esse GET é acrescentado à lista de destinos; escrita no ADN, outro ambiente, parâmetros arbitrários e terceiros permanecem bloqueados. O sucesso exige objeto `parametrosConvenio`, sem deduzir elegibilidade de MEI/Simples dos valores de teste. Um acesso ao ADN não é prova de acesso à SEFIN e não libera numeração ou emissão.
+
+A fila deixa de consultar a rota legada de parâmetros na SEFIN. Antes de reservar identidade compartilhada, faz somente uma consulta GET por identidade de DPS do próprio titular e série efetivamente configurada, número 1, **sem reservar/consumir esse número ou enviar DPS**. A resposta deve corresponder à estrutura 200/404 declarada no contrato SEFIN capturado, no ambiente de homologação; 200 precisa vincular a identidade e chave, e 404 precisa conter o erro estruturado declarado. HTML 404, JSON genérico, parâmetros do ADN, identidade de outro titular e contrato sem o esquema necessário não liberam a reserva. A ausência de dados municipais não é usada como veto universal a MEI. O perfil e a autorização fiscal continuam sendo avaliados pelo fluxo próprio.
+
+## Redoc e diagnóstico copiável
+
+A descoberta lê também `openApi`, `spec-url`, `specUrl`, `Redoc.init(...)` e o `index.js` explicitamente referenciado. Índices documentais do portal e da base SEFIN são distintos; ambos têm destinos restritos e limite de prazo. Se a interface não disponibilizar referência, a descoberta pode consultar o JSON SEFIN conhecido em `/swagger/docs/v1`, sempre obtido ao vivo por TLS e submetido às mesmas verificações. Nunca é importada a cópia de terceiros como evidência oficial. Nenhum JavaScript da página é executado.
+
+O botão **Copiar diagnóstico** fornece `nfse-adn-v1`, versão curta do deploy quando disponível, status da consulta ADN e etapas fixas da descoberta (índice, configuração do leitor e contrato). Não contém URL, CNPJ, arquivo, senha, chave ou corpo de resposta. Isso permite distinguir falha de transporte, índice ausente, referência não reconhecida e contrato incompatível sem solicitar dados privados.
+
+Esta atualização não requer nova migração nem reenvio do A1. A 15 já está confirmada. Depois do deploy, repetir uma única consulta e enviar a mensagem e, caso falhe, o diagnóstico copiável. O acesso real ainda depende da sessão do usuário; o executor não possui o A1 nem credenciais administrativas.
+
+## Histórico do ajuste inicial de prefixo
 
 O portal publica um link de documentação com `/API/SefinNacional`, mas os clientes de integração consultados usam `/SefinNacional`. O manual oficial confirma o caminho relativo de parâmetros, sem resolver essa divergência do prefixo. A base configurada de homologação passa a `https://sefin.producaorestrita.nfse.gov.br/SefinNacional`, mantendo o mesmo host oficial, TLS e o caminho de consulta. A confirmação exige repetir o GET com o A1 pela aplicação. Fontes oficiais e referências secundárias estão identificadas separadamente em `integrations/nfse/access-provenance.json`; não tratar exemplos de terceiros como homologação fiscal.
 
@@ -42,4 +58,6 @@ O Portal Nacional mantém o link Sefin de produção restrita e o manual dos con
 
 Testes sintéticos reproduzem o PFX legado, preparam o contexto TLS com PEM, conferem cadeia intermediária e exclusão de raiz/certificados alheios, sanitização de erros, distinção de HTTP/JSON/TLS e preservação de destinos, verificação TLS, ausência de redirecionamento e repetição após timeout. Esses testes não comprovam ICP-Brasil nem acesso do A1 real ao serviço oficial.
 
-Resultado inicial do TLS: 80 testes aprovados e seis opt-in ignorados, sem alteração SQL. Após o ajuste de prefixo/descoberta: 84 testes aprovados e seis opt-in ignorados; 315 asserções PostgreSQL e testes concorrentes; interface real do aviso com fronteira sintética em 1440/390/320 e regressão dos fluxos existentes; TypeScript, lint e build aprovados. A migração 15 foi encaminhada após esses testes; aplicação remota ainda aguarda confirmação do usuário.
+Resultado inicial do TLS: 80 testes aprovados e seis opt-in ignorados, sem alteração SQL. Após o ajuste de prefixo/descoberta: 84 testes aprovados e seis opt-in ignorados; 315 asserções PostgreSQL e testes concorrentes; interface real do aviso com fronteira sintética em 1440/390/320 e regressão dos fluxos existentes; TypeScript, lint e build aprovados. O usuário confirmou a aplicação da migração 15; ela não deve ser repetida ou editada.
+
+Atualização ADN/Redoc: 90 testes aprovados e seis opt-in ignorados. Cobertura adicional de destinos GET do ADN, leitura Redoc/index.js, descoberta direta, relatório sem dados privados, vínculo da identidade SEFIN e recusa de HTML/JSON genérico/ambiente errado antes da reserva. Interface em 1440/390/320 verifica abertura dos detalhes e cópia do relatório, com regressão dos fluxos existentes em até seis larguras. TypeScript/lint aprovados. Não há nova alteração SQL; não foram repetidos testes do banco hospedado nem realizada consulta com o A1 real pelo executor.

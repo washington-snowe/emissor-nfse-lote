@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
-import { allowedNfseUrl, NFSE_BASES, nfseGet, type NfseEnvironment, type NfseCredentials } from "./http.ts";
+import { allowedNfseReadUrl, NFSE_BASES, NFSE_DOCUMENT_INDEXES, nfseGet, type NfseEnvironment, type NfseCredentials } from "./http.ts";
+import { fiscalTransportError } from "./transport-error.ts";
 
 // Only structural documentation is exposed: no examples, arbitrary descriptions, headers or defaults.
 const allowedKeys = new Set(["type","format","properties","items","required","additionalProperties","$ref","allOf","oneOf","anyOf","nullable","enum","schema","content","application/json","requestBody","responses","parameters","in","name","get","post","head","put","delete","patch"]);
@@ -57,6 +58,12 @@ export function swaggerDocumentReferences(script: string): string[] {
   for (const match of script.matchAll(/\burl["']?\s*:\s*("(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*')/gi)) {
     const value = quotedValue(match[1]); if (value) urls.push(value);
   }
+  for (const match of script.matchAll(/\b(?:openApi|specUrl|spec-url)["']?\s*[:=]\s*("(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*')/gi)) {
+    const value = quotedValue(match[1]); if (value) urls.push(value);
+  }
+  for (const match of script.matchAll(/\bRedoc\.init\(\s*("(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*')/g)) {
+    const value = quotedValue(match[1]); if (value) urls.push(value);
+  }
   for (const match of script.matchAll(/JSON\.parse\(\s*("(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*')\s*\)/g)) {
     try {
       const serialized = quotedValue(match[1]);
@@ -78,42 +85,83 @@ function officialReference(environment: NfseEnvironment, reference: string, from
   try {
     if (reference.includes("\\") || /[\s\u0000-\u001f]/.test(reference)) return null;
     const url = new URL(reference, from).href;
-    return allowedNfseUrl(environment, url) ? url : null;
+    return allowedNfseReadUrl(environment, url) && new URL(url).origin === new URL(NFSE_BASES[environment]).origin ? url : null;
   } catch { return null; }
 }
 
-export async function discoverOfficialContract(environment: NfseEnvironment, credentials: NfseCredentials, deadline: number, request = nfseGet) {
+export type ContractDiscoveryStep = {
+  stage: "portal_index" | "canonical_index" | "initializer" | "schema" | "schema_direct";
+  status: number; format: "json" | "html" | "other" | "empty";
+  outcome: "received" | "no_reference" | "invalid_contract" | "base_mismatch" | "captured" | "timeout" | "connection" | "tls";
+};
+
+export async function discoverOfficialContract(environment: NfseEnvironment, credentials: NfseCredentials, deadline: number, request = nfseGet, report: (step: ContractDiscoveryStep) => void = () => {}) {
   const base = NFSE_BASES[environment];
-  let indexUrl = base + "/docs/index";
-  if (Date.now() + 1000 >= deadline) return null;
-  let html = await request(environment, indexUrl, credentials, Math.min(5000, deadline - Date.now()));
-  // Explicitly bounded document filename alternatives, never redirects carrying the certificate.
-  if ([301, 302, 307, 308, 404].includes(html.status) && Date.now() + 1000 < deadline) {
-    indexUrl = base + "/docs/index.html";
-    html = await request(environment, indexUrl, credentials, Math.min(5000, deadline - Date.now()));
-  }
-  if (html.status !== 200) return null;
-  let script = html.body.toString("utf8");
-  let references = swaggerDocumentReferences(script);
-  if (!references.length) {
-    const initializer = /src=["']([^"']*swagger-initializer\.js)["']/.exec(script);
-    const url = initializer ? officialReference(environment, initializer[1], indexUrl) : null;
-    if (url && Date.now() + 1000 < deadline) {
-      const loaded = await request(environment, url, credentials, Math.min(5000, deadline - Date.now()));
-      if (loaded.status === 200) { script = loaded.body.toString("utf8"); references = swaggerDocumentReferences(script); }
+  const get = async (url: string, stage: ContractDiscoveryStep["stage"]) => {
+    if (Date.now() + 1000 >= deadline) return null;
+    try {
+      const response = await request(environment, url, credentials, Math.min(5000, deadline - Date.now()));
+      const type = response.contentType.split(";", 1)[0].trim().toLowerCase();
+      const format = !response.body.length ? "empty" : type === "application/json" ? "json" : type === "text/html" ? "html" : "other";
+      report({stage, status: response.status, format, outcome: "received"});
+      return response;
+    } catch (error) {
+      const reason = fiscalTransportError(error).reason;
+      report({stage, status: 0, format: "empty", outcome: reason === "timeout" ? "timeout" : ["tls", "client_certificate", "server_certificate"].includes(reason) ? "tls" : "connection"});
+      return null;
     }
-  }
-  const urls = [...new Set(references.map(reference => officialReference(environment, reference, indexUrl)).filter((url): url is string => url !== null))];
-  for (const url of urls.slice(0, 3)) {
-    if (Date.now() + 1000 >= deadline) break;
-    const response = await request(environment, url, credentials, Math.min(5000, deadline - Date.now()));
-    if (response.status !== 200) continue;
+  };
+  const captured = (url: string, response: Awaited<ReturnType<typeof nfseGet>>, stage: "schema" | "schema_direct") => {
     try {
       const raw = JSON.parse(response.body.toString("utf8"));
-      if (raw.basePath !== undefined && raw.basePath !== new URL(base).pathname) continue;
+      if (raw.basePath !== undefined && raw.basePath !== new URL(base).pathname) {
+        report({stage, status: response.status, format: "json", outcome: "base_mismatch"}); return null;
+      }
       const parsed = structuralContract(raw);
-      if (parsed) return { url, sha256: createHash("sha256").update(response.body).digest("hex"), contract: parsed };
+      if (parsed) {
+        report({stage, status: response.status, format: "json", outcome: "captured"});
+        return { url, sha256: createHash("sha256").update(response.body).digest("hex"), contract: parsed };
+      }
     } catch { /* No provider content or error text is logged. */ }
+    report({stage, status: response.status, format: "other", outcome: "invalid_contract"}); return null;
+  };
+  const visited = new Set<string>();
+  for (const initial of NFSE_DOCUMENT_INDEXES[environment]) {
+    const stage = initial.includes("/API/") ? "portal_index" : "canonical_index";
+    let indexUrl: string = initial;
+    let html = await get(indexUrl, stage);
+    if (!html) return null;
+    if ([401, 403, 429].includes(html.status) || html.status >= 500) return null;
+    if ([301, 302, 307, 308, 404].includes(html.status)) {
+      indexUrl += ".html";
+      html = await get(indexUrl, stage);
+    }
+    if (!html) return null;
+    if ([401, 403, 429].includes(html.status) || html.status >= 500) return null;
+    if (html.status !== 200) continue;
+    let references = swaggerDocumentReferences(html.body.toString("utf8"));
+    if (!references.length) {
+      const initializer = /src=["']([^"']*\b(?:swagger-initializer|index)\.js)["']/.exec(html.body.toString("utf8"));
+      const url = initializer ? officialReference(environment, initializer[1], indexUrl) : null;
+      if (url) {
+        const loaded = await get(url, "initializer");
+        if (loaded?.status === 200) references = swaggerDocumentReferences(loaded.body.toString("utf8"));
+      }
+    }
+    if (!references.length) report({stage, status: 200, format: "html", outcome: "no_reference"});
+    const urls = [...new Set(references.map(reference => officialReference(environment, reference, indexUrl)).filter((url): url is string => url !== null))];
+    for (const url of urls.slice(0, 3)) {
+      if (visited.has(url)) continue;
+      visited.add(url);
+      const response = await get(url, "schema");
+      if (response?.status === 200) { const result = captured(url, response, "schema"); if (result) return result; }
+    }
+  }
+  // Known SEFIN document URL from the integration references; fetched live, never import a mirror as evidence.
+  const direct = base + "/swagger/docs/v1";
+  if (!visited.has(direct)) {
+    const response = await get(direct, "schema_direct");
+    if (response?.status === 200) return captured(direct, response, "schema_direct");
   }
   return null;
 }
