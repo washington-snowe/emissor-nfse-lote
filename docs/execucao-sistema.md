@@ -2,6 +2,12 @@
 
 Autorização atual: o usuário solicitou implementar o sistema completo, incluindo emissão, mantendo Vercel e Supabase; VPS só será considerada futuramente. A autorização cobre desenvolvimento, testes e evolução do código. Credenciais reais, ativação de cobranças e emissão de documentos reais continuam exigindo configuração e confirmação da operação correspondente, sem valores ou parâmetros fiscais presumidos.
 
+## Consulta de homologação com o A1 cadastrado
+
+O usuário confirmou armazenamento protegido do A1 pela aplicação e informou erro genérico ao consultar a homologação. Corrigido o transporte para usar chave/certificado PEM já validados pelo parser isolado, com cadeia intermediária em memória. Uma fixture RC2 reproduziu a incompatibilidade entre leitura do PKCS#12 e uso direto no OpenSSL do Node; não foi possível determinar a causa do A1 real a partir da mensagem antiga.
+
+A consulta agora distingue TLS, DNS, timeout, HTTP e formato de resposta, com referências fixas sem conteúdo privado. Mantidos TLS verificado, destinos oficiais, ausência de redirecionamento e repetição automática, bloqueio de produção e consulta sem DPS. Nenhuma migração ou novo upload é necessário. Manual oficial reconferido; contrato remoto público continua vazio. Testes: 80 aprovados e seis opt-in ignorados; TypeScript, lint e build aprovados. O teste com o A1 real depende de repetir a consulta na sessão do usuário após a publicação. Ver [diagnóstico de homologação](diagnostico-homologacao.md).
+
 ## Menu da imagem, conta e Stripe
 
 O usuário solicitou organizar funções existentes e acrescentar todas as áreas da imagem, sem API no menu. Implementados seletor de empresas próprias, navegação hierárquica/móvel, filtros por empresa e separação de Serviço/Avançado sem duplicar o perfil. Perfil, alteração autenticada de e-mail/senha e encerramento de outras sessões; autenticação em duas etapas continua removida.
@@ -32,9 +38,9 @@ Verificação: 61 unitários aprovados, 6 opt-in ignorados; 246 asserções Post
 
 ## Dependências externas atuais
 
-- A1: usuário possui, não deve enviar pelo chat. Credenciamento/homologação ainda desconhecidos.
+- A1: usuário confirmou armazenamento protegido na aplicação. A consulta de homologação falhou com mensagem genérica; aguarda novo diagnóstico. Não enviar certificado/senha pelo chat.
 - Acesso SQL administrativo não disponível ao executor; migrações remotas terão de ser aplicadas pelo SQL Editor após os testes locais.
-- Apenas URL, chave pública Supabase e origem do site estão configuradas. Chave de serviço, segredo de processamento e capacidades do Vault não estão configurados/verificados.
+- Neste executor há somente URL, chave pública Supabase e origem do site, sem acesso administrativo. O usuário confirmou armazenamento protegido na Vercel/Supabase; o executor não recebeu o A1 nem verificou seu material privado. Configuração do Cron e operação real continuam dependendo de evidência própria.
 - Não existem amostras de TikTok Shop/Mercado Livre ou de outros layouts Shopee. Esses adaptadores dependem de evidência real.
 - Provedor de e-mail, remetente, provedor de pagamentos e planos comerciais ainda não definidos.
 

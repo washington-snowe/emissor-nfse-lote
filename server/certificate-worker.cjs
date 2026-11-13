@@ -46,6 +46,26 @@ try {
   const x509 = new X509Certificate(certificatePem);
   const challenge = Buffer.from("nfse-a1-key-pair-check-v1");
   if (!verify("sha256", challenge, x509.publicKey, sign("sha256", challenge, privateKeyPem))) fail("invalid_key_pair");
+  // Build the client chain in memory, leaf first. This does not establish ICP-Brasil trust.
+  // Only cryptographically linked issuers are sent; unrelated bags are never included.
+  const chain = [certificatePem];
+  const remaining = certificates.filter(cert => cert !== certificate).map(cert => {
+    const pem = forge.pki.certificateToPem(cert);
+    return { pem, x509: new X509Certificate(pem) };
+  });
+  const seen = new Set([x509.fingerprint256]);
+  let current = x509;
+  while (current.subject !== current.issuer || !current.verify(current.publicKey)) {
+    const issuers = remaining.filter(issuer => current.checkIssued(issuer.x509) && current.verify(issuer.x509.publicKey));
+    if (!issuers.length) break;
+    if (issuers.length !== 1 || seen.has(issuers[0].x509.fingerprint256)) fail("ambiguous_certificate");
+    const issuer = issuers[0];
+    seen.add(issuer.x509.fingerprint256);
+    // Trust anchors belong to the remote service, not to this uploaded PKCS#12.
+    if (issuer.x509.subject === issuer.x509.issuer && issuer.x509.verify(issuer.x509.publicKey)) break;
+    chain.push(issuer.pem);
+    current = issuer.x509;
+  }
   parentPort.postMessage({ data: {
     metadata: {
       subject_cnpj: cnpj,
@@ -54,7 +74,7 @@ try {
       valid_from: certificate.validity.notBefore.toISOString(),
       valid_until: certificate.validity.notAfter.toISOString(),
     },
-    privateKeyPem, certificatePem,
+    privateKeyPem, certificatePem, certificateChainPem: chain.join("\n"),
   } });
 } catch (error) {
   parentPort.postMessage({ error: error.domainCode ?? "file_or_password" });

@@ -1,0 +1,16 @@
+{
+  "retrieved_on": "2026-11-12",
+  "purpose": "Recheck the existing read-only municipal-parameters probe after the user reported a real A1 access failure.",
+  "sources": [
+    {
+      "url": "https://www.gov.br/nfse/pt-br/biblioteca/documentacao-tecnica/apis-prod-restrita-e-producao",
+      "evidence": "Links Sefin production-restricted documentation at https://sefin.producaorestrita.nfse.gov.br/API/SefinNacional/docs/index."
+    },
+    {
+      "url": "https://www.gov.br/nfse/pt-br/biblioteca/documentacao-tecnica/documentacao-atual/manual-contribuintes-emissor-publico-api-sistema-nacional-nfs-e-v1-2-out2025.pdf",
+      "sha256": "ac2f36e34ff565cc36d67c5d67415c33cc09f27b2dea006e8da9bcd2ddce5581",
+      "evidence": "Section 1 (Sefin Nacional), municipal-parameters processing: GET /parametros_municipais/{codigoMunicipio}/convenio. Filename v1.2; embedded history v1.0 dated 2025-03-17."
+    }
+  ],
+  "limitations": "No real A1 available to the executor. Unauthenticated Swagger access returned 503/reset; does not establish the authenticated service status. No taxpayer eligibility or issuance authority was established."
+}

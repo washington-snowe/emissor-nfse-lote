@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { allowedNfseUrl, NFSE_BASES, nfseGet, type NfseEnvironment } from "./http.ts";
+import { allowedNfseUrl, NFSE_BASES, nfseGet, type NfseEnvironment, type NfseCredentials } from "./http.ts";
 
 // Only structural documentation is exposed: no examples, arbitrary descriptions, headers or defaults.
 const allowedKeys = new Set(["type","format","properties","items","required","additionalProperties","$ref","allOf","oneOf","anyOf","nullable","enum","schema","content","application/json","requestBody","responses","parameters","in","name","get","post","head","put","delete","patch"]);
@@ -35,7 +35,7 @@ export function structuralContract(input: unknown) {
   };
 }
 
-export async function discoverOfficialContract(environment: NfseEnvironment, credentials: { pfx: Buffer; password: string }, deadline: number) {
+export async function discoverOfficialContract(environment: NfseEnvironment, credentials: NfseCredentials, deadline: number) {
   const base=NFSE_BASES[environment];
   const indexUrl=base+"/docs/index";
   const html=await nfseGet(environment,indexUrl,credentials,Math.min(5000,deadline-Date.now()));

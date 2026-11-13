@@ -7,7 +7,7 @@ type CertificateContext = { tenantId: string; companyId: string; certificateId: 
 export type CertificateMetadata = {
   subject_cnpj: string; fingerprint: string; serial_number: string; valid_from: string; valid_until: string;
 };
-type VerifiedCertificate = { metadata: CertificateMetadata; privateKeyPem: string; certificatePem: string };
+type VerifiedCertificate = { metadata: CertificateMetadata; privateKeyPem: string; certificatePem: string; certificateChainPem: string };
 type Envelope = { version: 1; iv: string; tag: string; ciphertext: string };
 
 export async function inspectA1(bytes: Uint8Array, password: string, cnpj: string): Promise<{ data?: VerifiedCertificate; error?: string }> {

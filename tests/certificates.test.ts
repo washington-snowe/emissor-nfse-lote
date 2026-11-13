@@ -1,7 +1,11 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import forge from "node-forge";
+import { spawnSync } from "node:child_process";
+import { createSecureContext } from "node:tls";
+import { X509Certificate } from "node:crypto";
 import { inspectA1, sealCertificate, openCertificate, MAX_A1_BYTES } from "../src/lib/certificates.ts";
+import { nfseTlsCredentials } from "../src/lib/nfse/http.ts";
 
 // Self-signed fixtures are only parser/security tests, never an ICP-Brasil credential or homologation.
 const keyPair = forge.pki.rsa.generateKeyPair(2048);
@@ -28,7 +32,7 @@ function fixture(cnpj: string | null = "11222333000181", validity: "valid" | "ex
   }
   cert.sign(keyPair.privateKey, forge.md.sha256.create());
   const asn = forge.pkcs12.toPkcs12Asn1(keyPair.privateKey, [cert], password, { algorithm: "aes256", count: 2048 });
-  return { bytes: Buffer.from(forge.asn1.toDer(asn).getBytes(), "binary"), asn };
+  return { bytes: Buffer.from(forge.asn1.toDer(asn).getBytes(), "binary"), asn, certificate: cert };
 }
 
 test("PKCS#12 verifica senha, chave, validade e CNPJ do otherName, sem confiar no commonName", async () => {
@@ -45,6 +49,53 @@ test("PKCS#12 verifica senha, chave, validade e CNPJ do otherName, sem confiar n
   assert.equal((await inspectA1(fixture(undefined, "future").bytes, password, "11222333000181")).error, "not_yet_valid");
   assert.equal((await inspectA1(Buffer.from("not-pkcs12"), password, "11222333000181")).error, "file_or_password");
   assert.equal((await inspectA1(Buffer.alloc(MAX_A1_BYTES + 1), password, "11222333000181")).error, "invalid_input");
+});
+
+test("A1 RC2 sintético passa no parser e usa PEM em memória sem habilitar criptografia legada no TLS", async () => {
+  const { certificate } = fixture();
+  const exported = spawnSync("openssl", ["pkcs12", "-export", "-legacy", "-keypbe", "PBE-SHA1-3DES", "-certpbe", "PBE-SHA1-RC2-40", "-passout", `pass:${password}`], {
+    input: forge.pki.privateKeyToPem(keyPair.privateKey) + forge.pki.certificateToPem(certificate), maxBuffer: MAX_A1_BYTES,
+  });
+  // The subprocess handles only generated fixtures, never uploaded certificates or keys.
+  assert.equal(exported.status, 0, "Synthetic legacy PFX export must succeed");
+  try {
+    assert.throws(() => createSecureContext({ pfx: exported.stdout, passphrase: password }));
+    const inspected = await inspectA1(exported.stdout, password, "11222333000181");
+    assert.ok(inspected.data);
+    const options = nfseTlsCredentials({ pfx: exported.stdout, password, ...inspected.data });
+    assert.ok("key" in options);
+    assert.ok(!("pfx" in options));
+    assert.ok(!("passphrase" in options));
+    assert.doesNotThrow(() => createSecureContext(options));
+  } finally { exported.stdout.fill(0); }
+});
+
+test("cadeia TLS inclui folha e intermediária em ordem, sem raiz nem certificados alheios", async () => {
+  const rootKeys = forge.pki.rsa.generateKeyPair(2048), intermediateKeys = forge.pki.rsa.generateKeyPair(2048);
+  const ca = (name: string, keys: typeof rootKeys, issuer?: forge.pki.Certificate, signer = keys.privateKey) => {
+    const cert = forge.pki.createCertificate();
+    cert.publicKey = keys.publicKey; cert.serialNumber = name === "SYNTHETIC ROOT" ? "02" : "03";
+    cert.validity.notBefore = new Date(Date.now() - 86400000); cert.validity.notAfter = new Date(Date.now() + 172800000);
+    cert.setSubject([{ name: "commonName", value: name }]); cert.setIssuer((issuer ?? cert).subject.attributes);
+    cert.setExtensions([{ name: "basicConstraints", cA: true }, { name: "keyUsage", keyCertSign: true }]);
+    cert.sign(signer, forge.md.sha256.create());
+    return cert;
+  };
+  const root = ca("SYNTHETIC ROOT", rootKeys);
+  const intermediate = ca("SYNTHETIC INTERMEDIATE", intermediateKeys, root, rootKeys.privateKey);
+  const leaf = fixture().certificate;
+  leaf.setIssuer(intermediate.subject.attributes); leaf.sign(intermediateKeys.privateKey, forge.md.sha256.create());
+  const unrelated = ca("SYNTHETIC UNRELATED", rootKeys);
+  const asn = forge.pkcs12.toPkcs12Asn1(keyPair.privateKey, [intermediate, unrelated, leaf, root], password, { algorithm: "aes256", count: 2048 });
+  const inspected = await inspectA1(Buffer.from(forge.asn1.toDer(asn).getBytes(), "binary"), password, "11222333000181");
+  assert.ok(inspected.data);
+  const chain = inspected.data.certificateChainPem.match(/-----BEGIN CERTIFICATE-----[\s\S]+?-----END CERTIFICATE-----/g) ?? [];
+  assert.equal(chain.length, 2);
+  const subjects = chain.map(pem => new X509Certificate(pem).subject);
+  assert.match(subjects[0], /SYNTHETIC TEST ONLY/);
+  assert.equal(subjects[1], "CN=SYNTHETIC INTERMEDIATE");
+  assert.equal(inspected.data.certificatePem.trim(), chain[0]);
+  assert.doesNotThrow(() => createSecureContext(nfseTlsCredentials({ pfx: Buffer.alloc(0), password, ...inspected.data })));
 });
 
 test("PKCS#12 com custo malicioso é encerrado em thread isolada com limite de tempo", async () => {

@@ -5,7 +5,7 @@ import { requireWorkspace } from "@/lib/tenancy-server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { inspectA1, MAX_A1_BYTES, sealCertificate } from "@/lib/certificates";
 import { loadCertificateMaterial } from "@/lib/certificate-material";
-import { NFSE_BASES, nfseGet } from "@/lib/nfse/http";
+import { checkHomologationAccess } from "@/lib/nfse/access-check";
 import { discoverOfficialContract } from "@/lib/nfse/contract";
 
 export type CertificateState = { error?: string; success?: string };
@@ -72,21 +72,14 @@ export async function probeCertificate(id: string): Promise<CertificateState> {
   let material: Awaited<ReturnType<typeof loadCertificateMaterial>> | undefined;
   try {
     material=await loadCertificateMaterial({tenantId:context.tenantId,companyId:certificate.data.company_id,certificateId:certificate.data.id},"access_check");
-    let status=0,connected=false;
-    try {
-      const response=await nfseGet("homologation",`${NFSE_BASES.homologation}/parametros_municipais/${municipality}/convenio`,material);
-      status=response.status;
-      if (status>=200 && status<300) {
-        const data=JSON.parse(response.body.toString("utf8"));
-        connected=data!==null && typeof data==="object";
-      }
-    } catch { /* Record only the fixed outcome, not TLS errors or provider content. */ }
+    const access = await checkHomologationAccess(municipality, material);
     const documented=Date.now()+5000<deadline ? await discoverOfficialContract("homologation",material,deadline).catch(()=>null) : null;
     if (documented && !JSON.stringify(documented.contract).includes(material.metadata.subject_cnpj))
       await admin.rpc("store_official_nfse_contract",{p_environment:"homologation",p_url:documented.url,p_sha256:documented.sha256,p_contract:documented.contract});
-    await admin.rpc("record_fiscal_access",{p_actor:context.user.id,p_certificate:certificate.data.id,p_status:status,p_outcome:connected ? "response_received" : "unavailable"});
+    const recorded = await admin.rpc("record_fiscal_access",{p_actor:context.user.id,p_certificate:certificate.data.id,p_status:access.status,p_outcome:access.connected ? "response_received" : "unavailable"});
     revalidatePath("/painel/certificados");
-    return connected ? { success: "Recebemos uma resposta da consulta de parâmetros em homologação. Isso ainda não comprova autorização para emitir; nenhuma nota foi enviada." } : { error: "Não foi possível concluir a consulta no ambiente de homologação. Confira credenciamento e disponibilidade do serviço. Nenhuma nota foi enviada." };
+    if (recorded.error) return { error: `${access.message} O registro desta verificação não pôde ser salvo; repita a consulta antes de prosseguir.` };
+    return access.connected ? { success: access.message } : { error: access.message };
   } catch { return { error: "Não foi possível acessar o certificado protegido para esta verificação." }; }
   finally { material?.pfx.fill(0); }
 }
