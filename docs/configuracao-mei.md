@@ -10,6 +10,8 @@ ME/EPP do Simples também abre Serviço e Avançado sem formulário técnico. Pe
 
 Perfis existentes nunca são substituídos automaticamente. O modelo só cria a versão inicial, com versão esperada zero, quota e validação XSD. Uma configuração incompatível com o regime atual fica pendente de revisão. Falha de leitura do histórico não é ausência de configuração. Município ausente encaminha ao cadastro da empresa, sem adivinhá-lo. **Personalizar serviço e configurações** mantém a edição completa opcional.
 
+Correção posterior da vigência inicial: ao revisar relatório anterior ao cadastro, uma versão 1 MEI reconhecida e idêntica ao modelo, datada no dia da criação e ainda sem operações na consulta, pode receber uma nova versão com abertura cadastral como início. Nenhuma linha anterior é substituída. Nos demais perfis, o dono pode declarar na própria revisão que a mesma configuração já se aplicava à competência e ajustar apenas a vigência. Conferir [revisão fiscal](revisao-fiscal.md). Isso não comprova SIMEI no passado nem altera competência, códigos, série ou contadores.
+
 ## Fontes
 
 O Anexo I oficial 1.01 de 09/02/2026 teve SHA-256 conferido: `de5bc492959eadc8bfa7540e16939995924f2188f743648eaf84d3b31e9eeb7c`. URL, linhas e textos das regras estão em [mei-affiliate.provenance.json](../integrations/nfse/mei-affiliate.provenance.json) e [automatic-affiliate.provenance.json](../integrations/nfse/automatic-affiliate.provenance.json). Série 1 e descrição padrão são escolhas da aplicação, não uma determinação de que todo MEI use esses valores.

@@ -55,4 +55,19 @@ do $$ begin
  exception when insufficient_privilege then perform pg_temp.profile_check(true,'anonymous profile access denied'); end;
 end $$;
 reset role;
+-- Date-only correction must append a version, retain the original configuration/hash and fence stale saves.
+begin;
+select set_config('test.profile_prior',(select row_to_json(p)::text from public.company_fiscal_profiles p where company_id=current_setting('test.profile_company_a')::uuid order by version desc limit 1),true);
+set role service_role;
+select pg_temp.profile_check((public.save_fiscal_profile('00000000-0000-4000-8000-000000000001',current_setting('test.profile_company_a')::uuid,
+  (current_setting('test.profile_prior')::jsonb->>'version')::integer,current_setting('test.profile_prior')::jsonb->'configuration','Synthetic date-only correction','2025-01-01')->>'version')::integer=3,'date correction appends another version');
+do $$ begin
+ begin perform public.save_fiscal_profile('00000000-0000-4000-8000-000000000001',current_setting('test.profile_company_a')::uuid,2,current_setting('test.profile_prior')::jsonb->'configuration','stale date correction','2024-01-01');raise exception 'Stale correction accepted';
+ exception when serialization_failure then perform pg_temp.profile_check(true,'date correction still enforces expected version');end;
+end $$;
+reset role;
+select pg_temp.profile_check((select configuration=(current_setting('test.profile_prior')::jsonb->'configuration') and configuration_sha256=current_setting('test.profile_prior')::jsonb->>'configuration_sha256' from public.company_fiscal_profiles where company_id=current_setting('test.profile_company_a')::uuid order by version desc limit 1),'date correction preserves parameters and configuration hash');
+select pg_temp.profile_check((select valid_from=(current_setting('test.profile_prior')::jsonb->>'valid_from')::date from public.company_fiscal_profiles where id=(current_setting('test.profile_prior')::jsonb->>'id')::uuid),'earlier historical profile row remains unchanged');
+select 'PROFILE_DATE_ASSERTIONS='||count(*) from profile_assertions where name like 'date correction%' or name like 'earlier historical%';
+rollback;
 select 'PROFILE_ASSERTIONS='||count(*) from profile_assertions;

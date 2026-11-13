@@ -6,7 +6,8 @@ import type {ParsedShopeeReport} from "../shopee-seller-csv.ts";
 export type QuickReviewInput={competenceDate:string;commissionType:string;evidenceReference:string;recipientChoice:string;grouping:string;
   commonRecipient?:FiscalPerson;intermediary?:FiscalPerson;recipients:{row:number;person?:FiscalPerson;foreignAmount?:string}[]};
 export type QuickReviewData={importId:string;companyId:string;input:QuickReviewInput;candidates:ReviewCandidate[];preview?:ReviewPreview;digest?:string;
-  version:number;error?:string;issues?:ReviewIssue[];foreignForAll:boolean;currency?:string;needsIntermediary:boolean;transmissionEnabled:boolean};
+  version:number;error?:string;issues?:ReviewIssue[];foreignForAll:boolean;currency?:string;needsIntermediary:boolean;transmissionEnabled:boolean;
+  validityAdjustment?:{profileId:string;profileVersion:number;profileHash:string;currentFrom:string;targetFrom:string;previewDigest:string};};
 
 export function suggestedCompetence(report:ParsedShopeeReport):string {
   const periods=[...new Set(report.reportedSellers.map(s=>s.referencePeriod))];

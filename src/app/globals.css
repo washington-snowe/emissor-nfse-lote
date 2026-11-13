@@ -678,6 +678,8 @@ strong {
 .quick-review-edit > summary { cursor: pointer; font-weight: 500; }
 .quick-review-edit > form { margin-top: 28px; }
 .quick-review-confirm { margin-block: 24px; }
+.quick-review-validity h3 { margin-top: 0; font-size: 20px; font-weight: 500; }
+.quick-review-validity .btn { max-width: 100%; white-space: normal; text-align: left; }
 .quick-review-confirm .btn { margin-top: 24px; max-width: 100%; white-space: normal; }
 @media(max-width:600px) { .quick-review-context { grid-template-columns: 1fr; gap: 8px; } .quick-review-confirm .btn { width: 100%; } }
 @media(max-width:600px) {

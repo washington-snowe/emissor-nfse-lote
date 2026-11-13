@@ -9,6 +9,7 @@ import {prepareFiscalReview,canonicalReviewJson} from "@/lib/nfse/review";
 import {buildDps} from "@/lib/nfse/dps";
 import {validateFiscalDocuments} from "@/lib/nfse/schema";
 import {processQueuedWork} from "@/lib/queue-runner";
+import {appendProfileValidity} from "@/lib/profile-validity-server";
 
 export type QuickSubmitResult={error?:string;id?:string;duplicate?:boolean};
 function readInput(payload:unknown){
@@ -21,12 +22,28 @@ export async function refreshQuickReview(importId:string,payload:string):Promise
   const result=await loadQuickReportReview(importId,input);
   return result?{data:result.data}:{error:"A importação ou a configuração fiscal precisa ser atualizada."};
 }
+export async function adjustQuickReviewValidity(importId:string,form:FormData):Promise<{data?:QuickReviewData;error?:string}>{
+  if(form.get("sameConfiguration")!=="on")return {error:"Confirme que os parâmetros do serviço já se aplicavam à competência exibida."};
+  const input=readInput(form.get("input")),previewDigest=form.get("previewDigest");
+  if(!input||typeof previewDigest!=="string"||!/^[a-f0-9]{64}$/.test(previewDigest))return {error:"Atualize a revisão antes de ajustar a vigência."};
+  const loaded=await loadQuickReportReview(importId,input,false);
+  if(!loaded)return {error:"Empresa ou configuração não encontrada no seu espaço."};
+  if(!loaded.data.error&&loaded.data.digest)return {data:loaded.data}; // Safe retry after a successful date adjustment.
+  const proposed=loaded.data.validityAdjustment;
+  if(!proposed||proposed.previewDigest!==previewDigest)return {error:"O perfil ou os dados mudaram. Atualize a prévia antes de ajustar a vigência."};
+  const evidence=`Vigência ajustada pelo titular para ${proposed.targetFrom}; parâmetros preservados do perfil ${loaded.current.id}, versão ${loaded.current.version}. Aplicabilidade declarada pelo titular; enquadramento sujeito à validação SEFIN.`;
+  const saved=await appendProfileValidity(loaded.company,loaded.current,proposed.targetFrom,evidence);
+  if(saved.error)return {error:saved.error};
+  revalidatePath(`/painel/empresas/${loaded.company.id}/fiscal`);revalidatePath("/painel/importacoes","layout");
+  const updated=await loadQuickReportReview(importId,input,false);
+  return updated?{data:updated.data}:{error:"A vigência foi salva. Atualize a página para revisar a nova versão antes de emitir."};
+}
 export async function confirmAndQueueQuickReview(importId:string,form:FormData):Promise<QuickSubmitResult>{
   const {context}=await requireWorkspace();
   if(form.get("reviewed")!=="on")return {error:"Confirme que revisou as notas, o tomador e a competência exibidos."};
   const input=readInput(form.get("input")),digest=form.get("digest"),request=form.get("request"),version=form.get("version");
   if(!input||typeof digest!=="string"||!/^[a-f0-9]{64}$/.test(digest)||typeof request!=="string"||!/^[0-9a-f-]{36}$/i.test(request)||typeof version!=="string"||!/^(0|[1-9]\d{0,8})$/.test(version))return {error:"Não foi possível conferir a solicitação. Atualize a prévia."};
-  const admin=createAdminClient(),loaded=await loadQuickReportReview(importId,input);
+  const admin=createAdminClient(),loaded=await loadQuickReportReview(importId,input,false);
   if(!admin||!loaded||loaded.data.error||loaded.data.digest!==digest)return {error:"Os dados ou o perfil fiscal mudaram. Atualize a prévia e revise novamente antes de confirmar."};
   const reserved=await admin.rpc("reserve_company_operation",{p_actor:context.user.id,p_company:loaded.binding.companyId,p_operation:"prepare_batch"});
   if(reserved.error||reserved.data!==true)return {error:"Aguarde alguns minutos antes de preparar outro lote."};

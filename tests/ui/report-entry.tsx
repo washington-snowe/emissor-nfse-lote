@@ -38,6 +38,7 @@ const automaticSetup = <AutomaticAffiliateSummary companyId="test-company" regim
 const quickData=quickUiData();
 if(parameters.has("transmission-off"))quickData.transmissionEnabled=false;
 if(parameters.has("preview-pending")){quickData.digest=undefined;quickData.error="A competência sugerida é anterior à vigência do perfil fiscal. Confira a data ou a vigência da configuração antes de confirmar.";}
+if(parameters.has("validity-case")){quickData.digest=undefined;quickData.error="O lote usa a competência 31/10/2026, mas o perfil está configurado a partir de 12/11/2026.";quickData.validityAdjustment={profileId:"test-profile",profileVersion:1,profileHash:"b".repeat(64),currentFrom:"2026-11-12",targetFrom:"2026-10-31",previewDigest:"a".repeat(64)};}
 const review = <ReportReviewForm candidates={[
   { row: 2, storeName: "Loja sintética A", referencePeriod: "2026-10", amount: "1.10", person: { kind: "cnpj", document: "11222333000181", country: "BR", legalName: "Empresa sintética A" } },
   { row: 3, storeName: "Loja sintética exterior", referencePeriod: "2026-10", amount: "2.20", person: { kind: "foreign", document: "SYNTHETIC-NIF", country: "CN", legalName: "Synthetic foreign company" } },

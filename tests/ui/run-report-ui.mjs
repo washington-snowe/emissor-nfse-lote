@@ -160,6 +160,22 @@ try {
   assert.equal(await page.getByRole("checkbox",{name:/Revisei os valores/}).isDisabled(),false);
   assert.equal(await page.evaluate(()=>window.workflowUiTest.calls),0);
   console.log('Review checkbox: transmission warning permits acknowledgement; invalid preview still blocks emission; pending reason and refresh are adjacent and accessible; new data clears consent');
+  for(const width of [1440,390,320]){
+    await page.setViewportSize({width,height:900});await page.goto(`${origin}/?screen=quick&validity-case=1`);
+    await page.getByRole("heading",{name:"A competência está certa? Ajuste a vigência do serviço.",exact:true}).waitFor();
+    const consent=page.getByRole("checkbox",{name:/Revisei os valores/});await consent.check();
+    assert.equal(await page.getByRole("button",{name:"Confirmar e emitir em homologação",exact:true}).isDisabled(),true);
+    await page.getByRole("button",{name:/Os mesmos parâmetros já valiam em 31\/10\/2026/}).click();
+    await page.getByRole("status").filter({hasText:"Vigência conferida"}).waitFor();
+    assert.equal(await consent.isChecked(),false);assert.equal(await consent.isDisabled(),false);
+    assert.equal(await page.evaluate(()=>window.workflowUiTest.calls),0,"validity adjustment does not queue notes");
+    assert.equal(await page.evaluate(()=>window.workflowUiTest.validityAdjustments),1);
+    const adjustedInput=JSON.parse(await page.evaluate(()=>window.workflowUiTest.validityInput));assert.equal(adjustedInput.competenceDate,"2026-10-31");
+    assert.equal(await page.locator('[name="competenceDate"]').inputValue(),"2026-10-31");
+    await consent.check();assert.equal(await page.getByRole("button",{name:"Confirmar e emitir em homologação",exact:true}).isDisabled(),false);
+    assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),`Validity adjustment overflow ${width}`);
+    console.log(`Profile validity ${width}px: date-only acknowledgement, competence preserved, consent reset and no invoice queued`);
+  }
   for(const width of [1440,820,390,320]){
     await page.setViewportSize({width,height:900});await page.goto(`${origin}/?screen=quick`);
     const consent=page.getByRole("checkbox",{name:/Revisei os valores/});

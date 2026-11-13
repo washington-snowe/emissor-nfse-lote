@@ -76,6 +76,9 @@ try:
     profile_count = re.search(r"^PROFILE_ASSERTIONS=(\d+)$", profiles, re.M)
     assert profile_count and int(profile_count[1]) >= 17, "Fiscal profile assertions did not complete"
     print(f"Fiscal profiles/versioning/isolation: {profile_count[1]} assertions passed")
+    profile_dates = re.search(r"^PROFILE_DATE_ASSERTIONS=(\d+)$", profiles, re.M)
+    assert profile_dates and int(profile_dates[1]) == 4, "Profile date correction assertions did not complete"
+    print(f"Profile date correction/history/hash/fencing: {profile_dates[1]} assertions passed")
     reviews = sql((ROOT / "tests/database/report-reviews.sql").read_text())
     review_count = re.search(r"^REVIEW_ASSERTIONS=(\d+)$", reviews, re.M)
     assert review_count and int(review_count[1]) >= 20, "Report review assertions did not complete"
