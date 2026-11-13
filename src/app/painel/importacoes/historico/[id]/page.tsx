@@ -13,6 +13,7 @@ import { parseFiscalProfile } from "@/lib/nfse/profile";
 import { readReviewSnapshot, reviewCandidates, MAX_FISCAL_REVIEW_ROWS } from "@/lib/nfse/review";
 import { ReportReviewForm } from "@/components/report-review-form";
 import { SavedReportReview } from "@/components/saved-report-review";
+import { ensureAutomaticFiscalSetup } from "@/lib/automatic-fiscal-setup";
 
 export const metadata: Metadata = { title: "Revisão da importação" };
 export const dynamic = "force-dynamic";
@@ -27,6 +28,7 @@ export default async function SavedReport({ params }: { params: Promise<{ id: st
   const report = result.data;
   const company = await client.from("companies").select("id,cnpj,legal_name,tax_regime").eq("id", report.company_id).eq("tenant_id", context.tenantId).maybeSingle();
   if (company.error || !company.data) notFound();
+  await ensureAutomaticFiscalSetup(company.data.id).catch(() => undefined);
   const parsed = report.status === "parsed" ? validatePersistedReport(report.parsed_payload, report.file_sha256) : null;
   const [profile, review] = parsed ? await Promise.all([
     client.from("company_fiscal_profiles").select("id,version,configuration").eq("company_id", company.data.id).eq("tenant_id", context.tenantId).order("version", { ascending: false }).limit(1).maybeSingle(),

@@ -1,5 +1,6 @@
 "use server";
 import { randomUUID } from "node:crypto";
+import { after } from "next/server";
 import { revalidatePath } from "next/cache";
 import { requireWorkspace } from "@/lib/tenancy-server";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -10,6 +11,8 @@ import { discoverOfficialContract, type ContractDiscoveryStep } from "@/lib/nfse
 import { fiscalProbeReport } from "@/lib/nfse/probe-report";
 import { fiscalProbeFeedback, type FiscalContractStatus } from "@/lib/nfse/probe-feedback";
 import { supportedNfseContract } from "@/lib/nfse/api-contract";
+import { ensureAutomaticFiscalSetup } from "@/lib/automatic-fiscal-setup";
+import { processCertificateChecks } from "@/lib/certificate-check-jobs";
 
 export type CertificateState = { error?: string; success?: string; notice?: string; details?: string; profileHref?: string };
 const errors: Record<string, string> = {
@@ -44,8 +47,13 @@ export async function uploadCertificate(_previous: CertificateState, form: FormD
     const sealed = sealCertificate(bytes, password, { tenantId: context.tenantId, companyId: company.data.id, certificateId: id });
     const stored = await admin.rpc("store_certificate", { p_actor: context.user.id, p_company: companyId, p_id: id, p_metadata: inspected.data.metadata, p_envelope: sealed.envelope, p_key: sealed.key });
     if (stored.error) return { error: "Não foi possível concluir o armazenamento protegido. Nenhum cadastro de A1 foi confirmado." };
+    await ensureAutomaticFiscalSetup(company.data.id).catch(() => undefined);
+    const queued = await admin.rpc("enqueue_certificate_verification", {p_actor:context.user.id,p_certificate:id});
+    if (!queued.error && queued.data === true) after(async () => {try {await processCertificateChecks(context.tenantId);} catch { /* The durable check remains recoverable. */ }});
     revalidatePath("/painel/certificados");
-    return { success: "Certificado armazenado de forma protegida. O credenciamento e o acesso fiscal ainda precisam ser verificados." };
+    return { success: "Certificado armazenado de forma protegida.", notice: queued.error ?
+      "A verificação automática aguarda a atualização do processamento. Seu A1 já está salvo; não é necessário enviá-lo novamente." :
+      "A verificação na SEFIN foi iniciada automaticamente. O resultado aparecerá nesta página, sem outra ação sua." };
   } catch { return { error: "O serviço protegido está indisponível. Tente novamente." }; }
   finally { bytes.fill(0); }
 }

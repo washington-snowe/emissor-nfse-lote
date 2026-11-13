@@ -5,6 +5,7 @@ import { createSupabaseClient } from "@/lib/supabase/server";
 import { getTenantContext } from "@/lib/tenancy";
 import { normalizeCnpj, validCnpj, validateCompany } from "@/lib/companies";
 import { fetchCnpj, type LookupResult } from "@/lib/cnpj-provider";
+import { ensureAutomaticFiscalSetup } from "@/lib/automatic-fiscal-setup";
 
 export async function consultCompany(value: string): Promise<LookupResult> {
   if (typeof value !== "string" || value.length > 30)
@@ -105,6 +106,8 @@ export async function saveCompany(
         error:
           "Não foi possível salvar a empresa. Tente novamente em instantes.",
       };
+    // Best effort after the successful company save. An unavailable dependency must not erase that save.
+    await ensureAutomaticFiscalSetup(result.data.id).catch(() => undefined);
     revalidatePath("/painel");
     revalidatePath("/painel/empresas");
     return { id: result.data.id };

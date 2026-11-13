@@ -12,6 +12,7 @@ import { WorkspaceShell } from "@/components/workspace";
 import { StandaloneInvoiceForm } from "@/components/standalone-invoice-form";
 import { getWorkspaceData } from "@/lib/workspace-data";
 import { issueStandalone } from "../actions";
+import { ensureAutomaticFiscalSetup } from "@/lib/automatic-fiscal-setup";
 
 export const metadata: Metadata = { title: "Nota avulsa" };
 export const dynamic = "force-dynamic";
@@ -24,6 +25,7 @@ export default async function NewInvoice({ searchParams }: { searchParams: Promi
   const { selected } = await getWorkspaceData();
   const company = empresa ? companies.data.find(item => item.id === empresa) : companies.data.find(item => item.id === selected?.id) ?? companies.data[0];
   if (empresa && !company) notFound();
+  if (company) await ensureAutomaticFiscalSetup(company.id).catch(() => undefined);
   const [current, template, certificate] = company ? await Promise.all([
     client.from("company_fiscal_profiles").select("id,version,configuration,configuration_sha256").eq("company_id", company.id).eq("tenant_id", context.tenantId).order("version", { ascending: false }).limit(1).maybeSingle(),
     client.from("standalone_templates").select("version,profile_id,defaults").eq("company_id", company.id).eq("tenant_id", context.tenantId).eq("provider", "shopee").order("version", { ascending: false }).limit(1).maybeSingle(),

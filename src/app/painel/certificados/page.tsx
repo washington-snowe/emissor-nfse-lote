@@ -1,11 +1,15 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { after } from "next/server";
 import { getWorkspaceData } from "@/lib/workspace-data";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { WorkspaceShell } from "@/components/workspace";
 import { CertificateForm } from "@/components/certificate-form";
 import { CertificateDeactivate } from "@/components/certificate-deactivate";
-import { CertificateProbe } from "@/components/certificate-probe";
+import { AutomaticCertificateStatus } from "@/components/automatic-certificate-status";
+import { ensureAutomaticFiscalSetup } from "@/lib/automatic-fiscal-setup";
+import { processCertificateChecks } from "@/lib/certificate-check-jobs";
+import type { VerificationDisplay } from "@/lib/certificate-verification-state";
 
 export const metadata: Metadata = { title: "Certificados A1" };
 export const dynamic = "force-dynamic";
@@ -14,6 +18,7 @@ export const maxDuration = 60;
 export default async function Certificates({ searchParams }: { searchParams: Promise<{ empresa?: string }> }) {
   const { empresa } = await searchParams;
   const { client, context, selected } = await getWorkspaceData(empresa);
+  if (selected) await ensureAutomaticFiscalSetup(selected.id).catch(() => undefined);
   const [companies, certificates] = await Promise.all([
     client.from("companies").select("id,legal_name,cnpj").eq("tenant_id", context.tenantId).order("created_at"),
     client.from("company_certificates").select("id,company_id,subject_cnpj,valid_until,status").eq("tenant_id", context.tenantId).eq("company_id", selected?.id ?? "00000000-0000-4000-8000-000000000000").order("created_at",{ascending:false}),
@@ -23,6 +28,19 @@ export default async function Certificates({ searchParams }: { searchParams: Pro
   const capabilities = admin ? await admin.rpc("workflow_capabilities") : null;
   // eslint-disable-next-line react-hooks/purity -- This dynamic server response takes a single request-time expiry snapshot.
   const renderTime = Date.now();
+  const checks = await client.from("certificate_verifications").select("certificate_id,status,result_code,http_status,updated_at,verified_at,next_attempt")
+    .eq("tenant_id",context.tenantId).eq("company_id",selected?.id ?? "00000000-0000-4000-8000-000000000000");
+  const checkMap = new Map((checks.data ?? []).map(check => [check.certificate_id,check as VerificationDisplay]));
+  let start = false;
+  if (admin && !checks.error) for (const certificate of certificates.data ?? []) {
+    if (certificate.status !== "active" || new Date(certificate.valid_until).getTime()<=renderTime) continue;
+    const check = checkMap.get(certificate.id);
+    if (!check) {
+      const enqueued = await admin.rpc("enqueue_certificate_verification",{p_actor:context.user.id,p_certificate:certificate.id});
+      start ||= !enqueued.error && enqueued.data === true;
+    } else start ||= ["queued","checking"].includes(check.status) || Boolean(check.next_attempt && Date.parse(check.next_attempt)<=renderTime);
+  }
+  if (start) after(async () => {try {await processCertificateChecks(context.tenantId);} catch { /* Durable lease recovery. */ }});
   return <WorkspaceShell email={context.user.email} active="certificates" companyId={selected?.id}><div className="dashboard-content">
     <span className="eyebrow">Identidade fiscal</span><h1>Seus certificados A1.</h1><p>Certificados independentes para cada CNPJ, com armazenamento protegido.</p>
     {capabilities?.data?.vault !== true || capabilities?.data?.certificates !== true || certificates.error ? <p className="save-notice">O armazenamento protegido ainda está em configuração. O upload de A1 permanece indisponível.</p> :
@@ -30,8 +48,8 @@ export default async function Certificates({ searchParams }: { searchParams: Pro
     <div className="company-list">{certificates.data?.map(certificate => <article key={certificate.id} className="company-card certificate-card"><div>
       <h2>{companies.data.find(company => company.id===certificate.company_id)?.legal_name ?? "Empresa"}</h2>
       <p className="mono">{certificate.subject_cnpj}</p><p>Validade: {new Intl.DateTimeFormat("pt-BR",{dateStyle:"short",timeZone:"America/Sao_Paulo"}).format(new Date(certificate.valid_until))}</p>
-      <span className="small-status">{certificate.status === "active" ? new Date(certificate.valid_until).getTime()<=renderTime ? "Vencido" : "Armazenado · acesso fiscal pendente" : certificate.status === "replaced" ? "Substituído para novas operações" : "Desativado nesta conta"}</span>
-    </div>{certificate.status === "active" && <div className="certificate-actions">{capabilities?.data?.fiscal_access === true && <CertificateProbe id={certificate.id} />}<CertificateDeactivate id={certificate.id} /></div>}</article>)}</div>
+      <span className="small-status">{certificate.status === "active" ? new Date(certificate.valid_until).getTime()<=renderTime ? "Vencido" : "Armazenado com proteção" : certificate.status === "replaced" ? "Substituído para novas operações" : "Desativado nesta conta"}</span>
+    </div>{certificate.status === "active" && <div className="certificate-actions">{new Date(certificate.valid_until).getTime()>renderTime && <AutomaticCertificateStatus verification={checkMap.get(certificate.id)} available={!checks.error}/>}<CertificateDeactivate id={certificate.id} /></div>}</article>)}</div>
     <Link className="text-link" href="/painel">Voltar à visão geral</Link>
   </div></WorkspaceShell>;
 }

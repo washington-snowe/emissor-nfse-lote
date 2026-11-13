@@ -11,7 +11,8 @@ export function CertificateForm({ companies }: { companies: { id: string; legal_
       <div className="field"><label htmlFor="certificate-password">Senha do certificado, se definida</label><input id="certificate-password" name="password" type="password" maxLength={128} autoComplete="off" disabled={pending} /></div>
     </div>
     <button className="btn btn--primary" type="submit" disabled={pending}>{pending ? "Conferindo e protegendo…" : "Proteger certificado"}</button>
-    <p className="field-hint">Um novo cadastro substitui o certificado ativo para novas operações. Credenciamento e autorização de emissão são verificados separadamente.</p>
+    <p className="field-hint">Após salvar, verificamos o acesso à SEFIN automaticamente. Nenhuma nota é enviada nessa verificação. Um novo A1 substitui o certificado ativo para novas operações.</p>
     <p className={state.error ? "field-error" : "form-success"} role="status">{state.error ?? state.success}</p>
+    {state.notice && <p className="field-hint" role="status">{state.notice}</p>}
   </form>;
 }

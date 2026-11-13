@@ -1,0 +1,21 @@
+# Verificação automática do A1
+
+O upload continua inspecionando titular, validade, chave e estrutura do A1 e armazenando somente o envelope protegido com chave no Vault. Após confirmar o armazenamento, cria uma verificação durável e a inicia com `after()`. O usuário não precisa clicar em verificar. A página acompanha o resultado automaticamente. Para certificados anteriores, abrir a página cria a verificação que ainda estiver ausente, sem reenviar A1. A migração **202611130016_automatic_certificate_checks.sql**, confirmada pelo usuário, é necessária para o acompanhamento.
+
+A consulta usa o próprio CNPJ, município e série do perfil salvo (ou a série inicial do aplicativo quando não há perfil). O worker abre e revalida o material protegido, obtém o contrato oficial efetivamente capturado e consulta **GET SEFIN de homologação `/dps/{id próprio}`**. Se ainda não há contrato, tenta descobri-lo e armazená-lo pela rota oficial antes da consulta. A estrutura do repositório é só baseline de testes, nunca fallback para habilitar emissão. O ADN auxiliar não é usado para declarar o resultado desse novo fluxo.
+
+Só grava `sefin_verified` se a resposta atende ao contrato oficial e ao ambiente de homologação: 200 vinculado ao identificador/chave, ou 404 JSON no formato de erro documentado. HTML 404, JSON genérico, resposta de parâmetros ADN, ambiente incorreto, falha TLS/401/403 e erro de acesso ao material não são sucesso. O buffer PFX é zerado ao terminar. Não guarda senha, chave, corpo bruto, XML ou URL com identificador no estado exibido.
+
+O resultado significa **conexão mTLS verificada com a SEFIN**, e não homologação de uma NFS-e. Não há dependência de POST no pipeline de verificação; ele não cria operação fiscal, reserva número, envia DPS fictícia nem comprova enquadramento/credenciamento/autorização. A primeira operação preparada e confirmada pelo dono ainda passa por todas as validações e precisa de documento autorizado e íntegro. Produção permanece bloqueada e o envio de homologação continua condicionado à configuração privada já existente.
+
+## Fila e recuperação
+
+Uma linha por certificado, com tenant/empresa vinculados por chave composta, RLS de leitura para o dono e escrita exclusivamente pelas RPCs de servidor. Enfileirar confere o dono e exige certificado ativo e válido. É idempotente, inclusive ao reabrir um resultado concluído. Workers usam `SKIP LOCKED`, token de lease e prazo de 60 segundos; um worker antigo não pode concluir após expirar/trocar a reserva ou substituir/desativar o certificado. Resultado e auditoria são gravados juntos.
+
+Falhas transitórias ficam elegíveis para nova tentativa após cinco minutos, até três tentativas. A página aberta inicia a retomada ao atualizar automaticamente; o Cron diário existente também recupera trabalho elegível. Vercel Hobby não garante execução exatamente a cada cinco minutos quando a página está fechada. Após esgotar o limite, a pendência fica visível, sem prometer uma nova tentativa nem pedir reupload indiscriminadamente. Incompatibilidade de contrato, cadastro incompleto e material inacessível exigem resolver a causa. Nenhum retry envia notas.
+
+O processamento compartilhado executa uma verificação, relatório ou operação por invocação, com relay para o trabalho seguinte. O upload e a página chamam somente o processador de verificações, sem acionar envio de notas. Falha de enfileiramento não transforma armazenamento confirmado em falha de upload: o A1 continua salvo e a interface informa a pendência do processamento.
+
+## Testes e limites
+
+Pipeline local com contrato oficial estrutural capturado e material explicitamente sintético: identidade própria, somente GET, ausência de reserva/transmissão, erros e zero do buffer. PostgreSQL real: 27 novas asserções de RLS, propriedade, idempotência, estados, orçamento de retry e fencing; oito workers disputam uma verificação, apenas um obtém lease, e oito conclusões gravam um único resultado. UI testa atualização sem clique e interrupção do polling ao receber resultado verificado. O executor não possui o A1 real nem sessão autenticada do usuário: os testes não comprovam conexão/homologação real. O resultado real aparecerá no aplicativo após o deploy.

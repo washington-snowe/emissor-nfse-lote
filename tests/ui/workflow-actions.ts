@@ -1,13 +1,13 @@
 // UI boundary fixtures only: no Auth, Vault, key, credential or database access.
 declare global {
-  interface Window { workflowUiTest: { calls: number; companyId: string; fileSize: number; passwordLength: number; reviewJson?: string; requestIds?: string[]; standaloneJson?: string; templateVersion?: string; path?: string; clipboard?: string } }
+  interface Window { workflowUiTest: { calls: number; companyId: string; fileSize: number; passwordLength: number; reviewJson?: string; requestIds?: string[]; standaloneJson?: string; templateVersion?: string; path?: string; clipboard?: string;refreshes?:number } }
 }
 export async function uploadCertificate(_state: unknown, form: FormData) {
   window.workflowUiTest.calls++;
   window.workflowUiTest.companyId = String(form.get("company_id"));
   window.workflowUiTest.passwordLength = String(form.get("password")).length;
   window.workflowUiTest.fileSize = (form.get("file") as File).size;
-  return { success: "Envio sintético conferido, sem armazenar certificado." };
+  return { success: "Envio sintético conferido, sem armazenar certificado.",notice:"Verificação automática sintética iniciada, sem conexão oficial." };
 }
 export async function deactivateCertificate() { return { success: "Desativação sintética." }; }
 export async function probeCertificate() { return { success: "Verificação sintética sem conexão fiscal.", notice: "Documentação sintética pendente; nenhuma conexão oficial. Referência: NFSE_CONTRACT_PENDING.", details: "Diagnóstico: nfse-adn-v1\nParâmetros ADN: HTTP 404 · consulta sintética\nContrato SEFIN: HTTP 404 · sem consulta oficial", profileHref: "/painel/empresas/test-company/fiscal?secao=servico" }; }

@@ -89,7 +89,7 @@ try:
     assert access_count and int(access_count[1]) >= 40, "Authenticated access assertions did not complete"
     print(f"Password-session access/isolation: {access_count[1]} assertions passed (Auth gateway claims simulated)")
 
-    for filename, marker, minimum in [("account-navigation.sql", "NAVIGATION_ASSERTIONS", 18), ("billing.sql", "BILLING_ASSERTIONS", 25), ("billing-usage.sql", "USAGE_ASSERTIONS", 15)]:
+    for filename, marker, minimum in [("account-navigation.sql", "NAVIGATION_ASSERTIONS", 18), ("billing.sql", "BILLING_ASSERTIONS", 25), ("billing-usage.sql", "USAGE_ASSERTIONS", 15), ("automatic-certificate-checks.sql", "AUTOMATIC_ASSERTIONS", 25)]:
         result = sql((ROOT / "tests/database" / filename).read_text())
         matched = re.search(r"^" + marker + r"=(\d+)$", result, re.M)
         assert matched and int(matched[1]) >= minimum, "Account/billing assertions did not complete"
@@ -348,6 +348,30 @@ try:
     assert sql("select count(*) from private.stripe_events where id='evt_concurrent' and completed_at is not null;").strip() == '1'
     assert sql("select commission_cents from private.referral_commissions where referred_tenant=(select id from public.tenants where owner_user_id='00000000-0000-4000-8000-000000000002') and not livemode;").strip() == '400'
     print("Billing concurrency: 8 actions -> 1 account lease; 8 webhook claims -> 1 lease; 8 completions -> 1 commit; commission unchanged")
+
+    # Fresh synthetic certificate metadata; no Vault bytes, credentials or official request.
+    automatic_certificate = str(uuid.uuid4())
+    automatic_company = sql("select c.id from public.companies c join public.tenants t on t.id=c.tenant_id where t.owner_user_id='00000000-0000-4000-8000-000000000001' order by c.id limit 1;").strip()
+    automatic_tenant = sql(f"select tenant_id from public.companies where id='{automatic_company}';").strip()
+    sql(f"""update public.company_certificates set status='replaced' where company_id='{automatic_company}' and status='active';
+      insert into public.company_certificates(id,tenant_id,company_id,subject_cnpj,fingerprint,serial_number,valid_from,valid_until,created_by)
+        select '{automatic_certificate}',tenant_id,id,cnpj,repeat('f',64),'SYNTHETIC AUTOMATIC RACE',now()-interval '1 day',now()+interval '1 day','00000000-0000-4000-8000-000000000001'
+        from public.companies where id='{automatic_company}';
+      set role service_role;
+      select public.enqueue_certificate_verification('00000000-0000-4000-8000-000000000001','{automatic_certificate}');""")
+    def automatic_claim(_):
+        claimed = sql(f"set role service_role; select public.claim_certificate_verification('{automatic_tenant}');").strip()
+        return json.loads(claimed) if claimed else None
+    with ThreadPoolExecutor(max_workers=8) as pool:
+        automatic_claims = [v for v in pool.map(automatic_claim, range(8)) if v]
+    assert len(automatic_claims) == 1, "Automatic certificate check obtained overlapping leases"
+    automatic_token = automatic_claims[0]['token']
+    def automatic_finish(_):
+        return sql(f"set role service_role; select public.finish_certificate_verification('{automatic_certificate}','{automatic_token}','sefin_verified',404);").strip()
+    with ThreadPoolExecutor(max_workers=8) as pool:
+        automatic_finishes = list(pool.map(automatic_finish, range(8)))
+    assert automatic_finishes.count('t') == 1 and automatic_finishes.count('f') == 7, "Automatic certificate completion committed twice"
+    print("Automatic A1 concurrency: 8 workers -> 1 lease; 8 completions -> 1 committed result (no live certificate/API)")
 
     sql("""
       do $$ begin

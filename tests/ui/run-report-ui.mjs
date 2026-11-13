@@ -155,6 +155,33 @@ try {
     console.log(`Workflow ${width}px: A1 fixture form and cleared password, no overflow`);
   }
   for (const width of [1440, 820, 390, 320]) {
+    await page.setViewportSize({width,height:900});
+    await page.goto(`${origin}/?screen=automatic`);
+    await page.getByRole("heading",{name:"Sua configuração MEI está salva.",exact:true}).waitFor();
+    assert.equal(await page.locator(".mei-setup input, .mei-setup select, .mei-setup textarea, .mei-setup button").count(),0,"automatic setup has no required action or technical parameters");
+    assert.equal(await page.getByRole("link",{name:"Importar notas em lote",exact:true}).getAttribute("href"),"/painel/importacoes?empresa=test-company");
+    assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
+    await page.screenshot({path:path.join(root,`shots/reports/automatic-mei-${width}.png`),fullPage:true});
+    await page.goto(`${origin}/?screen=automatic&simples=1`);
+    await page.getByText(/Falta uma fonte dos dados da apuração/).waitFor();
+    assert.equal(await page.getByRole("link",{name:"Importar notas em lote",exact:true}).count(),0,"missing Simples tax data must not be presented as configured");
+    assert.equal(await page.locator(".mei-setup input, .mei-setup select, .mei-setup textarea").count(),0);
+    assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
+    console.log(`Automatic setup ${width}px: no action/technical fields for MEI; honest Simples pending state`);
+  }
+  await page.clock.install();
+  await page.goto(`${origin}/?screen=automatic-certificate`);
+  await page.getByRole("status").filter({hasText:"automaticamente"}).waitFor();
+  assert.equal(await page.locator(".certificate-automatic-status button").count(),0);
+  await page.clock.runFor(6500);
+  assert.ok(await page.evaluate(()=>window.workflowUiTest.refreshes>0),"pending automatic check refreshes without a click");
+  await page.goto(`${origin}/?screen=automatic-certificate&status=verified&verified=1`);
+  await page.getByRole("status").filter({hasText:"Cada nota ainda passa"}).waitFor();
+  await page.clock.runFor(6500);
+  assert.equal(await page.evaluate(()=>window.workflowUiTest.refreshes??0),0,"verified check stops polling");
+  await page.clock.resume();
+  console.log("Automatic A1: refresh without click; verified transport does not claim invoice authorization");
+  for (const width of [1440, 820, 390, 320]) {
     await page.setViewportSize({ width, height: 900 });
     await page.goto(`${origin}/?screen=mei`);
     const activate = page.getByRole("button", {name: "Usar configuração MEI", exact: true});

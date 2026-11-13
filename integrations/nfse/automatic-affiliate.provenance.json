@@ -1,0 +1,40 @@
+{
+  "model": "affiliate-br-auto-v1",
+  "verified_on_utc": "2026-11-13",
+  "source_url": "https://www.gov.br/nfse/pt-br/biblioteca/documentacao-tecnica/documentacao-atual/anexo_i-sefin_adn-dps_nfse-snnfse-v1-01-20260209.xlsx",
+  "sha256": "de5bc492959eadc8bfa7540e16939995924f2188f743648eaf84d3b31e9eeb7c",
+  "base_model_evidence": "mei-affiliate.provenance.json",
+  "additional_rules": [
+    {
+      "sheet": "RN DPS_NFS-e",
+      "row": 230,
+      "rule": 227,
+      "text": "O regime de apuração dos tributos para o optante do Simples Nacional (ME/EPP) deve ser preenchido obrigatoriamente quando o prestador de serviço for optante do simples nacional (ME/EPP), ou seja, o campo opSimpNac = 3."
+    },
+    {
+      "sheet": "RN DPS_NFS-e",
+      "row": 233,
+      "rule": 230,
+      "text": "O tipo de regime especial de tributação deve ser \"Nenhum\" (regEspTrib = 0) quando o prestador for optante do Simples Nacional ME/EPP (opSimpNac = 3) e o regime de apuração dos tributos federais e municipal ocorrer pelo SN (regApTribSN = 1)."
+    },
+    {
+      "sheet": "RN DPS_NFS-e",
+      "row": 541,
+      "rule": 538,
+      "text": "Se a situação do emitente da DPS perante o Simples Nacional na data de competência informada for ME/EPP, o choice indTotTrib nunca poderá ser informado."
+    },
+    {
+      "sheet": "RN DPS_NFS-e",
+      "row": 544,
+      "rule": 541,
+      "text": "Se a situação do emitente da DPS perante o Simples Nacional na data de competência informada for MEI, o choice pTotTribSN nunca poderá ser informado."
+    }
+  ],
+  "application_choices": [
+    "Automatic initial affiliate model follows the owner request; do not falsely record individual confirmation.",
+    "Existing profiles/series/counters are never replaced.",
+    "Opening date is a default lower bound for configuration use, not historical SIMEI proof.",
+    "New ME/EPP without an actual tax data source stays pending; no zero or guessed estimate is persisted."
+  ],
+  "verification_scope": "Read-only homologation SEFIN /dps/{own-id} with A1 and the captured official schema. No fiscal POST, numbering reservation or invoice authorization by this check."
+}
