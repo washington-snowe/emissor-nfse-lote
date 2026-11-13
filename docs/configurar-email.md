@@ -2,6 +2,8 @@
 
 A ordem configurada é **Brevo → SendPulse → Mailjet**. É possível começar só com o Brevo e adicionar os demais depois. Não há contratação automática nem credenciais neste repositório.
 
+Configuração escolhida neste projeto: domínio **rexnotas.com.br**, remetente **notas@rexnotas.com.br**. O usuário confirmou contas criadas nos três provedores e migração 17 aplicada. A autenticação DNS, as credenciais privadas na Vercel e o agendador ainda precisam ser confirmados. Siga [a configuração específica do domínio](email-rexnotas.md).
+
 ## O que já funciona no código
 
 - O popup mostra o e-mail do vendedor associado a cada nota, lido do CSV original validado. O tomador fiscal continua sendo a pessoa escolhida na revisão: destino de cópia e tomador não são a mesma coisa.
@@ -32,7 +34,7 @@ Em Project → Settings → Environment Variables, configure os ambientes preten
 
 | Variável | Conteúdo |
 | --- | --- |
-| `NFSE_EMAIL_FROM` | E-mail do remetente verificado nos provedores ativos |
+| `NFSE_EMAIL_FROM` | `notas@rexnotas.com.br`, depois de verificar nos provedores ativos |
 | `NFSE_EMAIL_TEST_TO` | Seu e-mail para receber documentos de homologação |
 | `EMAIL_WORKER_SECRET` | Segredo aleatório com pelo menos 32 caracteres |
 | `BREVO_API_KEY` | Chave de envio transacional do Brevo |
