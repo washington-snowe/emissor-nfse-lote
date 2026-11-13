@@ -14,11 +14,11 @@ const transportMessages: Record<NfseTransportFailure, string> = {
   response: "A resposta do serviço de homologação foi interrompida antes de terminar.",
 };
 
-export type FiscalAccessResult = { connected: boolean; status: number; message: string; diagnostic: string };
+export type FiscalAccessResult = { connected: boolean; status: number; message: string; diagnostic: string; responseFormat?: "json" | "html" | "other" | "empty" };
 type AccessRequest = typeof nfseGet;
 
-function result(connected: boolean, status: number, diagnostic: string, message: string): FiscalAccessResult {
-  return { connected, status, diagnostic, message: `${message} Nenhuma nota foi enviada. Referência: ${diagnostic}.` };
+function result(connected: boolean, status: number, diagnostic: string, message: string, responseFormat: FiscalAccessResult["responseFormat"] = "empty"): FiscalAccessResult {
+  return { connected, status, diagnostic, responseFormat, message: `${message} Nenhuma nota foi enviada. Referência: ${diagnostic}.` };
 }
 
 export async function checkHomologationAccess(municipality: string, credentials: NfseCredentials, request: AccessRequest = nfseGet): Promise<FiscalAccessResult> {
@@ -31,6 +31,8 @@ export async function checkHomologationAccess(municipality: string, credentials:
     return result(false, 0, `NFSE_${reason.toUpperCase()}`, transportMessages[reason]);
   }
   const status = response.status;
+  const contentType = response.contentType.split(";", 1)[0].trim().toLowerCase();
+  const format = !response.body.length ? "empty" : contentType === "application/json" ? "json" : contentType === "text/html" ? "html" : "other";
   if (!Number.isInteger(status) || status < 100 || status > 599)
     return result(false, 0, "NFSE_INVALID_RESPONSE", "O serviço de homologação retornou uma resposta não reconhecida.");
   if (status >= 200 && status < 300) {
@@ -39,9 +41,9 @@ export async function checkHomologationAccess(municipality: string, credentials:
       const data: unknown = JSON.parse(response.body.toString("utf8"));
       if (data && typeof data === "object" && !Array.isArray(data) && "parametrosConvenio" in data &&
         data.parametrosConvenio && typeof data.parametrosConvenio === "object" && !Array.isArray(data.parametrosConvenio))
-        return result(true, status, "NFSE_RESPONSE_RECEIVED", "Recebemos os parâmetros municipais do ADN em homologação. Isso ainda não comprova autorização para emitir pela SEFIN.");
+        return result(true, status, "NFSE_RESPONSE_RECEIVED", "Recebemos os parâmetros municipais do ADN em homologação. Isso ainda não comprova autorização para emitir pela SEFIN.", format);
     } catch { /* Do not expose HTML, provider text, parsing errors or taxpayer data. */ }
-    return result(false, status, "NFSE_INVALID_RESPONSE", `A consulta respondeu HTTP ${status}, mas não trouxe os parâmetros no formato esperado.`);
+    return result(false, status, "NFSE_INVALID_RESPONSE", `A consulta respondeu HTTP ${status}, mas não trouxe os parâmetros no formato esperado.`, format);
   }
   let message: string;
   if (status === 401 || status === 403)
@@ -56,5 +58,5 @@ export async function checkHomologationAccess(municipality: string, credentials:
     message = `O serviço respondeu com um redirecionamento (HTTP ${status}). O certificado não foi encaminhado para outro endereço.`;
   else
     message = `O serviço de homologação recusou a consulta de parâmetros (HTTP ${status}). Precisamos conferir essa resposta antes de concluir sobre o acesso fiscal.`;
-  return result(false, status, `NFSE_HTTP_${status}`, message);
+  return result(false, status, `NFSE_HTTP_${status}`, message, format);
 }

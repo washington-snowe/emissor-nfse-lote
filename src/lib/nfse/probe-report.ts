@@ -17,7 +17,7 @@ export function fiscalProbeReport(access: FiscalAccessResult, steps: readonly Co
   const version = commit && /^[0-9a-f]{40}$/i.test(commit) ? ` (${commit.slice(0, 7)})` : "";
   return [
     `Diagnóstico: nfse-adn-v1${version}`,
-    `Parâmetros ADN: HTTP ${status(access.status)} · ${access.connected ? "parâmetros recebidos" : "consulta não concluída"}`,
+    `Parâmetros ADN: HTTP ${status(access.status)} · ${formats[access.responseFormat ?? "other"] ?? "outro formato"} · ${access.connected ? "parâmetros recebidos" : "consulta não concluída"}`,
     ...steps.slice(0, 20).map(step => `${stages[step.stage] ?? "Documentação"}: HTTP ${status(step.status)} · ${formats[step.format] ?? "outro formato"} · ${outcomes[step.outcome] ?? "não concluído"}`),
     ...(steps.length ? [] : ["Documentação: consulta não executada dentro do prazo."]),
     "Nenhuma nota foi enviada por esta verificação.",

@@ -37,6 +37,7 @@ test("consulta de acesso usa somente GET oficial e distingue resposta JSON, HTML
       return { status, body: Buffer.from(status === 200 ? '{"parametrosConvenio":{"aderenteAmbienteNacional":1}}' : secretText), contentType: "application/json" };
     });
     assert.equal(result.status, status);
+    assert.equal(result.responseFormat, "json");
     assert.equal(result.connected, status === 200);
     assert.ok(!result.message.includes(secretText));
     assert.match(result.message, /Nenhuma nota foi enviada/);
@@ -46,6 +47,7 @@ test("consulta de acesso usa somente GET oficial e distingue resposta JSON, HTML
     const result = await checkHomologationAccess("3550308", credentials, async () => ({ status: 200, body: Buffer.from(body), contentType: "text/html" }));
     assert.equal(result.connected, false);
     assert.equal(result.diagnostic, "NFSE_INVALID_RESPONSE");
+    assert.equal(result.responseFormat, "html");
     assert.ok(!result.message.includes(secretText));
   }
   await assert.rejects(checkHomologationAccess("../" + secretText, credentials, async () => { throw new Error("Must not request"); }), /Invalid municipality/);
