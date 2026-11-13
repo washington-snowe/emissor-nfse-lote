@@ -24,7 +24,7 @@ Os limites 300/400/200 foram definidos pelo usuário como tetos locais, não ver
 
 ## 2. Banco
 
-No SQL Editor do projeto Supabase execute **somente** `supabase/migrations/202611130017_invoice_email_queue.sql`. Ela depende das estruturas fiscais anteriores já confirmadas, não exige repetir migrações e não altera A1, série ou documentos. As migrações 13/14 de conta/cobrança não são dependências desta fila. Nunca execute `tests/database` no projeto hospedado.
+**Neste projeto, o usuário já confirmou a migração 17 sem erros. Não repita esta etapa.** Para instalações novas, no SQL Editor do projeto Supabase execute **somente** `supabase/migrations/202611130017_invoice_email_queue.sql`. Ela depende das estruturas fiscais anteriores já confirmadas, não exige repetir migrações e não altera A1, série ou documentos. As migrações 13/14 de conta/cobrança não são dependências desta fila. Nunca execute `tests/database` no projeto hospedado.
 
 ## 3. Variáveis privadas na Vercel
 
