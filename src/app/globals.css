@@ -1677,3 +1677,6 @@ strong {
 }
 
 .dashboard-header > span { min-width: 0; overflow-wrap: anywhere; }
+
+.invoice-email-status { margin-top: 20px; padding: 16px; border: 1px solid var(--line); border-radius: 8px; overflow-wrap: anywhere; }
+.invoice-email-status .btn { max-width: 100%; white-space: normal; }

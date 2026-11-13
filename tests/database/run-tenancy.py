@@ -92,7 +92,7 @@ try:
     assert access_count and int(access_count[1]) >= 40, "Authenticated access assertions did not complete"
     print(f"Password-session access/isolation: {access_count[1]} assertions passed (Auth gateway claims simulated)")
 
-    for filename, marker, minimum in [("account-navigation.sql", "NAVIGATION_ASSERTIONS", 18), ("billing.sql", "BILLING_ASSERTIONS", 25), ("billing-usage.sql", "USAGE_ASSERTIONS", 15), ("automatic-certificate-checks.sql", "AUTOMATIC_ASSERTIONS", 25)]:
+    for filename, marker, minimum in [("account-navigation.sql", "NAVIGATION_ASSERTIONS", 18), ("billing.sql", "BILLING_ASSERTIONS", 25), ("billing-usage.sql", "USAGE_ASSERTIONS", 15), ("automatic-certificate-checks.sql", "AUTOMATIC_ASSERTIONS", 25), ("invoice-emails.sql", "EMAIL_ASSERTIONS", 20)]:
         result = sql((ROOT / "tests/database" / filename).read_text())
         matched = re.search(r"^" + marker + r"=(\d+)$", result, re.M)
         assert matched and int(matched[1]) >= minimum, "Account/billing assertions did not complete"
@@ -375,6 +375,38 @@ try:
         automatic_finishes = list(pool.map(automatic_finish, range(8)))
     assert automatic_finishes.count('t') == 1 and automatic_finishes.count('f') == 7, "Automatic certificate completion committed twice"
     print("Automatic A1 concurrency: 8 workers -> 1 lease; 8 completions -> 1 committed result (no live certificate/API)")
+
+    # Synthetic email concurrency only: no external provider or real XML is contacted.
+    email_owner = json.loads(sql("""select jsonb_build_object('batch',o.batch_id,'tenant',o.tenant_id,'actor',t.owner_user_id)::text
+      from public.fiscal_documents d join public.fiscal_operations o on o.id=d.operation_id join public.tenants t on t.id=o.tenant_id
+      where o.status='authorized' order by d.created_at limit 1;""").strip())
+    sql(f"set role service_role;select public.enable_invoice_email('{email_owner['actor']}','{email_owner['batch']}');")
+    def email_claim(_):
+        value = sql(f"set role service_role;select public.claim_invoice_email('{email_owner['tenant']}');").strip()
+        return json.loads(value) if value else None
+    with ThreadPoolExecutor(max_workers=8) as pool:
+        email_claims = [v for v in pool.map(email_claim, range(8)) if v]
+    assert len(email_claims) == 1, "Email obtained overlapping leases"
+    email_claimed = email_claims[0]
+    def email_begin(_):
+        value = sql(f"set role service_role;select public.begin_invoice_email('{email_claimed['id']}','{email_claimed['token']}',array['brevo','sendpulse','mailjet'],'test@example.com','nfse@example.com',true,repeat('a',64));").strip()
+        return json.loads(value) if value else None
+    with ThreadPoolExecutor(max_workers=8) as pool:
+        email_intents = [v for v in pool.map(email_begin, range(8)) if v and v.get('provider')]
+    assert len(email_intents) == 1, "Email obtained more than one external dispatch intent"
+    assert sql("select count(*) from private.invoice_email_attempts;").strip() == '1', "Duplicate begin consumed quota"
+    def email_finish(_):
+        return sql(f"set role service_role;select public.finish_invoice_email('{email_claimed['id']}','{email_claimed['token']}','accepted','synthetic-provider-id');").strip()
+    with ThreadPoolExecutor(max_workers=8) as pool:
+        email_finishes = list(pool.map(email_finish, range(8)))
+    assert email_finishes.count('t') == 1 and email_finishes.count('f') == 7, "Email acknowledgement committed twice"
+    print("Email concurrency: 8 workers -> 1 lease; 8 starts -> 1 dispatch/quota slot; 8 completions -> 1 acknowledgement (no provider contacted)")
+
+    cron_setup = (ROOT / "supabase/cron/invoice-email-worker.sql").read_text().replace("\nbegin;", "", 1).replace("\ncommit;", "", 1)
+    cron_output = sql("begin;\n" + (ROOT / "tests/database/invoice-email-cron.sql").read_text() + "\n" + cron_setup + "\n" + (ROOT / "tests/database/invoice-email-cron-checks.sql").read_text() + "\nrollback;")
+    cron_assertions = re.search(r"^EMAIL_CRON_ASSERTIONS=(\d+)$", cron_output, re.M)
+    assert cron_assertions and int(cron_assertions[1]) == 7, "Email scheduler interface assertions did not complete"
+    print("Email cron: 7 assertions passed (Cron/HTTP/Vault adapters synthetic; no remote request)")
 
     sql("""
       do $$ begin

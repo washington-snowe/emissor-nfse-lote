@@ -1,0 +1,20 @@
+create temporary table email_cron_assertions(name text primary key);
+create function pg_temp.email_cron_check(ok boolean,name text) returns void language plpgsql as $$ begin
+ if ok is distinct from true then raise exception 'Email cron assertion failed: %',name;end if;insert into email_cron_assertions values(name);end $$;
+select pg_temp.email_cron_check((select schedule='30 seconds' from email_test_cron where name='rex-invoice-email-worker'),'scheduler interval is 30 seconds');
+select private.tick_invoice_email();
+select pg_temp.email_cron_check((select count(*)=0 from email_test_http),'idle queue does not invoke HTTP');
+insert into vault.decrypted_secrets values('nfse_email_worker_url','https://synthetic.example.com/api/jobs/email'),('nfse_email_worker_secret',repeat('x',40));
+update public.invoice_email_deliveries set status='queued',next_run_at=now();
+select private.tick_invoice_email();
+select pg_temp.email_cron_check((select count(*)=1 from email_test_http),'due queue invokes protected email worker');
+select pg_temp.email_cron_check((select headers->>'Authorization'='Bearer '||repeat('x',40) and timeout_milliseconds=5000 from email_test_http limit 1),'worker request carries private bearer with bounded timeout');
+update vault.decrypted_secrets set decrypted_secret='https://synthetic.example.com/wrong' where name='nfse_email_worker_url';
+select private.tick_invoice_email();
+select pg_temp.email_cron_check((select count(*)=1 from email_test_http),'wrong worker path cannot receive secret');
+update vault.decrypted_secrets set decrypted_secret='https://synthetic.example.com/api/jobs/email' where name='nfse_email_worker_url';
+delete from vault.decrypted_secrets where name='nfse_email_worker_secret';
+select private.tick_invoice_email();
+select pg_temp.email_cron_check((select count(*)=1 from email_test_http),'missing secret blocks scheduling HTTP');
+select pg_temp.email_cron_check(not has_function_privilege('authenticated','private.tick_invoice_email()','execute'),'authenticated client cannot execute privileged scheduler');
+select 'EMAIL_CRON_ASSERTIONS='||count(*) from email_cron_assertions;

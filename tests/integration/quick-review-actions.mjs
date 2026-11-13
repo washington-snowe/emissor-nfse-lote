@@ -24,6 +24,7 @@ function reset(){
   h.client={from(table){const filters=[];return {select(){return this;},eq(key,value){filters.push([key,value]);return this;},order(){return this;},limit(){return this;},async maybeSingle(){h.reads.push({table,filters});const rows=h.rows[table].filter(row=>filters.every(([key,value])=>row[key]===value));return {data:rows.at(-1)??null,error:null};}};}};
   h.admin={async rpc(name,args){h.calls.push({name,args});assert.equal(args.p_actor,ids.actor,"actor must come from the server session");
     if(name==="reserve_company_operation")return {data:true};
+    if(name==="enable_invoice_email"){assert.ok(h.batches.some(b=>b.id===args.p_batch));return {data:true};}
     if(name==="save_fiscal_profile"){
       const previous=h.rows.company_fiscal_profiles.at(-1);
       if(args.p_expected_version!==previous.version)return {error:{code:"40001"}};
@@ -85,5 +86,13 @@ try{
   adjustment.set("sameConfiguration","on");const adjusted=await actions.adjustQuickReviewValidity(ids.report,adjustment);assert.ok(adjusted.data.digest);assert.equal(adjusted.data.input.competenceDate,"2026-10-31");assert.equal(h.rows.company_fiscal_profiles.at(-1).valid_from,"2026-10-31");assert.equal(h.rows.company_fiscal_profiles[0].valid_from,"2026-11-12");assert.equal(h.batches.length,0);
   await actions.adjustQuickReviewValidity(ids.report,adjustment);assert.equal(h.rows.company_fiscal_profiles.length,2,"retry after successful date adjustment never appends another profile");
   h=reset();h.rows.company_fiscal_profiles[0].valid_from="2026-11-12";const beforeOther=await actions.loadQuickReportReview(ids.report);adjustment.set("previewDigest",beforeOther.data.validityAdjustment.previewDigest);h.tenant="00000000-0000-4000-8000-000000000099";assert.ok((await actions.adjustQuickReviewValidity(ids.report,adjustment)).error);assert.equal(h.calls.length,0,"foreign account cannot adjust known profile validity");
+  const emailEnvNames=['NFSE_EMAIL_ENABLED','NFSE_EMAIL_FROM','BREVO_API_KEY'];const emailEnv=emailEnvNames.map(name=>process.env[name]);
+  try{
+    process.env.NFSE_EMAIL_ENABLED='true';process.env.NFSE_EMAIL_FROM='nfse@example.com';process.env.BREVO_API_KEY='synthetic';
+    h=reset();let emailForm=await formFor();
+    assert.ok((await actions.confirmAndQueueQuickReview(ids.report,emailForm.form)).error);assert.equal(h.calls.length,0,'no email enrollment without explicit current consent');
+    emailForm.form.set('emailReviewed','on');assert.ok((await actions.confirmAndQueueQuickReview(ids.report,emailForm.form)).id);
+    assert.equal(h.calls.filter(c=>c.name==='enable_invoice_email').length,1);assert.equal(h.batches.length,1);
+  }finally{emailEnvNames.forEach((name,index)=>{if(emailEnv[index]===undefined)delete process.env[name];else process.env[name]=emailEnv[index];});}
   console.log("Quick review server actions: consent/digest/profile/session/tenant guards; lost-acknowledgement replay; legacy MEI validity repair; custom-profile acknowledgement and date-only replay preserve competence/history with no invoice queued. Auth/DB/Next adapters are synthetic.");
 }finally{delete globalThis.quickHarness;await rm(temporary,{recursive:true,force:true});}

@@ -2,6 +2,12 @@
 
 Autorização atual: o usuário solicitou implementar o sistema completo, incluindo emissão, mantendo Vercel e Supabase; VPS só será considerada futuramente. A autorização cobre desenvolvimento, testes e evolução do código. Credenciais reais, ativação de cobranças e emissão de documentos reais continuam exigindo configuração e confirmação da operação correspondente, sem valores ou parâmetros fiscais presumidos.
 
+## Entrega transacional de e-mails — 13/11/2026
+
+Implementada integração Brevo → SendPulse → Mailjet com fila própria, cotas compartilhadas 300/400/200 em 24h, intervalo mínimo persistido de 75s no SendPulse e controle global de envio sequencial. Fallback apenas por cota ou rejeição 429/402; incerteza bloqueia reenvio. Roteamento por sourceClaims/linhas e e-mail do vendedor, separado do tomador fiscal; destinatários misturados ficam pendentes. Popup permite revisar os destinos, e a página de notas acompanha aceitação/pendência e correção de e-mail ausente sem reemitir a NFS-e. Migração 17 e configuração de cron separada preparadas. Ver [configuração de e-mail](configurar-email.md).
+
+Ainda depende de domínio/remetente verificados, contas/credenciais privadas, execução da migração 17 e configuração de pg_cron/pg_net/Vault no Supabase. Nenhum provedor foi contratado ou conectado com credenciais reais neste executor. O sistema fiscal continua em homologação: somente o endereço de teste pode receber XML, e nenhuma nota de teste vai a vendedores reais. PDF oficial e confirmação de entrega/bounces por webhook não estão implementados; HTTP aceito não prova caixa de entrada. Esta etapa não libera emissão ou e-mail comercial em produção.
+
 ## Consulta de homologação com o A1 cadastrado
 
 Checkpoint atual: o usuário enviou diagnóstico ADN 404 JSON com captura SEFIN 200 e informou ser MEI. O contrato oficial foi conferido pela RPC pública, reconhecido pelo adaptador e preservado com hash/proveniência em `integrations/nfse/contracts`. A interface orienta MEI a conferir os dados fiscais sem transformar o 404 auxiliar em veto municipal, usando o regime lido no servidor. Não forja acesso fiscal, não libera emissão e não muda guards/numeração. Próxima etapa: perfil Serviço/Avançado e operação de homologação explícita; não repetir A1/SQL/consulta por causa do aviso auxiliar.

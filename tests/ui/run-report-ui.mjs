@@ -26,6 +26,7 @@ try {
     "@/app/painel/certificados/actions": path.join(root, "tests/ui/workflow-actions.ts"),
     "@/app/painel/importacoes/review-actions": path.join(root, "tests/ui/workflow-actions.ts"),
     "@/app/painel/importacoes/quick-actions": path.join(root, "tests/ui/workflow-actions.ts"),
+    "@/app/painel/notas/email-actions": path.join(root, "tests/ui/workflow-actions.ts"),
     "@/app/painel/notas/actions": path.join(root, "tests/ui/workflow-actions.ts"),
     "next/navigation": path.join(root, "tests/ui/navigation.ts"),
     "next/link": path.join(root, "tests/ui/link.tsx"),
@@ -195,6 +196,19 @@ try {
     console.log(`Review popup ${width}px: one list of 38 notes, internal scrolling, fixed confirmation, trapped/restored focus, close/reopen clears consent, no invoice queued`);
   }
   for(const width of [1440,390,320]){
+    await page.setViewportSize({width,height:640});await page.goto(`${origin}/?screen=quick&email-mode=1`);
+    const modal=page.getByRole('dialog',{name:'Revise e emita seu lote.',exact:true});await modal.waitFor();
+    assert.equal(await modal.getByText(/Envio ao vendedor:/).count(),4);
+    assert.ok(await modal.getByText(/somente o endereço de teste configurado/).isVisible());
+    await modal.getByRole('checkbox',{name:/Também autorizo a entrega/}).check();
+    const submit=modal.getByRole('button',{name:'Revisei, confirmar e emitir em homologação',exact:true});
+    const box=await submit.boundingBox();assert.ok(box.y+box.height<=640,'email consent footer must stay visible');
+    await submit.click();await page.getByRole('alert').filter({hasText:'Falha sintética preserva'}).waitFor();
+    assert.equal(await page.evaluate(()=>window.workflowUiTest.emailOptIn),'on');
+    assert.ok(await modal.evaluate(element=>element.scrollWidth<=element.clientWidth));
+    console.log(`Email review ${width}px: per-seller destinations, test-only disclosure, explicit opt-in, fixed confirmation, no external email`);
+  }
+  for(const width of [1440,390,320]){
     await page.setViewportSize({width,height:900});await page.goto(`${origin}/?screen=quick&validity-case=1`);
     await page.getByRole("heading",{name:"A competência está certa? Ajuste a vigência do serviço.",exact:true}).waitFor();
     const consent=page.getByRole("checkbox",{name:/Revisei os valores/});await consent.check();
@@ -244,6 +258,19 @@ try {
     console.log(`Quick review ${width}px: prefilled import-page review, one consent/submit, stable retry, edits invalidate consent, no overflow`);
   }
 
+  for(const width of [1440,390,320]){
+    await page.setViewportSize({width,height:900});await page.goto(`${origin}/?screen=email-operations`);
+    const cards=page.locator('.fiscal-operation');
+    await cards.nth(0).getByLabel('E-mail correto deste vendedor').fill('corrected@example.com');
+    await cards.nth(0).getByRole('button',{name:'Tentar entregar novamente',exact:true}).click();
+    await cards.nth(0).getByRole('status').filter({hasText:'Nova tentativa sintética'}).waitFor();
+    assert.equal(await page.evaluate(()=>window.workflowUiTest.emailCorrection),'corrected@example.com');
+    assert.equal(await cards.nth(1).getByRole('button').count(),0,'uncertain email cannot be resent');
+    assert.equal(await cards.nth(2).getByRole('button').count(),0,'accepted email cannot be resent');
+    assert.ok(await cards.nth(2).getByText(/ainda não comprova chegada/).isVisible());
+    assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
+    console.log(`Email status ${width}px: missing email correction, uncertain/accepted cannot resend, acceptance is not delivery, no overflow or fiscal action`);
+  }
   for (const width of [1440,390,320]) {
     await page.setViewportSize({ width, height: 900 });
     await page.goto(`${origin}/?screen=certificate`);

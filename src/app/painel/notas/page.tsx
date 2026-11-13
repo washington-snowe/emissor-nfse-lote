@@ -1,3 +1,4 @@
+import {attachEmailStatuses} from "@/lib/email/display";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { getWorkspaceData } from "@/lib/workspace-data";
@@ -15,7 +16,7 @@ export default async function Invoices({ searchParams }: { searchParams: Promise
   let [list, counts] = await Promise.all([client.rpc("list_company_fiscal_operations", { p_company: selected?.id ?? null, p_limit: 50, p_offset: (page - 1) * 50 }), client.rpc("company_fiscal_totals", { p_company: selected?.id ?? null })]);
   const legacy = list.error?.code === "PGRST202" || list.error?.code === "42883";
   if (legacy) [list, counts] = await Promise.all([client.rpc("list_fiscal_operations", { p_limit: 50, p_offset: (page - 1) * 50 }), client.rpc("fiscal_status_totals")]);
-  const operations = (list.data ?? []) as OperationDisplay[];
+  const operations = await attachEmailStatuses(client,context.tenantId,(list.data ?? []) as OperationDisplay[]);
   return <WorkspaceShell email={context.user.email} active="invoices" companyId={selected?.id}><div className="dashboard-content company-page">
     <div className="company-page-heading"><div><span className="eyebrow">Homologação</span><h1>Suas notas.</h1><p>Preparação, envio e consulta têm estados próprios. Uma resposta incerta nunca libera novo envio automático.</p></div><Link className="btn btn--primary" href={selected ? `/painel/notas/nova?empresa=${selected.id}` : "/painel/notas/nova"}>Preparar nota avulsa</Link></div>
     {legacy && <p className="save-notice">Enquanto a atualização do banco está pendente, esta lista mostra todas as empresas da sua conta. Após aplicar a migração 13, o filtro da empresa selecionada será usado.</p>}

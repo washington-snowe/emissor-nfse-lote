@@ -9,6 +9,8 @@ import {quickReviewDefaults,quickReviewDigest,type QuickReviewInput,type QuickRe
 import {repairInitialMeiValidity} from "@/lib/profile-validity-server";
 import {canExtendProfileValidity} from "@/lib/nfse/profile-validity";
 import {todayInBrazil} from "@/lib/nfse/standalone";
+import {sellerEmailRoute} from "@/lib/email/routing";
+import {emailConfig} from "@/lib/email/config";
 
 export async function loadQuickReportReview(importId:string,input?:QuickReviewInput,repairValidity=true) {
   const {client,context}=await requireWorkspace();
@@ -47,5 +49,6 @@ export async function loadQuickReportReview(importId:string,input?:QuickReviewIn
   const data:QuickReviewData={importId,companyId:company.data.id,input:fields,candidates,preview:generated.snapshot,digest:!error&&generated.snapshot?quickReviewDigest(generated.snapshot):undefined,
     version:review.data?.version??0,error,issues:generated.issues,foreignForAll:Boolean(profile.serviceCountry)||profile.issTaxation==="3",currency:profile.foreignTrade?.currency,needsIntermediary:profile.issWithholding==="3",transmissionEnabled:process.env.NFSE_HOMOLOGATION_ENABLED==="true",
     validityAdjustment:dateBlocked&&generated.snapshot&&canExtendProfileValidity(company.data,current,fields.competenceDate,todayInBrazil())?{profileId:current.id,profileVersion:current.version,profileHash:current.configuration_sha256,currentFrom:current.valid_from,targetFrom:fields.competenceDate,previewDigest:quickReviewDigest(generated.snapshot)}:undefined};
+  data.emailDelivery={enabled:emailConfig(process.env).enabled,testOnly:true,routes:generated.snapshot?.groups.map(group=>sellerEmailRoute(report,group))??[]};
   return {data,report,binding,previous:review.data,current,company:company.data};
 }

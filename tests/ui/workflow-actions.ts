@@ -1,7 +1,7 @@
 // UI boundary fixtures only: no Auth, Vault, key, credential or database access.
 import {quickUiData} from "./quick-fixture";
 declare global {
-  interface Window { workflowUiTest: { calls: number; companyId: string; fileSize: number; passwordLength: number; reviewJson?: string; requestIds?: string[]; standaloneJson?: string; templateVersion?: string; path?: string; clipboard?: string;refreshes?:number;validityAdjustments?:number;validityInput?:string } }
+  interface Window { workflowUiTest: { calls: number; companyId: string; fileSize: number; passwordLength: number; reviewJson?: string; requestIds?: string[]; standaloneJson?: string; templateVersion?: string; path?: string; clipboard?: string;refreshes?:number;validityAdjustments?:number;validityInput?:string;emailOptIn?:FormDataEntryValue|null;emailCorrection?:FormDataEntryValue|null } }
 }
 export async function uploadCertificate(_state: unknown, form: FormData) {
   window.workflowUiTest.calls++;
@@ -24,7 +24,7 @@ export async function saveReport(form: FormData) {
 }
 export async function refreshQuickReview(_id:string,payload:string){await new Promise(resolve=>setTimeout(resolve,250));return {data:quickUiData(JSON.parse(payload))};}
 export async function adjustQuickReviewValidity(_id:string,form:FormData){if(form.get("sameConfiguration")!=="on")return {error:"Confirmação sintética ausente."};window.workflowUiTest.validityAdjustments=(window.workflowUiTest.validityAdjustments??0)+1;window.workflowUiTest.validityInput=String(form.get("input"));await new Promise(resolve=>setTimeout(resolve,150));const data=quickUiData(JSON.parse(String(form.get("input"))));data.preview!.profileVersion=2;data.digest="c".repeat(64);return {data};}
-export async function confirmAndQueueQuickReview(_id:string,form:FormData){window.workflowUiTest.calls++;window.workflowUiTest.reviewJson=String(form.get("input"));(window.workflowUiTest.requestIds??=[]).push(String(form.get("request")));await new Promise(resolve=>setTimeout(resolve,120));return window.workflowUiTest.calls===1?{error:"Falha sintética preserva a confirmação."}:{id:"test-quick-batch",duplicate:true};}
+export async function confirmAndQueueQuickReview(_id:string,form:FormData){window.workflowUiTest.emailOptIn=form.get("emailReviewed");window.workflowUiTest.calls++;window.workflowUiTest.reviewJson=String(form.get("input"));(window.workflowUiTest.requestIds??=[]).push(String(form.get("request")));await new Promise(resolve=>setTimeout(resolve,120));return window.workflowUiTest.calls===1?{error:"Falha sintética preserva a confirmação."}:{id:"test-quick-batch",duplicate:true};}
 
 export async function selectWorkspaceCompany(id: string, area: string) { window.workflowUiTest.companyId = id; window.workflowUiTest.path = area; return {}; }
 export async function saveAccountProfile(_state: unknown, form: FormData) { window.workflowUiTest.calls++; return window.workflowUiTest.calls===1 ? {error:"Falha sintética de perfil."} : { success: "Perfil sintético salvo.", version: Number(form.get("version"))+1 }; }
@@ -32,3 +32,6 @@ export async function updateLogin() { window.workflowUiTest.calls++; return { su
 export async function claimReferral() { return { success: "Indicação sintética vinculada." }; }
 
 export async function openBilling() { window.workflowUiTest.calls++; return {error:"Checkout sintético sem cobrança ou conexão Stripe."}; }
+
+export async function enableBatchEmails(){return {success:"Entrega sintética preparada, sem envio."};}
+export async function retryInvoiceEmail(_id:string,_state:unknown,form:FormData){window.workflowUiTest.emailCorrection=form.get("destination");return {success:"Nova tentativa sintética, sem envio."};}

@@ -45,6 +45,7 @@ export async function confirmAndQueueQuickReview(importId:string,form:FormData):
   if(!input||typeof digest!=="string"||!/^[a-f0-9]{64}$/.test(digest)||typeof request!=="string"||!/^[0-9a-f-]{36}$/i.test(request)||typeof version!=="string"||!/^(0|[1-9]\d{0,8})$/.test(version))return {error:"Não foi possível conferir a solicitação. Atualize a prévia."};
   const admin=createAdminClient(),loaded=await loadQuickReportReview(importId,input,false);
   if(!admin||!loaded||loaded.data.error||loaded.data.digest!==digest)return {error:"Os dados ou o perfil fiscal mudaram. Atualize a prévia e revise novamente antes de confirmar."};
+  if(loaded.data.emailDelivery?.enabled&&form.get("emailReviewed")!=="on")return {error:"Atualize a revisão para conferir também os destinos dos e-mails."};
   const reserved=await admin.rpc("reserve_company_operation",{p_actor:context.user.id,p_company:loaded.binding.companyId,p_operation:"prepare_batch"});
   if(reserved.error||reserved.data!==true)return {error:"Aguarde alguns minutos antes de preparar outro lote."};
   // Only this explicitly checked submission may create a confirmed-role snapshot.
@@ -66,6 +67,10 @@ export async function confirmAndQueueQuickReview(importId:string,form:FormData):
   if(confirmed.error||!confirmed.data)return {error:"A configuração mudou antes da confirmação. Atualize a prévia e confira novamente."};
   const queued=await admin.rpc("enqueue_report_fiscal",{p_actor:context.user.id,p_review:reviewId,p_sha256:sha256,p_request:request});
   if(queued.error||!queued.data?.id)return {error:queued.error?.code==="23505"?"Já existe uma emissão cobrindo linhas deste relatório. Consulte suas notas para evitar duplicidade.":"A confirmação foi salva, mas o lote ainda não foi confirmado na fila. Repita esta mesma solicitação com segurança."};
+  if(loaded.data.emailDelivery?.enabled){
+    const emails=await admin.rpc("enable_invoice_email",{p_actor:context.user.id,p_batch:queued.data.id});
+    if(emails.error||emails.data!==true)return {error:"O lote foi preparado, mas a fila de e-mail não pôde ser confirmada. Repita esta mesma solicitação; as notas não serão duplicadas."};
+  }
   after(async()=>{try{await processQueuedWork(context.tenantId);}catch{/* Durable recovery; never re-POST a transmitted DPS. */}});
   revalidatePath("/painel/importacoes","layout");revalidatePath("/painel/notas","layout");
   return {id:queued.data.id,duplicate:queued.data.duplicate===true};

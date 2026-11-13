@@ -1,0 +1,42 @@
+{
+  "retrievedOn": "2026-11-13",
+  "sources": [
+    {
+      "url": "https://api.brevo.com/v3/swagger_definition_v3.yml",
+      "sha256": "0d7ddf33dae6a1b4b196718f1babf890ff428c83fb15994cd4f55dcd3446bf69"
+    },
+    {
+      "url": "https://github.com/sendpulse/sendpulse-rest-api-node.js/blob/master/api/sendpulse.js",
+      "sha256": "936e82ea34553c916250590e399e6eb141299fea4e4efcf01029c94d29f4559b"
+    },
+    {
+      "url": "https://github.com/sendpulse/sendpulse-rest-api-java/blob/master/README.md",
+      "sha256": "6b202a02f90a7ecca9597dca7ddc733f09d1082d0fed91a40979d299790f107b"
+    },
+    {
+      "url": "https://dev.mailjet.com/email/guides/send-api-v31/",
+      "sha256": "dad32e4e64202e3abe1a3570d6ba6bbb1322cd713c2c77709cb678a9d1795f24"
+    },
+    {
+      "url": "https://supabase.com/docs/guides/cron/quickstart",
+      "sha256": "500dbdf21abbafb7d4ba3df99f5e7276547f7923e3479785eea539c581faad98"
+    }
+  ],
+  "limits": {
+    "source": "Explicit user instruction; local conservative ceilings, not a provider account validation",
+    "brevo": {
+      "rolling24h": 300,
+      "intervalSeconds": 1
+    },
+    "sendpulse": {
+      "rolling24h": 400,
+      "intervalSeconds": 75
+    },
+    "mailjet": {
+      "rolling24h": 200,
+      "intervalSeconds": 1
+    }
+  },
+  "delivery": "HTTP acceptance is not proof of inbox delivery; no live credentials or sender validation in executor. SendPulse public docs returned 403; official SDKs used for wire format.",
+  "production": "Current fiscal system supports homologation only. External sellers never receive test invoices."
+}
