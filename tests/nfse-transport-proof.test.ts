@@ -1,9 +1,13 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
+import { readFileSync } from "node:fs";
+import { createHash } from "node:crypto";
 import { verifiedSefinLookup } from "../src/lib/nfse/api-contract.ts";
 import { ownSefinLookupId, verifyOwnSefinTransport } from "../src/lib/nfse/transport-proof.ts";
 import { fiscalProbeReport } from "../src/lib/nfse/probe-report.ts";
 import { contractFixture } from "./helpers/fiscal-fixture.ts";
+import { supportedNfseContract } from "../src/lib/nfse/api-contract.ts";
+import { fiscalProbeFeedback } from "../src/lib/nfse/probe-feedback.ts";
 
 const cnpj = "11222333000181", municipality = "3550308", id = ownSefinLookupId(municipality, cnpj, "1");
 const credentials = {pfx: Buffer.from("SYNTHETIC"), password: "PRIVATE-SYNTHETIC-DO-NOT-EXPOSE"};
@@ -49,4 +53,37 @@ test("relatório copiável usa apenas rótulos fixos e status, sem certificado, 
   assert.ok(report.includes("nfse-adn-v1")); assert.ok(report.includes("Parâmetros ADN: HTTP 404"));
   assert.ok(report.includes("Contrato SEFIN: HTTP 200"));
   assert.ok(!report.includes(credentials.password)); assert.ok(!report.includes("https://"));
+});
+
+test("MEI não confunde 404 JSON de parâmetros auxiliares com veto municipal ou autorização fiscal", () => {
+  const access = {connected: false, status: 404, responseFormat: "json" as const, message: "Consulta auxiliar não concluída.", diagnostic: "NFSE_HTTP_404"};
+  const feedback = fiscalProbeFeedback(access, "mei", "recognized");
+  assert.ok(feedback.success);
+  assert.equal(feedback.error, undefined);
+  assert.equal(feedback.canReviewProfile, true);
+  assert.match(feedback.notice, /ainda serão validados na SEFIN/);
+  assert.equal(access.connected, false, "presentation must not forge transport evidence");
+  assert.ok(fiscalProbeFeedback(access, "simples", "recognized").error);
+  for (const contract of ["pending", "storage_pending", "unsupported"] as const)
+    assert.equal(fiscalProbeFeedback(access, "mei", contract).canReviewProfile, false);
+  for (const status of [0, 401, 403, 429, 503])
+    assert.ok(fiscalProbeFeedback({...access, status}, "mei", "recognized").error);
+  assert.ok(fiscalProbeFeedback({...access, responseFormat: "html"}, "mei", "recognized").error);
+});
+
+test("contrato oficial capturado preserva integridade e é reconhecido sem comprovar emissão", () => {
+  const file = new URL("../integrations/nfse/contracts/sefin-homologation-v1.structural.json", import.meta.url);
+  const bytes = readFileSync(file);
+  const provenance = JSON.parse(readFileSync(new URL("../integrations/nfse/contracts/sefin-homologation-v1.provenance.json", import.meta.url), "utf8"));
+  assert.equal(createHash("sha256").update(bytes).digest("hex"), provenance.structural_file_sha256);
+  assert.equal(provenance.kind, "authenticated_official_structural_capture");
+  assert.equal(provenance.source_url, "https://sefin.producaorestrita.nfse.gov.br/SefinNacional/swagger/docs/v1");
+  const official = JSON.parse(bytes.toString("utf8"));
+  const supported = supportedNfseContract(official);
+  assert.ok(supported);
+  assert.equal(supported.dpsPath, "/dps/{id}");
+  assert.equal(supported.nfsePath, "/nfse/{chaveAcesso}");
+  assert.ok(official.paths["/nfse"].post.responses["201"]);
+  assert.ok(verifiedSefinLookup(404, Buffer.from('{"tipoAmbiente":2,"erro":{"codigo":"E0002"}}'), id, official));
+  assert.equal(verifiedSefinLookup(404, Buffer.from('<html>404</html>'), id, official), false);
 });

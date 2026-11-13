@@ -143,6 +143,7 @@ try {
     await page.getByRole("button", { name: "Verificar acesso à homologação", exact: true }).click();
     await page.getByText("Verificação sintética sem conexão fiscal.", { exact: true }).waitFor();
     await page.getByText("Documentação sintética pendente; nenhuma conexão oficial. Referência: NFSE_CONTRACT_PENDING.", { exact: true }).waitFor();
+    assert.equal(await page.getByRole("link", {name:"Conferir dados fiscais", exact:true}).getAttribute("href"), "/painel/empresas/test-company/fiscal?secao=servico");
     await page.getByText("Detalhes da verificação", { exact: true }).click();
     await page.getByText(/Diagnóstico: nfse-adn-v1/).waitFor();
     await page.evaluate(() => Object.defineProperty(navigator, "clipboard", {configurable: true, value: {writeText: async text => {window.workflowUiTest.clipboard = text;}}}));

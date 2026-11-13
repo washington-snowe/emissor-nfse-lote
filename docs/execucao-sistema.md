@@ -4,6 +4,10 @@ Autorização atual: o usuário solicitou implementar o sistema completo, inclui
 
 ## Consulta de homologação com o A1 cadastrado
 
+Checkpoint atual: o usuário enviou diagnóstico ADN 404 JSON com captura SEFIN 200 e informou ser MEI. O contrato oficial foi conferido pela RPC pública, reconhecido pelo adaptador e preservado com hash/proveniência em `integrations/nfse/contracts`. A interface orienta MEI a conferir os dados fiscais sem transformar o 404 auxiliar em veto municipal, usando o regime lido no servidor. Não forja acesso fiscal, não libera emissão e não muda guards/numeração. Próxima etapa: perfil Serviço/Avançado e operação de homologação explícita; não repetir A1/SQL/consulta por causa do aviso auxiliar.
+
+Validação deste checkpoint: 93 testes aprovados e seis opt-in ignorados; interface do certificado/link de perfil e regressão dos fluxos existentes aprovadas; TypeScript, lint e build aprovados. O contrato estrutural contém somente documentação pública, não dados de contribuinte; seu uso em testes de conformidade não substitui a captura real lida pelo worker.
+
 Atualização: migração 15 confirmada pelo usuário, mas a consulta seguinte ainda retornou 404 e contrato pendente. Parâmetros municipais passam ao ADN (`/parametrizacao/{codigoMunicipio}/convenio`), conforme a documentação listada no portal e os contratos espelhados consultados, identificados como fontes secundárias. O leitor reconhece Redoc e o índice publicado pelo portal, e oferece diagnóstico copiável com etapas/status sem dados privados. A fila exige uma consulta SEFIN própria conforme o contrato capturado antes da reserva; não aceita o acesso ADN como prova. Não há nova migração ou reenvio de A1. A confirmação de acesso com o certificado real ainda depende do teste na sessão do usuário. Ver `docs/diagnostico-homologacao.md`.
 
 Validação da atualização ADN/Redoc: 90 testes aprovados, seis opt-in ignorados; interface de certificados/relatório copiável aprovada em 1440/390/320, fluxos existentes até seis larguras; TypeScript/lint aprovados. Produção e transmissão automática não foram habilitadas. O material privado do A1 continua inacessível ao executor.

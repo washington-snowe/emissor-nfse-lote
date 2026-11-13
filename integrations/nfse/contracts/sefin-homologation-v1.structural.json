@@ -1,0 +1,477 @@
+{
+  "dialect": "2.0",
+  "models": {
+    "DpsGetResponse": {
+      "properties": {
+        "chaveAcesso": {
+          "type": "string"
+        },
+        "dataHoraProcessamento": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "idDps": {
+          "type": "string"
+        },
+        "tipoAmbiente": {
+          "enum": [
+            1,
+            2
+          ],
+          "format": "int32",
+          "type": "integer"
+        },
+        "versaoAplicativo": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "tipoAmbiente",
+        "versaoAplicativo",
+        "dataHoraProcessamento",
+        "idDps",
+        "chaveAcesso"
+      ],
+      "type": "object"
+    },
+    "EventosPostRequest": {
+      "properties": {
+        "pedidoRegistroEventoXmlGZipB64": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "pedidoRegistroEventoXmlGZipB64"
+      ],
+      "type": "object"
+    },
+    "EventosPostResponseSucesso": {
+      "properties": {
+        "dataHoraProcessamento": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "eventoXmlGZipB64": {
+          "type": "string"
+        },
+        "tipoAmbiente": {
+          "enum": [
+            1,
+            2
+          ],
+          "format": "int32",
+          "type": "integer"
+        },
+        "versaoAplicativo": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "tipoAmbiente",
+        "versaoAplicativo",
+        "dataHoraProcessamento",
+        "eventoXmlGZipB64"
+      ],
+      "type": "object"
+    },
+    "MensagemProcessamento": {
+      "properties": {
+        "codigo": {
+          "type": "string"
+        },
+        "complemento": {
+          "type": "string"
+        },
+        "descricao": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "NFSeBypassPostRequest": {
+      "properties": {
+        "xmlGZipB64": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "NFSeGetResponseSucesso": {
+      "properties": {
+        "chaveAcesso": {
+          "type": "string"
+        },
+        "dataHoraProcessamento": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "nfseXmlGZipB64": {
+          "type": "string"
+        },
+        "tipoAmbiente": {
+          "enum": [
+            1,
+            2
+          ],
+          "format": "int32",
+          "type": "integer"
+        },
+        "versaoAplicativo": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "tipoAmbiente",
+        "versaoAplicativo",
+        "dataHoraProcessamento",
+        "chaveAcesso",
+        "nfseXmlGZipB64"
+      ],
+      "type": "object"
+    },
+    "NFSePostRequest": {
+      "properties": {
+        "dpsXmlGZipB64": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "dpsXmlGZipB64"
+      ],
+      "type": "object"
+    },
+    "NFSePostResponseErro": {
+      "properties": {
+        "dataHoraProcessamento": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "erros": {
+          "items": {
+            "$ref": "#/definitions/MensagemProcessamento"
+          },
+          "type": "array"
+        },
+        "idDPS": {
+          "type": "string"
+        },
+        "tipoAmbiente": {
+          "enum": [
+            1,
+            2
+          ],
+          "format": "int32",
+          "type": "integer"
+        },
+        "versaoAplicativo": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "tipoAmbiente",
+        "versaoAplicativo",
+        "dataHoraProcessamento",
+        "erros"
+      ],
+      "type": "object"
+    },
+    "NFSePostResponseSucesso": {
+      "properties": {
+        "alertas": {
+          "items": {
+            "$ref": "#/definitions/MensagemProcessamento"
+          },
+          "type": "array"
+        },
+        "chaveAcesso": {
+          "type": "string"
+        },
+        "dataHoraProcessamento": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "idDps": {
+          "type": "string"
+        },
+        "nfseXmlGZipB64": {
+          "type": "string"
+        },
+        "tipoAmbiente": {
+          "enum": [
+            1,
+            2
+          ],
+          "format": "int32",
+          "type": "integer"
+        },
+        "versaoAplicativo": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "tipoAmbiente",
+        "versaoAplicativo",
+        "dataHoraProcessamento",
+        "idDps",
+        "chaveAcesso",
+        "nfseXmlGZipB64"
+      ],
+      "type": "object"
+    },
+    "ResponseErro": {
+      "properties": {
+        "dataHoraProcessamento": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "erro": {
+          "$ref": "#/definitions/MensagemProcessamento"
+        },
+        "tipoAmbiente": {
+          "enum": [
+            1,
+            2
+          ],
+          "format": "int32",
+          "type": "integer"
+        },
+        "versaoAplicativo": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "tipoAmbiente",
+        "versaoAplicativo",
+        "dataHoraProcessamento",
+        "erro"
+      ],
+      "type": "object"
+    }
+  },
+  "paths": {
+    "/dps/{id}": {
+      "get": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "schema": {
+              "$ref": "#/definitions/DpsGetResponse"
+            }
+          },
+          "400": {
+            "schema": {
+              "$ref": "#/definitions/ResponseErro"
+            }
+          },
+          "404": {
+            "schema": {
+              "$ref": "#/definitions/ResponseErro"
+            }
+          }
+        }
+      },
+      "head": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {},
+          "400": {},
+          "404": {}
+        }
+      }
+    },
+    "/nfse": {
+      "post": {
+        "parameters": [
+          {
+            "in": "body",
+            "name": "nfsePostRequest",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/NFSePostRequest"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "schema": {
+              "$ref": "#/definitions/NFSePostResponseSucesso"
+            }
+          },
+          "400": {
+            "schema": {
+              "$ref": "#/definitions/NFSePostResponseErro"
+            }
+          },
+          "403": {
+            "schema": {
+              "$ref": "#/definitions/NFSePostResponseErro"
+            }
+          },
+          "500": {
+            "schema": {
+              "$ref": "#/definitions/NFSePostResponseErro"
+            }
+          }
+        }
+      }
+    },
+    "/nfse/{chaveAcesso}": {
+      "get": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "chaveAcesso",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "schema": {
+              "$ref": "#/definitions/NFSeGetResponseSucesso"
+            }
+          },
+          "400": {
+            "schema": {
+              "$ref": "#/definitions/ResponseErro"
+            }
+          },
+          "401": {
+            "schema": {
+              "$ref": "#/definitions/ResponseErro"
+            }
+          },
+          "403": {
+            "schema": {
+              "$ref": "#/definitions/ResponseErro"
+            }
+          },
+          "404": {
+            "schema": {
+              "$ref": "#/definitions/ResponseErro"
+            }
+          }
+        }
+      }
+    },
+    "/nfse/{chaveAcesso}/eventos": {
+      "post": {
+        "parameters": [
+          {
+            "in": "body",
+            "name": "eventosPostRequest",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/EventosPostRequest"
+            }
+          },
+          {
+            "in": "path",
+            "name": "chaveAcesso",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "201": {
+            "schema": {
+              "$ref": "#/definitions/EventosPostResponseSucesso"
+            }
+          },
+          "400": {
+            "schema": {
+              "$ref": "#/definitions/ResponseErro"
+            }
+          },
+          "401": {
+            "schema": {
+              "$ref": "#/definitions/ResponseErro"
+            }
+          }
+        }
+      }
+    },
+    "/nfse/{chaveAcesso}/eventos/{tipoEvento}/{numSeqEvento}": {
+      "get": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "chaveAcesso",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "enum": [
+              101101,
+              101103,
+              105102,
+              105104,
+              105105,
+              202201,
+              202205,
+              203202,
+              203206,
+              204203,
+              204207,
+              205204,
+              205208,
+              305101,
+              305102,
+              305103,
+              467201,
+              907201
+            ],
+            "format": "int32",
+            "in": "path",
+            "name": "tipoEvento",
+            "required": true,
+            "type": "integer"
+          },
+          {
+            "format": "int32",
+            "in": "path",
+            "name": "numSeqEvento",
+            "required": true,
+            "type": "integer"
+          }
+        ],
+        "responses": {
+          "200": {
+            "schema": {
+              "$ref": "#/definitions/EventosPostResponseSucesso"
+            }
+          },
+          "401": {
+            "schema": {
+              "$ref": "#/definitions/ResponseErro"
+            }
+          },
+          "404": {
+            "schema": {
+              "$ref": "#/definitions/ResponseErro"
+            }
+          },
+          "422": {
+            "schema": {
+              "$ref": "#/definitions/ResponseErro"
+            }
+          }
+        }
+      }
+    }
+  }
+}

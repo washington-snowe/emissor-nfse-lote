@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { gzipSync } from "node:zlib";
+import { readFileSync } from "node:fs";
 import { executeFiscalJob, type FiscalJob } from "../src/lib/nfse/execute.ts";
 import { supportedNfseContract } from "../src/lib/nfse/api-contract.ts";
 import { signDps } from "../src/lib/nfse/signature.ts";
@@ -43,6 +44,24 @@ test("pipeline local sintético persiste intenção antes do único POST e exige
   assert.equal(s.events.filter(event => event === "POST").length, 1);
   assert.deepEqual(s.finishes, ["authorized"]);
   assert.ok(s.pfx.every(byte => byte === 0));
+});
+test("contrato oficial capturado prevê HTTP 201 e ainda exige a verificação do documento", async () => {
+  const official = JSON.parse(readFileSync(new URL("../integrations/nfse/contracts/sefin-homologation-v1.structural.json", import.meta.url), "utf8"));
+  const contract = supportedNfseContract(official);
+  assert.ok(contract);
+  const s = scenario();
+  s.deps.contract = contract;
+  const request = s.deps.request;
+  const receipt = s.deps.receipt;
+  s.deps.receipt = (...args) => {s.events.push("verify-receipt"); return receipt(...args);};
+  s.deps.request = async (method, url, material, body) => {
+    const response = await request(method, url, material, body);
+    return {...response, status: method === "POST" ? 201 : response.status};
+  };
+  await executeFiscalJob(s.job, s.deps);
+  assert.deepEqual(s.finishes, ["authorized"]);
+  assert.ok(s.events.indexOf("POST") < s.events.indexOf("verify-receipt"));
+  assert.equal(s.events.filter(event => event === "POST").length, 1);
 });
 test("ausência de A1 ou origem já reservada não obtêm permissão de envio", async () => {
   const missing = scenario(); missing.deps.loadMaterial = async () => { throw new Error("certificate_missing"); };

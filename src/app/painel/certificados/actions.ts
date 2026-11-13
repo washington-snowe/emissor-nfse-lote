@@ -8,8 +8,10 @@ import { loadCertificateMaterial } from "@/lib/certificate-material";
 import { checkHomologationAccess } from "@/lib/nfse/access-check";
 import { discoverOfficialContract, type ContractDiscoveryStep } from "@/lib/nfse/contract";
 import { fiscalProbeReport } from "@/lib/nfse/probe-report";
+import { fiscalProbeFeedback, type FiscalContractStatus } from "@/lib/nfse/probe-feedback";
+import { supportedNfseContract } from "@/lib/nfse/api-contract";
 
-export type CertificateState = { error?: string; success?: string; notice?: string; details?: string };
+export type CertificateState = { error?: string; success?: string; notice?: string; details?: string; profileHref?: string };
 const errors: Record<string, string> = {
   file_or_password: "Não foi possível abrir o A1. Confira o arquivo e a senha.",
   processing_timeout: "O arquivo excedeu o limite seguro de processamento. Confira o certificado e tente novamente.",
@@ -64,7 +66,7 @@ export async function probeCertificate(id: string): Promise<CertificateState> {
   if (!admin || !/^[0-9a-f-]{36}$/i.test(id)) return { error: "Verificação indisponível." };
   const certificate=await client.from("company_certificates").select("id,company_id").eq("id",id).eq("tenant_id",context.tenantId).eq("status","active").maybeSingle();
   if (!certificate.data || certificate.error) return { error: "Certificado não encontrado no seu espaço." };
-  const company=await client.from("companies").select("id,address").eq("id",certificate.data.company_id).eq("tenant_id",context.tenantId).maybeSingle();
+  const company=await client.from("companies").select("id,address,tax_regime").eq("id",certificate.data.company_id).eq("tenant_id",context.tenantId).maybeSingle();
   const municipality=company.data?.address?.municipality_code;
   if (company.error || typeof municipality!=="string" || !/^[1-9]\d{6}$/.test(municipality)) return { error: "Complete o código IBGE do município no cadastro da empresa antes de verificar o acesso." };
   const reserved=await admin.rpc("reserve_company_operation",{p_actor:context.user.id,p_company:company.data!.id,p_operation:"fiscal_access_check"});
@@ -77,16 +79,17 @@ export async function probeCertificate(id: string): Promise<CertificateState> {
     const discoverySteps: ContractDiscoveryStep[] = [];
     const documented=Date.now()+1000<deadline ? await discoverOfficialContract("homologation",material,deadline,undefined,step => discoverySteps.push(step)).catch(()=>null) : null;
     const details = fiscalProbeReport(access, discoverySteps, process.env.VERCEL_GIT_COMMIT_SHA);
-    let notice = "A documentação fiscal ainda não pôde ser obtida. O envio continua bloqueado. Referência: NFSE_CONTRACT_PENDING.";
+    let contractStatus: FiscalContractStatus = "pending";
     if (documented && !JSON.stringify(documented.contract).includes(material.metadata.subject_cnpj)) {
       const stored = await admin.rpc("store_official_nfse_contract",{p_environment:"homologation",p_url:documented.url,p_sha256:documented.sha256,p_contract:documented.contract});
-      notice = stored.error ? "A documentação foi encontrada, mas a configuração de armazenamento fiscal precisa ser concluída. Referência: NFSE_CONTRACT_STORAGE." :
-        "Documentação fiscal obtida e registrada para análise de compatibilidade. Isso não libera emissão automaticamente.";
+      contractStatus = stored.error ? "storage_pending" : supportedNfseContract(documented.contract) ? "recognized" : "unsupported";
     }
+    const feedback = fiscalProbeFeedback(access, company.data!.tax_regime, contractStatus);
     const recorded = await admin.rpc("record_fiscal_access",{p_actor:context.user.id,p_certificate:certificate.data.id,p_status:access.status,p_outcome:access.connected ? "response_received" : "unavailable"});
     revalidatePath("/painel/certificados");
-    if (recorded.error) return { error: `${access.message} O registro desta verificação não pôde ser salvo; repita a consulta antes de prosseguir.`, notice, details };
-    return access.connected ? { success: access.message, notice, details } : { error: access.message, notice, details };
+    if (recorded.error) return { error: `${access.message} O registro desta verificação não pôde ser salvo; repita a consulta antes de prosseguir.`, notice: feedback.notice, details };
+    return {success: feedback.success, error: feedback.error, notice: feedback.notice, details,
+      profileHref: feedback.canReviewProfile ? `/painel/empresas/${company.data!.id}/fiscal?secao=servico` : undefined};
   } catch { return { error: "Não foi possível acessar o certificado protegido para esta verificação." }; }
   finally { material?.pfx.fill(0); }
 }

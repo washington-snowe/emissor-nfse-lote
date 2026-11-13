@@ -8,6 +8,8 @@ Atualização da consulta A1: após o armazenamento confirmado, o usuário receb
 
 A migração 15 já foi confirmada. A atualização posterior usa o ADN para parâmetros municipais, reconhece Redoc e mostra **Copiar diagnóstico**. Não há nova migração para essa atualização; a confirmação seguinte deve ser feita somente pelo botão da aplicação, sem enviar A1/senha ao chat.
 
+Atualização confirmada: o diagnóstico enviado já mostrou documentação SEFIN 200 capturada e ADN 404 JSON. Para MEI, esse retorno auxiliar não exige repetir consultas/cadastro. O contrato foi reconhecido; a próxima etapa é conferir Serviço/Avançado. A transmissão segue desativada até a configuração e a operação de homologação explícita.
+
 Migrações 1–12 já confirmadas. Para a nova etapa, aplicar somente `202611120013_account_and_referrals.sql` e depois `202611120014_stripe_billing.sql`, encaminhadas após os testes. Não repetir as anteriores. Variáveis privadas Stripe, URL do webhook, eventos e roteiro de teste estão em [menu, conta e Stripe](menu-conta-stripe.md). Isso não libera emissão fiscal em produção.
 
 ## 1. Banco

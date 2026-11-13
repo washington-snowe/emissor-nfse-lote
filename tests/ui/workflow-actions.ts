@@ -10,7 +10,7 @@ export async function uploadCertificate(_state: unknown, form: FormData) {
   return { success: "Envio sintético conferido, sem armazenar certificado." };
 }
 export async function deactivateCertificate() { return { success: "Desativação sintética." }; }
-export async function probeCertificate() { return { success: "Verificação sintética sem conexão fiscal.", notice: "Documentação sintética pendente; nenhuma conexão oficial. Referência: NFSE_CONTRACT_PENDING.", details: "Diagnóstico: nfse-adn-v1\nParâmetros ADN: HTTP 404 · consulta sintética\nContrato SEFIN: HTTP 404 · sem consulta oficial" }; }
+export async function probeCertificate() { return { success: "Verificação sintética sem conexão fiscal.", notice: "Documentação sintética pendente; nenhuma conexão oficial. Referência: NFSE_CONTRACT_PENDING.", details: "Diagnóstico: nfse-adn-v1\nParâmetros ADN: HTTP 404 · consulta sintética\nContrato SEFIN: HTTP 404 · sem consulta oficial", profileHref: "/painel/empresas/test-company/fiscal?secao=servico" }; }
 export async function confirmReportReview() { window.workflowUiTest.calls++; return { success: "Confirmação sintética, sem banco ou emissão." }; }
 export async function enqueueReport() { window.workflowUiTest.calls++; return { success: "Fila sintética sem emissão." }; }
 export async function manageOperation(_id: string, action: string) { window.workflowUiTest.calls++; return { success: `Ação sintética ${action}, sem emissão.` }; }

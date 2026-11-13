@@ -1,5 +1,15 @@
 # Diagnóstico de acesso com A1
 
+## Estado atual: documentação capturada e MEI
+
+O diagnóstico seguro enviado pelo usuário mostrou ADN **404 JSON**, índice do portal **200 HTML** e contrato SEFIN **200 JSON capturado**. A empresa foi informada como MEI. A RPC pública confirmou a captura oficial de `https://sefin.producaorestrita.nfse.gov.br/SefinNacional/swagger/docs/v1`, hash original `68980daaac06929bc1b0dd8806b4214dd6d2d1da480fd7278a2c58c8a10ca4d5`, em `2026-11-13T01:35:16.429806+00:00` (noite de 12/11 em São Paulo).
+
+A estrutura pública, sem exemplos/descrições ou registros de contribuintes, foi preservada em `integrations/nfse/contracts/sefin-homologation-v1.structural.json`, com proveniência separada. O adaptador reconhece POST NFS-e **201**, consulta de DPS e consulta NFS-e. Não houve captura do A1 pelo executor, transmissão, autorização fiscal ou confirmação real dos algoritmos de assinatura.
+
+O feedback distingue a consulta auxiliar: **MEI cadastrado no servidor + ADN 404 JSON + contrato armazenado e reconhecido** orienta a conferir os dados fiscais, sem apresentar veto municipal. O 404 e `connected=false` continuam registrados como observados; não são convertidos em sucesso de transporte. Contrato ausente/incompatível, falha de armazenamento, HTTP 401/403, TLS e HTML 404 continuam mostrando pendência/erro. Simples não herda essa regra de apresentação do MEI. Nenhum guard fiscal ou limite de acesso foi removido.
+
+Não é necessário repetir cadastro A1, migração ou consulta só para eliminar esse aviso auxiliar. A próxima etapa é confirmar o perfil em **Empresa → Serviço/Avançado** e preparar a operação de homologação explicitamente. Produção continua bloqueada; a fila ainda valida a identidade e a resposta da SEFIN antes de reservar/enviar.
+
 O usuário confirmou o armazenamento protegido de seu A1 pela aplicação e informou falha na consulta de homologação. Depois do ajuste de TLS, a nova tentativa retornou `NFSE_HTTP_404`. A migração 15 foi confirmada sem erros; o teste seguinte continuou com 404 e `NFSE_CONTRACT_PENDING`. Isso mostra uma resposta HTTP, sem provar que o certificado foi aceito pelo serviço fiscal. O executor não recebeu certificado ou senha, não consultou o material privado e não transmitiu DPS.
 
 ## Separação entre parâmetros ADN e emissão SEFIN
@@ -52,7 +62,7 @@ A correção inicial de TLS não exigiu migração. O ajuste posterior de origem
 
 ## Evidência oficial
 
-O Portal Nacional mantém o link Sefin de produção restrita e o manual dos contribuintes descreve `GET /parametros_municipais/{codigoMunicipio}/convenio` dentro do Emissor Público Nacional. O caminho relativo foi preservado; o ajuste de prefixo está explicado acima. Fontes e hashes estão em `integrations/nfse/access-provenance.json`. As páginas Swagger consultadas sem A1 neste executor retornaram 503/reset; isso não prova indisponibilidade da consulta autenticada na Vercel. A RPC pública de estrutura de contrato retornou lista vazia após o HTTP 404 informado pelo usuário; não houve captura oficial válida neste diagnóstico.
+O Portal Nacional mantém os links de produção restrita. O manual legado descreve a antiga consulta SEFIN de parâmetros, posteriormente separada no ADN. Fontes e hashes estão em `integrations/nfse/access-provenance.json`. As páginas Swagger consultadas sem A1 neste executor retornaram 503/reset; isso não prova indisponibilidade da consulta autenticada na Vercel. A RPC antes retornava lista vazia; após a correção Redoc, a aplicação obteve e registrou o contrato oficial descrito no início deste documento.
 
 ## Validação
 
@@ -61,3 +71,5 @@ Testes sintéticos reproduzem o PFX legado, preparam o contexto TLS com PEM, con
 Resultado inicial do TLS: 80 testes aprovados e seis opt-in ignorados, sem alteração SQL. Após o ajuste de prefixo/descoberta: 84 testes aprovados e seis opt-in ignorados; 315 asserções PostgreSQL e testes concorrentes; interface real do aviso com fronteira sintética em 1440/390/320 e regressão dos fluxos existentes; TypeScript, lint e build aprovados. O usuário confirmou a aplicação da migração 15; ela não deve ser repetida ou editada.
 
 Atualização ADN/Redoc: 90 testes aprovados e seis opt-in ignorados. Cobertura adicional de destinos GET do ADN, leitura Redoc/index.js, descoberta direta, relatório sem dados privados, vínculo da identidade SEFIN e recusa de HTML/JSON genérico/ambiente errado antes da reserva. Interface em 1440/390/320 verifica abertura dos detalhes e cópia do relatório, com regressão dos fluxos existentes em até seis larguras. TypeScript/lint aprovados. Não há nova alteração SQL; não foram repetidos testes do banco hospedado nem realizada consulta com o A1 real pelo executor.
+
+Checkpoint MEI/contrato capturado: 93 testes aprovados e seis opt-in ignorados, incluindo integridade do artefato oficial estrutural, reconhecimento do HTTP 201 com verificação obrigatória do documento e regra de apresentação MEI sem mutação do resultado de transporte. Link para perfil e interface de certificado testados em 1440/390/320; regressão dos fluxos existentes até seis larguras. TypeScript, lint e build aprovados. Nenhuma alteração SQL, transmissão real ou mudança de habilitação fiscal.

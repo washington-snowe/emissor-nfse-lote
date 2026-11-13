@@ -3,6 +3,13 @@
   "purpose": "Recheck the existing read-only municipal-parameters probe after the user reported a real A1 access failure.",
   "configured_restricted_base": "https://sefin.producaorestrita.nfse.gov.br/SefinNacional",
   "configured_restricted_parameters_base": "https://adn.producaorestrita.nfse.gov.br/parametrizacao",
+  "authenticated_capture": {
+    "source_url": "https://sefin.producaorestrita.nfse.gov.br/SefinNacional/swagger/docs/v1",
+    "captured_at": "2026-11-13T01:35:16.429806+00:00",
+    "original_document_sha256": "68980daaac06929bc1b0dd8806b4214dd6d2d1da480fd7278a2c58c8a10ca4d5",
+    "provenance_file": "integrations/nfse/contracts/sefin-homologation-v1.provenance.json",
+    "evidence": "Live official structural contract obtained by the application, persisted by its server-only RPC and read through public structural metadata. Adapter recognizes POST /nfse with 201, GET /dps/{id} and GET /nfse/{chaveAcesso}. No invoice issued or signature policy approved by this capture."
+  },
   "current_findings": "After migration 15 the user still received NFSE_HTTP_404 and NFSE_CONTRACT_PENDING. Reviewed SEFIN OpenAPI mirror declares /ParametrosMunicipais as moved to ADN. ADN mirror declares GET /{codigoMunicipio}/convenio, servers /parametrizacao. The portal independently publishes the ADN Parametrização documentation URL. Documentation readers must also handle Redoc openApi/spec-url/specUrl, referenced index.js and the known live SEFIN schema URL. Mirrors are research evidence only and are never imported as a captured official contract.",
   "observed_discrepancy": "The portal still links /API/SefinNacional. The user reported HTTP 404 for that municipal-parameters probe after the TLS compatibility change. Public integration clients use /SefinNacional without /API. The new base still requires a real authenticated check; 404 alone does not prove certificate acceptance or taxpayer eligibility.",
   "sources": [
@@ -49,5 +56,5 @@
       "evidence": "Documents Redoc openApi/spec-url/specUrl, referenced index.js and SEFIN /swagger/docs/v1. Only live official-origin responses can be persisted by this application."
     }
   ],
-  "limitations": "No real A1 available to the executor. Unauthenticated Swagger access returned 503/reset; does not establish the authenticated service status. No taxpayer eligibility or issuance authority was established."
+  "limitations": "No A1 available to the executor. Application obtained the official contract; executor read its public structural metadata only. ADN returned 404 JSON according to the user's safe diagnostic. That auxiliary response alone does not establish a municipal veto for MEI, SEFIN certificate authority or fiscal authorization."
 }

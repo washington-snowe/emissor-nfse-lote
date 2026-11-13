@@ -1,0 +1,10 @@
+{
+  "kind": "authenticated_official_structural_capture",
+  "environment": "homologation",
+  "source_url": "https://sefin.producaorestrita.nfse.gov.br/SefinNacional/swagger/docs/v1",
+  "captured_at": "2026-11-13T01:35:16.429806+00:00",
+  "original_document_sha256": "68980daaac06929bc1b0dd8806b4214dd6d2d1da480fd7278a2c58c8a10ca4d5",
+  "structural_file": "integrations/nfse/contracts/sefin-homologation-v1.structural.json",
+  "structural_file_sha256": "05f57433760a9a2086eab3c6f2b19439e2a51608bb1375fc4120818cda22374a",
+  "limitations": "Structural documentation only, obtained by the application and read through its public metadata RPC. Examples and descriptions are stripped. Does not prove fiscal eligibility, signature acceptance or issuance. No A1 or taxpayer records included."
+}
