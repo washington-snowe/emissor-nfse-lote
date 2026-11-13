@@ -1,0 +1,68 @@
+// Real server actions/domain/read boundaries, with explicit in-memory Auth/DB/Next/worker adapters.
+// No real session, Supabase connection, certificate, fiscal request or note is used here.
+import assert from "node:assert/strict";
+import {createRequire} from "node:module";
+import {readFile,mkdtemp,rm,writeFile} from "node:fs/promises";
+import {tmpdir} from "node:os";
+import path from "node:path";
+import {fileURLToPath} from "node:url";
+import {createHash} from "node:crypto";
+import {parseShopeeSellerCsv} from "../../src/lib/shopee-seller-csv.ts";
+const require=createRequire(import.meta.url),root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),"../..");
+const {build}=require(path.join(process.env.UI_TOOLS_DIR,"esbuild"));
+const temporary=await mkdtemp(path.join(tmpdir(),"quick-review-actions-"));
+const ids={tenant:"00000000-0000-4000-8000-000000000010",actor:"00000000-0000-4000-8000-000000000011",company:"00000000-0000-4000-8000-000000000012",report:"00000000-0000-4000-8000-000000000013",profile:"00000000-0000-4000-8000-000000000014",review:"00000000-0000-4000-8000-000000000015",request:"00000000-0000-4000-8000-000000000016"};
+const parsed=await parseShopeeSellerCsv(await readFile(path.join(root,"tests/fixtures/shopee-seller-monthly-v1.csv")));assert.ok(parsed.data);
+const configuration={issuerMunicipality:"3550308",series:"1",simplesOption:"2",specialRegime:"0",serviceMunicipality:"3550308",nationalTaxCode:"170601",description:"Teste sintético",issTaxation:"1",issWithholding:"1",totals:{mode:"not_informed"}};
+function reset(){
+  const h={tenant:ids.tenant,authenticated:true,failEnqueue:false,failConfirm:false,schemaValid:true,afters:[],processed:[],calls:[],reads:[],batches:[],rows:{
+    companies:[{id:ids.company,tenant_id:ids.tenant,cnpj:"11222333000181",tax_regime:"mei"}],
+    report_imports:[{id:ids.report,tenant_id:ids.tenant,company_id:ids.company,status:"parsed",file_sha256:parsed.data.review.source.fileSha256,parsed_payload:structuredClone(parsed.data)}],
+    company_fiscal_profiles:[{id:ids.profile,tenant_id:ids.tenant,company_id:ids.company,configuration,configuration_sha256:"a".repeat(64),valid_from:"2026-01-01",version:1}],report_reviews:[]}};
+  h.client={from(table){const filters=[];return {select(){return this;},eq(key,value){filters.push([key,value]);return this;},order(){return this;},limit(){return this;},async maybeSingle(){h.reads.push({table,filters});const rows=h.rows[table].filter(row=>filters.every(([key,value])=>row[key]===value));return {data:rows.at(-1)??null,error:null};}};}};
+  h.admin={async rpc(name,args){h.calls.push({name,args});assert.equal(args.p_actor,ids.actor,"actor must come from the server session");
+    if(name==="reserve_company_operation")return {data:true};
+    if(name==="save_report_review"){
+      assert.equal(args.p_expected_version,h.rows.report_reviews.at(-1)?.version??0);assert.equal(args.p_snapshot.recipientRoleConfirmed,true);
+      const row={id:ids.review,tenant_id:ids.tenant,import_id:ids.report,company_id:ids.company,profile_id:ids.profile,version:(h.rows.report_reviews.at(-1)?.version??0)+1,snapshot:args.p_snapshot,snapshot_sha256:createHash("sha256").update(JSON.stringify(args.p_snapshot)).digest("hex")};h.rows.report_reviews.push(row);return {data:{id:row.id,version:row.version,sha256:row.snapshot_sha256}};
+    }
+    if(name==="confirm_report_review"){if(h.failConfirm)return {error:{code:"40001"}};return {data:"synthetic-confirmation"};}
+    if(name==="enqueue_report_fiscal"){
+      let batch=h.batches.find(x=>x.review===args.p_review||x.request===args.p_request);const duplicate=Boolean(batch);
+      if(!batch){batch={id:"synthetic-batch",review:args.p_review,request:args.p_request};h.batches.push(batch);}
+      if(h.failEnqueue){h.failEnqueue=false;throw new Error("SYNTHETIC LOST ACKNOWLEDGEMENT");}
+      return {data:{id:batch.id,duplicate}};
+    }
+    throw new Error("Unexpected RPC: "+name);
+  }};
+  globalThis.quickHarness=h;return h;
+}
+try{
+  const result=await build({stdin:{contents:'export * from "./src/app/painel/importacoes/quick-actions.ts"; export {loadQuickReportReview} from "./src/lib/quick-report-review.ts";',resolveDir:root},bundle:true,platform:"node",format:"esm",write:false,tsconfig:path.join(root,"tsconfig.json"),plugins:[{name:"test-boundaries",setup(b){
+    const virtual={"server-only":"", "next/cache":"export function revalidatePath(){}", "next/server":"export function after(fn){globalThis.quickHarness.afters.push(fn);}",
+      "@/lib/tenancy-server":"export async function requireWorkspace(){const h=globalThis.quickHarness;if(!h.authenticated)throw new Error('AUTH_REQUIRED');return {client:h.client,context:{tenantId:h.tenant,user:{id:'"+ids.actor+"'}}};}",
+      "@/lib/supabase/admin":"export function createAdminClient(){return globalThis.quickHarness.admin;}",
+      "@/lib/automatic-fiscal-setup":"export async function ensureAutomaticFiscalSetup(){return {reason:'configured'};}",
+      "@/lib/nfse/schema":"export async function validateFiscalDocuments(){return globalThis.quickHarness.schemaValid;}",
+      "@/lib/queue-runner":"export async function processQueuedWork(tenant){globalThis.quickHarness.processed.push(tenant);}"};
+    b.onResolve({filter:/.*/},a=>Object.hasOwn(virtual,a.path)?{path:a.path,namespace:"boundary"}:undefined);
+    b.onLoad({filter:/.*/,namespace:"boundary"},a=>({contents:virtual[a.path],loader:"js"}));
+  }}]});
+  const modulePath=path.join(temporary,"actions.mjs");await writeFile(modulePath,result.outputFiles[0].text);const actions=await import(modulePath);
+  async function formFor(){const loaded=await actions.loadQuickReportReview(ids.report);assert.ok(loaded?.data.digest);const form=new FormData();form.set("reviewed","on");form.set("input",JSON.stringify(loaded.data.input));form.set("digest",loaded.data.digest);form.set("version",String(loaded.data.version));form.set("request",ids.request);return {loaded,form};}
+  let h=reset(),{form,loaded}=await formFor();
+  assert.equal(loaded.data.preview.recipientRoleConfirmed,false);assert.equal(h.rows.report_reviews.length,0);assert.equal(h.calls.length,0,"opening preview must not confirm or enqueue");
+  form.delete("reviewed");assert.ok((await actions.confirmAndQueueQuickReview(ids.report,form)).error);assert.equal(h.calls.length,0);
+  h=reset();({form}=await formFor());form.set("input",JSON.stringify({...JSON.parse(form.get("input")),competenceDate:"2026-11-01"}));assert.ok((await actions.confirmAndQueueQuickReview(ids.report,form)).error);assert.equal(h.calls.length,0,"unreviewed edits cannot be submitted under the old digest");
+  h=reset();({form}=await formFor());h.rows.company_fiscal_profiles[0].configuration_sha256="b".repeat(64);h.rows.company_fiscal_profiles[0].version=2;assert.ok((await actions.confirmAndQueueQuickReview(ids.report,form)).error);assert.equal(h.calls.length,0);
+  h=reset();({form}=await formFor());h.tenant="00000000-0000-4000-8000-000000000099";assert.ok((await actions.confirmAndQueueQuickReview(ids.report,form)).error);assert.equal(h.calls.length,0,"foreign import cannot cause any privileged RPC");
+  h=reset();({form}=await formFor());h.authenticated=false;await assert.rejects(actions.confirmAndQueueQuickReview(ids.report,form),/AUTH_REQUIRED/);assert.equal(h.calls.length,0);
+  h=reset();({form}=await formFor());h.failConfirm=true;assert.ok((await actions.confirmAndQueueQuickReview(ids.report,form)).error);assert.equal(h.batches.length,0);assert.equal(h.afters.length,0);
+  h=reset();({form}=await formFor());h.schemaValid=false;assert.ok((await actions.confirmAndQueueQuickReview(ids.report,form)).error);assert.equal(h.rows.report_reviews.length,0);assert.equal(h.batches.length,0);
+  h=reset();({form}=await formFor());h.failEnqueue=true;await assert.rejects(actions.confirmAndQueueQuickReview(ids.report,form),/LOST ACKNOWLEDGEMENT/);assert.equal(h.batches.length,1);
+  const retried=await actions.confirmAndQueueQuickReview(ids.report,form);assert.equal(retried.id,"synthetic-batch");assert.equal(retried.duplicate,true);assert.equal(h.batches.length,1);assert.equal(h.rows.report_reviews.length,1,"retry reuses the exact saved snapshot");
+  assert.deepEqual(h.calls.filter(x=>x.name==="enqueue_report_fiscal").map(x=>x.args.p_request),[ids.request,ids.request]);
+  assert.equal(h.afters.length,1);assert.equal(h.processed.length,0);await h.afters[0]();assert.deepEqual(h.processed,[ids.tenant]);
+  assert.ok(h.reads.every(read=>read.filters.some(([key,value])=>key==="tenant_id"&&value===ids.tenant)),"every private read uses the session tenant");
+  console.log("Quick review server actions: unconfirmed display, consent/digest/profile/session/tenant guards, XSD/confirmation failures, one durable batch after lost acknowledgement; worker adapter scoped to own tenant. Auth/DB/Next adapters are synthetic.");
+}finally{delete globalThis.quickHarness;await rm(temporary,{recursive:true,force:true});}

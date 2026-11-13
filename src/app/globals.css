@@ -670,6 +670,24 @@ strong {
 .review-candidates summary { overflow-wrap: anywhere; }
 .review-role-confirmation, .review-confirmation { margin-top: 24px; }
 .review-confirmation > button { margin-top: 20px; }
+.quick-review { padding-top: 28px; border-top: 1px solid var(--line); }
+.quick-review h2 { font-size: clamp(24px,3vw,32px); font-weight: 500; }
+.quick-review-context { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-block: 24px; overflow-wrap: anywhere; }
+.quick-review .report-table-scroll { max-height: 440px; }
+.quick-review-edit { margin-block: 28px; padding-block: 20px; border-block: 1px solid var(--line); }
+.quick-review-edit > summary { cursor: pointer; font-weight: 500; }
+.quick-review-edit > form { margin-top: 28px; }
+.quick-review-confirm { margin-block: 24px; }
+.quick-review-confirm .btn { margin-top: 24px; max-width: 100%; white-space: normal; }
+@media(max-width:600px) { .quick-review-context { grid-template-columns: 1fr; gap: 8px; } .quick-review-confirm .btn { width: 100%; } }
+@media(max-width:600px) {
+  .quick-review .report-table { min-width: 0; width: 100%; table-layout: fixed; }
+  .quick-review .report-table th, .quick-review .report-table td { padding: 14px 10px; white-space: normal; overflow-wrap: anywhere; }
+  .quick-review .report-table th:first-child { width: 20%; }
+  .quick-review .report-table th:last-child { width: 30%; }
+  .quick-review .report-table td:nth-child(2) { min-width: 0; max-width: none; }
+  .quick-review .report-cell-note { white-space: normal; }
+}
 .standalone-amount-input { display: flex; align-items: center; border: 1px solid #bfcbb8; border-radius: 6px; background: white; }
 .standalone-amount-input > span { padding-left: 16px; font-size: 22px; color: var(--muted); }
 .standalone-amount-input > input { border: 0; min-width: 0; font-family: inherit; font-size: 38px; padding: 16px; }

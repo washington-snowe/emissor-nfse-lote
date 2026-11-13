@@ -1,5 +1,7 @@
 # Importação de comissões — contrato interno e revisão
 
+Este documento registra a fundação do contrato interno. O fluxo atual de upload privado, revisão preenchida na página de importação e confirmação/enfileiramento numa ação está em [revisão fiscal](revisao-fiscal.md). As funções puras deste contrato continuam sem conceder autorização fiscal nem inferir competência ou tomador.
+
 ## Escopo desta etapa
 
 Início da Fase 2: contrato interno versionado, validação de saída dos adaptadores e resumo financeiro para conferência. Implementação em `src/lib/imports.ts`; testes em `tests/imports.test.ts`. A evolução seguinte adicionou um adaptador e prévia local para um CSV real mensal por vendedor da Shopee; detalhes em [Shopee CSV mensal](shopee-csv-mensal.md). Não há upload, persistência, job ou OCR.

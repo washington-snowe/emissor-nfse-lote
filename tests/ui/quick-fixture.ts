@@ -1,0 +1,9 @@
+import type {QuickReviewInput,QuickReviewData} from "../../src/lib/nfse/quick-review";
+// UI fixtures only; this is not a persisted/official fiscal preview.
+export function quickUiData(input?:QuickReviewInput):QuickReviewData {
+  const person={kind:"cnpj" as const,country:"BR",document:"11444777000161",legalName:"Tomador sintético Shopee"};
+  const fields:QuickReviewInput=input??{competenceDate:"2026-10-31",commissionType:"Comissões sintéticas Shopee",evidenceReference:"Modelo sintético para teste",recipientChoice:"single_recipient",grouping:"per_row",commonRecipient:person,recipients:[]};
+  const groups=["1.10","2.20","3.30","4.40"].map((amount,i)=>({sourceRows:[i+2],sourceClaims:[String(i).repeat(64)],amount,recipient:fields.commonRecipient??person,allocations:[{row:i+2,amount}]}));
+  return {importId:"test-import",companyId:"test-company-a",input:fields,version:0,candidates:groups.map((g,i)=>({row:i+2,storeName:`Loja sintética ${i}`,referencePeriod:"2026-10",amount:g.amount,person:g.recipient})),digest:(input?"b":"a").repeat(64),foreignForAll:false,needsIntermediary:false,transmissionEnabled:true,
+    preview:{contractVersion:1,environment:"homologation",companyId:"test-company-a",issuerCnpj:"11222333000181",importId:"test-import",fileSha256:"a".repeat(64),profileId:"test-profile",profileSha256:"b".repeat(64),profileVersion:1,competenceDate:fields.competenceDate,commissionType:fields.commissionType,evidenceReference:fields.evidenceReference,recipientRoleConfirmed:false,recipientChoice:"single_recipient",grouping:fields.grouping as "per_row"|"same_recipient",sourceRows:4,currency:"BRL",total:"11.00",groups:fields.grouping==="same_recipient"?[{...groups[0],sourceRows:[2,3,4,5],sourceClaims:groups.flatMap(g=>g.sourceClaims),amount:"11.00",allocations:groups.flatMap(g=>g.allocations)}]:groups}};
+}

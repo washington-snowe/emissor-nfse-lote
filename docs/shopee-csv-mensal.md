@@ -1,5 +1,7 @@
 # Shopee — CSV mensal por vendedor, adaptador versão 1
 
+Fluxo atual: a página de importação confere o CSV ao escolhê-lo e salva o original privado para preparar a revisão na própria página. O parser mantém a competência da origem ausente; o modelo de afiliados apenas sugere uma data/tomador visíveis para confirmação do titular. Conferir [revisão fiscal](revisao-fiscal.md) para os padrões, consentimento e enfileiramento numa ação. O modo estritamente local continua disponível no componente e nas fixtures, sem ser o fluxo principal com servidor configurado.
+
 ## Evidência e alcance
 
 O usuário forneceu um CSV real de outubro de 2026 e confirmou que a origem é Shopee. A análise local identificou UTF-8 com BOM, separador vírgula, 12 colunas e 38 registros: 34 com CNPJ e 4 com identificação fiscal estrangeira. O país informado nessas últimas linhas é `CN`. Não há linha de total geral no arquivo. Um cálculo independente com `csv`/`Decimal` do Python e o adaptador TypeScript produziram o mesmo total, sem arredondamento. Isso confere as linhas deste arquivo; não concilia com pagamentos ou notas externas.

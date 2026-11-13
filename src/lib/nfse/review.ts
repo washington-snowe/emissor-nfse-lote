@@ -18,6 +18,7 @@ export type ReviewSnapshot = {
   recipientChoice: "reported_sellers" | "single_recipient"; grouping: "per_row" | "same_recipient";
   sourceRows: number; currency: "BRL"; total: string; groups: ReviewGroup[];
 };
+export type ReviewPreview = Omit<ReviewSnapshot, "recipientRoleConfirmed"> & {recipientRoleConfirmed:false};
 export type ReviewIssue = { code: "review_fields" | "row_limit" | "invalid_recipient" | "invalid_fiscal_row" | "source_identity" | "duplicate_source" | "unsupported_amount" | "group_amount"; row?: number };
 
 const object = (value: unknown): Record<string, unknown> => value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : {};
@@ -59,15 +60,16 @@ const digest = (value: unknown) => createHash("sha256").update(canonicalReviewJs
 const cents = (value: string) => BigInt(fiscalDecimal(value, "review.amount", true).replace(".", ""));
 const amount = (value: bigint) => `${value / 100n}.${(value % 100n).toString().padStart(2, "0")}`;
 
-export function prepareFiscalReview(report: ParsedShopeeReport, raw: unknown, binding: {
+export type ReviewBinding = {
   companyId: string; issuerCnpj: string; importId: string; profileId: string; profileSha256: string; profileVersion: number; profile: FiscalProfile;
-}): { snapshot?: ReviewSnapshot; issues: ReviewIssue[] } {
+};
+function buildFiscalReview(report: ParsedShopeeReport, raw: unknown, binding: ReviewBinding, confirmed:boolean): { snapshot?: ReviewSnapshot | ReviewPreview; issues: ReviewIssue[] } {
   const issues: ReviewIssue[] = [], input = object(raw);
   if (report.review.rows.length > MAX_FISCAL_REVIEW_ROWS) return { issues: [{ code: "row_limit" }] };
   const competence = text(input.competenceDate), commissionType = text(input.commissionType), evidence = text(input.evidenceReference);
   if (!validFiscalDate(competence) || commissionType.length < 1 || commissionType.length > 120 || evidence.length < 3 || evidence.length > 500 ||
       /[\u0000-\u001f\u007f]/.test(commissionType + evidence) ||
-      !["reported_sellers", "single_recipient"].includes(text(input.recipientChoice)) || !["per_row", "same_recipient"].includes(text(input.grouping)) || input.confirmRecipientRole !== true) {
+      !["reported_sellers", "single_recipient"].includes(text(input.recipientChoice)) || !["per_row", "same_recipient"].includes(text(input.grouping)) || confirmed && input.confirmRecipientRole !== true) {
     return { issues: [{ code: "review_fields" }] };
   }
   const overrides = new Map<number, Record<string, unknown>>();
@@ -116,16 +118,24 @@ export function prepareFiscalReview(report: ParsedShopeeReport, raw: unknown, bi
     total += monetary;
   }
   if (issues.length) return { issues };
-  const snapshot: ReviewSnapshot = {
+  const snapshot: ReviewSnapshot | ReviewPreview = {
     contractVersion: 1, environment: "homologation", companyId: binding.companyId, issuerCnpj: binding.issuerCnpj,
     importId: binding.importId, fileSha256: report.review.source.fileSha256, profileId: binding.profileId,
     profileSha256: binding.profileSha256, profileVersion: binding.profileVersion,
-    competenceDate: competence, commissionType, evidenceReference: evidence, recipientRoleConfirmed: true,
+    competenceDate: competence, commissionType, evidenceReference: evidence, recipientRoleConfirmed: confirmed,
     recipientChoice: input.recipientChoice as ReviewSnapshot["recipientChoice"], grouping: input.grouping as ReviewSnapshot["grouping"],
     sourceRows: report.review.rows.length, currency: "BRL", total: amount(total), groups: [...grouped.values()],
   };
   if (Buffer.byteLength(canonicalReviewJson(snapshot)) > 3_000_000) return { issues: [{ code: "row_limit" }] };
   return { snapshot, issues: [] };
+}
+
+export function prepareFiscalReview(report:ParsedShopeeReport,raw:unknown,binding:ReviewBinding):{snapshot?:ReviewSnapshot;issues:ReviewIssue[]} {
+  return buildFiscalReview(report,raw,binding,true) as {snapshot?:ReviewSnapshot;issues:ReviewIssue[]};
+}
+// A display-only preview is never a confirmation. The existing persistence RPC rejects this false flag.
+export function previewFiscalReview(report:ParsedShopeeReport,raw:unknown,binding:ReviewBinding):{snapshot?:ReviewPreview;issues:ReviewIssue[]} {
+  return buildFiscalReview(report,raw,binding,false) as {snapshot?:ReviewPreview;issues:ReviewIssue[]};
 }
 
 /** Defensive display boundary. Fiscal eligibility is rechecked by the server before any later job. */

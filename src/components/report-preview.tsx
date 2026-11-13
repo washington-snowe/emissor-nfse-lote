@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { ReportResults } from "@/components/report-results";
 import { useEffect, useRef, useState } from "react";
+import {useRouter} from "next/navigation";
 import { FileSpreadsheet, LockKeyhole } from "lucide-react";
 import { MAX_SHOPEE_CSV_BYTES, parseShopeeSellerCsv } from "@/lib/shopee-seller-csv";
 
@@ -22,8 +23,9 @@ const errorMessages = {
   invalid_contract: "Não foi possível validar todos os dados do relatório. Nenhum total parcial foi calculado.",
 };
 
-export function ReportPreview({ companies, saveAction, initialCompanyId }: {
+export function ReportPreview({ companies, saveAction, initialCompanyId,automaticUpload=false }: {
   companies: Company[]; initialCompanyId?: string;
+  automaticUpload?:boolean;
   saveAction?: (form: FormData) => Promise<{ id?: string; duplicate?: boolean; error?: string }>;
 }) {
   const [companyId, setCompanyId] = useState(companies.some(company => company.id === initialCompanyId) ? initialCompanyId! : companies.length === 1 ? companies[0].id : "");
@@ -37,6 +39,7 @@ export function ReportPreview({ companies, saveAction, initialCompanyId }: {
   const fileInput = useRef<HTMLInputElement>(null);
   const resultHeading = useRef<HTMLHeadingElement>(null);
   const selectedCompany = companies.find((company) => company.id === companyId);
+  const automatic=automaticUpload&&Boolean(saveAction),router=useRouter();
 
   useEffect(() => {
     // Move focus only after React has mounted the result, without an animation.
@@ -51,45 +54,41 @@ export function ReportPreview({ companies, saveAction, initialCompanyId }: {
     setSaved(null);
   }
 
-  async function persist() {
-    if (!saveAction || !file || !selectedCompany || saving) return;
-    const current = generation.current;
+  async function persist(source=file,company=selectedCompany,current=generation.current) {
+    if (!saveAction || !source || !company || saving) return;
     setSaving(true);
     setError("");
     try {
       const form = new FormData();
-      form.set("company_id", selectedCompany.id);
-      form.set("file", file);
+      form.set("company_id", company.id);
+      form.set("file", source);
       const result = await saveAction(form);
       if (generation.current !== current) return;
-      if (result.id) setSaved({ id: result.id, duplicate: result.duplicate === true });
+      if (result.id) {setSaved({ id: result.id, duplicate: result.duplicate === true });if(automatic)router.replace(`/painel/importacoes?empresa=${company.id}&relatorio=${result.id}`);}
       else setError(result.error ?? "Não foi possível salvar o relatório.");
     } catch { if (generation.current === current) setError("Não foi possível confirmar o salvamento. Você pode tentar novamente."); }
     finally { setSaving(false); }
   }
 
-  async function inspect(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    reset();
-    if (!file || !selectedCompany) return;
-    if (!file.name.toLowerCase().endsWith(".csv")) {
+  async function inspectFile(source:File,current:number) {
+    if (!source.name.toLowerCase().endsWith(".csv")) {
       setError("Escolha o arquivo CSV do relatório mensal por vendedor.");
       return;
     }
-    if (!file.size || file.size > MAX_SHOPEE_CSV_BYTES) {
+    if (!source.size || source.size > MAX_SHOPEE_CSV_BYTES) {
       setError(errorMessages.file_size);
       return;
     }
-    const current = generation.current;
     setPending(true);
     try {
-      const result = await parseShopeeSellerCsv(new Uint8Array(await file.arrayBuffer()));
+      const result = await parseShopeeSellerCsv(new Uint8Array(await source.arrayBuffer()));
       if (generation.current !== current) return;
       if (result.error) {
         const detail = result.error.record ? ` Registro ${result.error.record}${result.error.field ? `, campo “${result.error.field}”` : ""}.` : "";
         setError(errorMessages[result.error.code] + detail);
       } else {
         setPreview(result.data);
+        return result.data;
       }
     } catch {
       if (generation.current === current)
@@ -97,6 +96,11 @@ export function ReportPreview({ companies, saveAction, initialCompanyId }: {
     } finally {
       if (generation.current === current) setPending(false);
     }
+  }
+
+  async function inspect(event:React.FormEvent<HTMLFormElement>){event.preventDefault();reset();if(file&&selectedCompany)await inspectFile(file,generation.current);}
+  async function chooseFile(source:File|null){reset();setFile(source);if(!automatic||!source||!selectedCompany)return;
+    const current=generation.current;const parsed=await inspectFile(source,current);if(parsed&&generation.current===current)await persist(source,selectedCompany,current);
   }
 
   if (!companies.length) return (
@@ -110,7 +114,7 @@ export function ReportPreview({ companies, saveAction, initialCompanyId }: {
 
   return (
     <>
-      <form onSubmit={inspect} className="report-form" aria-busy={pending}>
+      <form onSubmit={inspect} className="report-form" aria-busy={pending||saving}>
         <div className="form-grid">
           <div className="field">
             <label htmlFor="report-company">Empresa emissora</label>
@@ -122,19 +126,21 @@ export function ReportPreview({ companies, saveAction, initialCompanyId }: {
           </div>
           <div className="field">
             <label htmlFor="report-file">Relatório mensal da Shopee</label>
-            <input ref={fileInput} id="report-file" type="file" accept=".csv,text/csv" required disabled={saving} aria-describedby="report-file-hint report-error" onChange={(event) => { reset(); setFile(event.target.files?.[0] ?? null); }} />
+            <input ref={fileInput} id="report-file" type="file" accept=".csv,text/csv" required disabled={saving} aria-describedby="report-file-hint report-error" onChange={(event) => {void chooseFile(event.target.files?.[0]??null);}} />
             <p id="report-file-hint" className="field-hint">CSV mensal por vendedor · UTF-8 · até 512 KB e 10.000 linhas.</p>
           </div>
         </div>
         <div className="report-actions">
-          <button className="btn btn--primary" type="submit" disabled={pending || saving || !selectedCompany || !file}>
+          {!automatic&&<button className="btn btn--primary" type="submit" disabled={pending || saving || !selectedCompany || !file}>
             <FileSpreadsheet size={18} aria-hidden="true" /> {pending ? "Conferindo relatório…" : "Conferir relatório"}
-          </button>
+          </button>}
+          {automatic&&(pending||saving)&&<p role="status">{pending?"Conferindo relatório…":"Salvando e preparando a revisão…"}</p>}
           {file && <button className="btn btn--secondary" type="button" disabled={saving} onClick={() => { reset(); setFile(null); if (fileInput.current) fileInput.current.value = ""; }}>Limpar arquivo</button>}
-          {preview && saveAction && !saved && <button className="btn btn--secondary" type="button" disabled={saving} onClick={persist}>{saving ? "Salvando importação…" : "Salvar importação"}</button>}
+          {preview && saveAction && !saved&&!automatic && <button className="btn btn--secondary" type="button" disabled={saving} onClick={()=>persist()}>{saving ? "Salvando importação…" : "Salvar importação"}</button>}
+          {automatic&&preview&&!saving&&error&&<button className="btn btn--secondary" type="button" onClick={()=>persist()}>Tentar salvar novamente</button>}
         </div>
         <p id="report-error" className="field-error" role="alert">{error}</p>
-        <p className="report-privacy"><LockKeyhole size={16} aria-hidden="true" /> {saveAction ? "A conferência é local. Ao salvar a importação, o original será enviado e armazenado de forma privada na sua conta." : "O arquivo é lido neste navegador e não é enviado nem salvo. Use “Limpar arquivo” para descartar a prévia."}</p>
+        <p className="report-privacy"><LockKeyhole size={16} aria-hidden="true" /> {automatic?"Ao escolher o CSV, conferimos e salvamos o original de forma privada para preparar a revisão nesta página. Nenhuma nota é enviada antes de sua confirmação.":saveAction ? "A conferência é local. Ao salvar a importação, o original será enviado e armazenado de forma privada na sua conta." : "O arquivo é lido neste navegador e não é enviado nem salvo. Use “Limpar arquivo” para descartar a prévia."}</p>
         {saved && <p className="save-notice" role="status">{saved.duplicate ? "Este arquivo já estava salvo nesta empresa." : "Importação salva. O processamento continua sem precisar manter esta página aberta."} <Link className="text-link" href={`/painel/importacoes/historico/${saved.id}`}>Abrir importação</Link></p>}
       </form>
 

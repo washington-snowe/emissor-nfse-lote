@@ -25,6 +25,7 @@ try {
     "@/app/painel/conta/assinatura/actions": path.join(root, "tests/ui/workflow-actions.ts"),
     "@/app/painel/certificados/actions": path.join(root, "tests/ui/workflow-actions.ts"),
     "@/app/painel/importacoes/review-actions": path.join(root, "tests/ui/workflow-actions.ts"),
+    "@/app/painel/importacoes/quick-actions": path.join(root, "tests/ui/workflow-actions.ts"),
     "@/app/painel/notas/actions": path.join(root, "tests/ui/workflow-actions.ts"),
     "next/navigation": path.join(root, "tests/ui/navigation.ts"),
     "next/link": path.join(root, "tests/ui/link.tsx"),
@@ -130,6 +131,49 @@ try {
   assert.equal(await page.evaluate(() => window.workflowUiTest.companyId), "test-company-a");
   assert.ok(await page.evaluate(() => window.workflowUiTest.fileSize > 0));
   console.log("Reports: explicit save hands original File and selected company to the test boundary exactly once");
+
+  await page.goto(`${origin}/?screen=upload`);
+  assert.equal(await page.getByRole("button",{name:"Conferir relatório",exact:true}).count(),0);
+  await page.getByLabel("Relatório mensal da Shopee",{exact:true}).setInputFiles(fixture);
+  await page.waitForFunction(()=>Boolean(window.workflowUiTest.path));
+  assert.equal(await page.evaluate(()=>window.workflowUiTest.calls),1);
+  assert.equal(await page.evaluate(()=>window.workflowUiTest.path),"/painel/importacoes?empresa=test-company-a&relatorio=00000000-0000-4000-8000-000000000088");
+  await page.goto(`${origin}/?screen=upload`);
+  await page.getByLabel("Relatório mensal da Shopee",{exact:true}).setInputFiles({name:"wrong.csv",mimeType:"text/csv",buffer:Buffer.from("not,the,expected,layout\n1,2,3,4")});
+  await page.getByRole("alert").filter({hasText:"não corresponde"}).waitFor();
+  assert.equal(await page.evaluate(()=>window.workflowUiTest.calls),0,"automatic import must not upload an unsupported layout");
+  for(const width of [1440,820,390,320]){
+    await page.setViewportSize({width,height:900});await page.goto(`${origin}/?screen=quick`);
+    const consent=page.getByRole("checkbox",{name:/Revisei os valores/});
+    const submit=page.getByRole("button",{name:"Confirmar e emitir em homologação",exact:true});
+    await page.getByRole("heading",{name:"Revise e emita seu lote.",exact:true}).waitFor();
+    assert.equal(await page.evaluate(()=>window.workflowUiTest.calls),0);
+    assert.equal(await submit.isDisabled(),true);assert.equal(await consent.isChecked(),false);
+    assert.equal(await page.locator('.quick-review .report-table tbody tr').count(),4);
+    assert.equal(await page.locator('[name="commissionType"]').inputValue(),"Comissões sintéticas Shopee");
+    assert.equal(await page.locator('[name="competenceDate"]').inputValue(),"2026-10-31");
+    assert.equal(await page.locator('[name="evidenceReference"]').inputValue(),"Modelo sintético para teste");
+    assert.equal(await page.locator('#review-recipient').inputValue(),"single_recipient");
+    assert.equal(await page.locator('#review-grouping').inputValue(),"per_row");
+    if(width<=600)assert.ok(await page.locator('.quick-review .report-table-scroll').evaluate(element=>element.scrollWidth<=element.clientWidth),"mobile review must expose values without horizontal scrolling");
+    await page.screenshot({path:path.join(root,`shots/reports/quick-review-${width}.png`),fullPage:true});
+    await consent.check();await submit.click();
+    await page.getByRole("alert").filter({hasText:"Falha sintética preserva"}).waitFor();
+    assert.equal(await consent.isChecked(),true);await submit.click();
+    await page.waitForFunction(()=>window.workflowUiTest.path==="/painel/notas/lotes/test-quick-batch");
+    const ids=await page.evaluate(()=>window.workflowUiTest.requestIds);assert.equal(ids[0],ids[1],"retry must keep same request id");
+    assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),`Quick review overflow ${width}`);
+    await page.goto(`${origin}/?screen=quick`);await page.getByText("Alterar dados",{exact:true}).click();
+    await page.getByRole("checkbox",{name:/Revisei os valores/}).check();
+    await page.locator('[name="competenceDate"]').fill("2026-11-01");
+    assert.equal(await page.getByRole("checkbox",{name:/Revisei os valores/}).isChecked(),false);
+    assert.equal(await page.getByRole("button",{name:"Confirmar e emitir em homologação",exact:true}).isDisabled(),true);
+    await page.getByRole("button",{name:"Atualizar prévia",exact:true}).click();
+    await page.waitForFunction(()=>document.querySelector('.quick-review .report-totals')?.textContent.includes('01/11/2026'));
+    assert.equal(await page.getByRole("checkbox",{name:/Revisei os valores/}).isChecked(),false);
+    assert.equal(await page.evaluate(()=>window.workflowUiTest.calls),0,"editing/rebuilding a preview cannot enqueue a note");
+    console.log(`Quick review ${width}px: prefilled import-page review, one consent/submit, stable retry, edits invalidate consent, no overflow`);
+  }
 
   for (const width of [1440,390,320]) {
     await page.setViewportSize({ width, height: 900 });
