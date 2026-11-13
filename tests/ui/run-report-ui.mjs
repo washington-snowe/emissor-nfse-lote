@@ -142,6 +142,24 @@ try {
   await page.getByLabel("Relatório mensal da Shopee",{exact:true}).setInputFiles({name:"wrong.csv",mimeType:"text/csv",buffer:Buffer.from("not,the,expected,layout\n1,2,3,4")});
   await page.getByRole("alert").filter({hasText:"não corresponde"}).waitFor();
   assert.equal(await page.evaluate(()=>window.workflowUiTest.calls),0,"automatic import must not upload an unsupported layout");
+  await page.goto(`${origin}/?screen=quick&transmission-off=1`);
+  await page.getByText(/Você pode marcar a revisão e preparar o lote/).waitFor();
+  await page.getByRole("checkbox",{name:/Revisei os valores/}).check();
+  assert.equal(await page.getByRole("button",{name:"Confirmar e emitir em homologação",exact:true}).isDisabled(),false,"disabled transmission must not disable review or preparation");
+  assert.equal(await page.evaluate(()=>window.workflowUiTest.calls),0);
+  await page.goto(`${origin}/?screen=quick&preview-pending=1`);
+  await page.getByRole("checkbox",{name:/Revisei os valores/}).check();
+  assert.equal(await page.getByRole("button",{name:"Confirmar e emitir em homologação",exact:true}).isDisabled(),true,"review acknowledgement cannot bypass invalid preview");
+  assert.ok(await page.locator('#quick-review-hint').innerText().then(text=>text.includes('vigência do perfil fiscal')));
+  assert.equal(await page.getByRole("checkbox",{name:/Revisei os valores/}).getAttribute('aria-describedby'),'quick-review-hint');
+  await page.getByRole("button",{name:"Conferir prévia",exact:true}).click();
+  await page.getByText(/Conferindo a prévia\. Aguarde/).waitFor();
+  assert.equal(await page.getByRole("checkbox",{name:/Revisei os valores/}).isDisabled(),true,"only an actual in-flight refresh disables the checkbox");
+  await page.waitForFunction(()=>!document.querySelector('#quick-review-hint')?.textContent.includes('Conferindo a prévia. Aguarde'));
+  assert.equal(await page.getByRole("checkbox",{name:/Revisei os valores/}).isChecked(),false,"refresh completion requires fresh consent for the newly displayed data");
+  assert.equal(await page.getByRole("checkbox",{name:/Revisei os valores/}).isDisabled(),false);
+  assert.equal(await page.evaluate(()=>window.workflowUiTest.calls),0);
+  console.log('Review checkbox: transmission warning permits acknowledgement; invalid preview still blocks emission; pending reason and refresh are adjacent and accessible; new data clears consent');
   for(const width of [1440,820,390,320]){
     await page.setViewportSize({width,height:900});await page.goto(`${origin}/?screen=quick`);
     const consent=page.getByRole("checkbox",{name:/Revisei os valores/});
@@ -167,6 +185,7 @@ try {
     await page.getByRole("checkbox",{name:/Revisei os valores/}).check();
     await page.locator('[name="competenceDate"]').fill("2026-11-01");
     assert.equal(await page.getByRole("checkbox",{name:/Revisei os valores/}).isChecked(),false);
+    assert.equal(await page.getByRole("checkbox",{name:/Revisei os valores/}).isDisabled(),false,"dirty preview permits acknowledgement, while emission remains blocked until refreshed");
     assert.equal(await page.getByRole("button",{name:"Confirmar e emitir em homologação",exact:true}).isDisabled(),true);
     await page.getByRole("button",{name:"Atualizar prévia",exact:true}).click();
     await page.waitForFunction(()=>document.querySelector('.quick-review .report-totals')?.textContent.includes('01/11/2026'));

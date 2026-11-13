@@ -9,8 +9,12 @@ import type {QuickReviewData} from "@/lib/nfse/quick-review";
 const brl=(value:string)=>`R$ ${value.replace(/\.(\d{2})$/,",$1").replace(/\B(?=(\d{3})+(?!\d))/g,".")}`;
 export function QuickReportReview({initial}: {initial:QuickReviewData}){
   const [data,setData]=useState(initial),[reviewed,setReviewed]=useState(false),[dirty,setDirty]=useState(false),[error,setError]=useState("");
+  const [refreshing,setRefreshing]=useState(false),[refreshError,setRefreshError]=useState("");
+  const editForm=useRef<HTMLFormElement>(null),editPanel=useRef<HTMLDetailsElement>(null);
   const [pending,start]=useTransition(),request=useRef<string|null>(null),router=useRouter();
   const p=data.preview;
+  const blocker=dirty?"Há alterações que ainda não entraram no resumo. Confira a prévia antes de emitir.":data.error??(!data.digest?"A prévia ainda não está pronta para emissão. Confira os dados para continuar.":undefined);
+  const openChanges=()=>{if(editPanel.current)editPanel.current.open=true;};
   return <section className="quick-review report-back" aria-labelledby="quick-review-title">
     <span className="eyebrow">Revisão do lote · homologação</span><h2 id="quick-review-title">Revise e emita seu lote.</h2>
     <p>Os dados de afiliado já vêm preenchidos. Confira o resumo e confirme a revisão para colocar as notas na fila.</p>
@@ -19,18 +23,23 @@ export function QuickReportReview({initial}: {initial:QuickReviewData}){
       <p className="field-hint">A competência inicial é uma sugestão baseada no mês do relatório. Confira a data efetiva da prestação antes de confirmar.</p>
       <div className="report-table-scroll" role="region" aria-label="Notas do lote para revisão" tabIndex={0}><table className="report-table"><thead><tr><th>Origem · linha</th><th>Tomador</th><th>Valor da nota</th></tr></thead><tbody>{p.groups.map((g,i)=><tr key={i}><td className="mono">{g.sourceRows.join(", ")}</td><td><strong>{g.recipient.legalName}</strong><span className="report-cell-note mono">{g.recipient.document} · {g.recipient.country}</span></td><td className="report-money mono">{brl(g.amount)}</td></tr>)}</tbody></table></div>
     </>}
-    {data.error&&<div className="save-notice" role="status"><p>{data.error}</p>{data.issues?.length?<ul>{data.issues.slice(0,15).map((issue,i)=><li key={i}>{issue.row?`Linha ${issue.row}: `:""}{issue.code==="unsupported_amount"?"valor ou moeda incompatível; confira o original.":issue.code==="duplicate_source"?"origem repetida no relatório.":"confira os dados em Alterar dados."}</li>)}</ul>:null}</div>}
-    <details className="quick-review-edit" inert={pending}><summary>Alterar dados</summary><ReportReviewForm key={JSON.stringify(data.input)} candidates={data.candidates} initial={p} defaults={data.input} version={data.version} foreignForAll={data.foreignForAll} currency={data.currency} needsIntermediary={data.needsIntermediary} previewOnly
+    <details ref={editPanel} className="quick-review-edit" inert={pending}><summary>Alterar dados</summary><ReportReviewForm formRef={editForm} key={JSON.stringify(data.input)} candidates={data.candidates} initial={p} defaults={data.input} version={data.version} foreignForAll={data.foreignForAll} currency={data.currency} needsIntermediary={data.needsIntermediary} previewOnly
       onEdit={()=>{setReviewed(false);setDirty(true);request.current=null;}}
-      action={async(_previous,form)=>{setDirty(true);setReviewed(false);request.current=null;const result=await refreshQuickReview(data.importId,String(form.get("review")));if(result.data){setData(result.data);setDirty(false);return result.data.error?{error:result.data.error}:{success:"Prévia atualizada. Confira os dados e confirme no resumo."};}return {error:result.error};}}/>
+      onPreviewStart={()=>{setRefreshing(true);setRefreshError("");setDirty(true);setReviewed(false);request.current=null;}}
+      action={async(_previous,form)=>{
+        try{const result=await refreshQuickReview(data.importId,String(form.get("review")));if(result.data){setData(result.data);setDirty(false);return result.data.error?{error:result.data.error}:{success:"Prévia atualizada. Confira os dados e confirme no resumo."};}
+          const message=result.error??"Não foi possível atualizar a prévia.";setRefreshError(message);return {error:message};
+        }catch{const message="Não foi possível atualizar a prévia. Confira sua conexão e tente novamente.";setRefreshError(message);return {error:message};}
+        finally{setRefreshing(false);setReviewed(false);}
+      }}/>
     </details>
-    {dirty&&<p className="save-notice" role="status">Atualize a prévia para incluir suas alterações antes de confirmar.</p>}
-    {!data.transmissionEnabled&&<p className="field-hint">A transmissão em homologação está desativada no servidor. O lote pode ser preparado e ficará aguardando a liberação do envio.</p>}
-    <form className="quick-review-confirm" onSubmit={event=>{event.preventDefault();if(!reviewed||!data.digest||dirty)return;
+    {!data.transmissionEnabled&&<p className="field-hint">A transmissão em homologação está desativada no servidor. Você pode marcar a revisão e preparar o lote; o envio ficará aguardando a liberação.</p>}
+    <div id="quick-review-hint" aria-live="polite">{refreshing?<p className="save-notice" role="status">Conferindo a prévia. Aguarde para marcar a revisão do resumo atualizado…</p>:blocker?<div className="save-notice" role="status"><p><strong>Antes de emitir:</strong> {blocker}</p>{data.issues?.length?<ul>{data.issues.slice(0,15).map((issue,i)=><li key={i}>{issue.row?`Linha ${issue.row}: `:""}{issue.code==="unsupported_amount"?"valor ou moeda incompatível; confira o original.":issue.code==="duplicate_source"?"origem repetida no relatório.":"confira os dados em Alterar dados."}</li>)}</ul>:null}<button className="btn btn--secondary" type="button" disabled={pending} onClick={()=>{openChanges();editForm.current?.requestSubmit();}}>Conferir prévia</button>{data.error&&<button className="btn btn--secondary" type="button" disabled={pending} onClick={()=>{openChanges();editForm.current?.querySelector<HTMLInputElement>('[name="competenceDate"]')?.focus();}}>Revisar dados</button>}</div>:<p className="field-hint">Marque que revisou o resumo para preparar este lote.</p>}{refreshError&&<p className="form-error" role="alert">{refreshError}</p>}</div>
+    <form className="quick-review-confirm" onSubmit={event=>{event.preventDefault();if(!reviewed||!data.digest||dirty||refreshing)return;
       const form=new FormData();form.set("reviewed","on");form.set("input",JSON.stringify(data.input));form.set("digest",data.digest);form.set("version",String(data.version));form.set("request",request.current??=crypto.randomUUID());
       start(async()=>{setError("");try{const result=await confirmAndQueueQuickReview(data.importId,form);if(result.id)router.push(`/painel/notas/lotes/${result.id}`);else setError(result.error??"Não foi possível confirmar o lote.");}catch{setError("Não foi possível confirmar o resultado. Repita esta mesma solicitação; o lote não será duplicado.");}});
-    }}><label className="fiscal-checkbox"><input name="reviewed" type="checkbox" required checked={reviewed} disabled={pending||!data.digest||dirty} onChange={e=>setReviewed(e.target.checked)}/> Revisei os valores, o tomador, a competência e o agrupamento das notas e autorizo o envio deste lote em homologação.</label>
-      <button className="btn btn--primary" type="submit" disabled={pending||!reviewed||!data.digest||dirty}>{pending?"Confirmando e preparando o lote…":"Confirmar e emitir em homologação"}</button>
+    }}><label className="fiscal-checkbox"><input name="reviewed" type="checkbox" required aria-describedby="quick-review-hint" checked={reviewed} disabled={pending||refreshing} onChange={e=>setReviewed(e.target.checked)}/> Revisei os valores, o tomador, a competência e o agrupamento das notas e autorizo o envio deste lote em homologação.</label>
+      <button className="btn btn--primary" type="submit" disabled={pending||refreshing||!reviewed||!data.digest||dirty}>{pending?"Confirmando e preparando o lote…":"Confirmar e emitir em homologação"}</button>
       {error&&<p className="form-error" role="alert">{error}</p>}
     </form>
     <Link className="text-link" href={`/painel/notas?empresa=${data.companyId}`}>Consultar notas já preparadas</Link>

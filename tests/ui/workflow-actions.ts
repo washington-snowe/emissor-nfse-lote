@@ -22,7 +22,7 @@ export async function saveReport(form: FormData) {
   window.workflowUiTest.fileSize = (form.get("file") as File).size;
   return { id: "00000000-0000-4000-8000-000000000088", duplicate: false };
 }
-export async function refreshQuickReview(_id:string,payload:string){return {data:quickUiData(JSON.parse(payload))};}
+export async function refreshQuickReview(_id:string,payload:string){await new Promise(resolve=>setTimeout(resolve,250));return {data:quickUiData(JSON.parse(payload))};}
 export async function confirmAndQueueQuickReview(_id:string,form:FormData){window.workflowUiTest.calls++;window.workflowUiTest.reviewJson=String(form.get("input"));(window.workflowUiTest.requestIds??=[]).push(String(form.get("request")));await new Promise(resolve=>setTimeout(resolve,120));return window.workflowUiTest.calls===1?{error:"Falha sintética preserva a confirmação."}:{id:"test-quick-batch",duplicate:true};}
 
 export async function selectWorkspaceCompany(id: string, area: string) { window.workflowUiTest.companyId = id; window.workflowUiTest.path = area; return {}; }

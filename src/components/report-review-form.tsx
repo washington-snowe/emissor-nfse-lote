@@ -1,6 +1,6 @@
 "use client";
 
-import { startTransition, useActionState, useState } from "react";
+import { startTransition, useActionState, useState,type Ref } from "react";
 import type { FiscalPerson } from "@/lib/nfse/dps";
 import type { ReviewCandidate, ReviewSnapshot, ReviewPreview } from "@/lib/nfse/review";
 import type {QuickReviewInput} from "@/lib/nfse/quick-review";
@@ -53,9 +53,9 @@ export function personFromForm(form: FormData, prefix: string) {
     ...(address ? { address: { country: get("country"), ...Object.fromEntries(["postalCode", "municipalityCode", "city", "province", "street", "number", "district", "complement"].map(name => [name, get(`address.${name}`)])) } } : {}) };
 }
 
-export function ReportReviewForm({ candidates, version = 0, initial, defaults,previewOnly=false,onEdit, foreignForAll, currency, needsIntermediary, action }: {
+export function ReportReviewForm({ candidates, version = 0, initial, defaults,previewOnly=false,onEdit,onPreviewStart,formRef, foreignForAll, currency, needsIntermediary, action }: {
   candidates: ReviewCandidate[]; version?: number; foreignForAll: boolean; currency?: string; needsIntermediary: boolean;
-  initial?: ReviewSnapshot|ReviewPreview;defaults?:QuickReviewInput;previewOnly?:boolean;onEdit?:()=>void;
+  initial?: ReviewSnapshot|ReviewPreview;defaults?:QuickReviewInput;previewOnly?:boolean;onEdit?:()=>void;onPreviewStart?:()=>void;formRef?:Ref<HTMLFormElement>;
   action: (previous: ReviewState, form: FormData) => Promise<ReviewState>;
 }) {
   const [choice, setChoice] = useState(initial?.recipientChoice ?? defaults?.recipientChoice ?? "");
@@ -64,7 +64,7 @@ export function ReportReviewForm({ candidates, version = 0, initial, defaults,pr
   const [commonCountry, setCommonCountry] = useState(common?.country ?? ""), [intermediaryCountry, setIntermediaryCountry] = useState(middle?.country ?? "");
   const [intermediary, setIntermediary] = useState(needsIntermediary || Boolean(middle));
   const [state, submit, pending] = useActionState(action, {});
-  return <form className="company-form fiscal-profile-form" onChangeCapture={onEdit} onSubmit={event => {
+  return <form ref={formRef} className="company-form fiscal-profile-form" onChangeCapture={onEdit} onSubmit={event => {
     event.preventDefault();
     const fields = new FormData(event.currentTarget);
     const request = new FormData();
@@ -75,6 +75,7 @@ export function ReportReviewForm({ candidates, version = 0, initial, defaults,pr
       intermediary: intermediary ? personFromForm(fields, "intermediary") : undefined,
       recipients: candidates.map(candidate => ({ row: candidate.row, person: choice === "reported_sellers" ? personFromForm(fields, `row-${candidate.row}`) : undefined,
         foreignAmount: fields.get(`row-${candidate.row}.foreignAmount`) || undefined })) }));
+    if(previewOnly)onPreviewStart?.();
     startTransition(() => submit(request));
   }}>
     <fieldset disabled={pending}>
