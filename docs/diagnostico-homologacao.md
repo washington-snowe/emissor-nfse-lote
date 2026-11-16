@@ -10,6 +10,10 @@ Na mesma empresa em **Empresa → Certificado**, o botão opcional **Gerar diagn
 
 O diagnóstico não registra sucesso fiscal, não reserva número, não atualiza a fila e não transmite notas. A verificação automática continua sendo o fluxo principal. Nenhuma migração nova ou reenvio do A1 é necessário. Precisamos do texto desse diagnóstico na conta real para esclarecer o 404 antes de retomar a mesma operação; testes sintéticos não comprovam a resposta oficial do certificado do usuário.
 
+Retorno real posterior (`e884e7a`): A1 aberto/validado localmente, GET DPS **404 JSON**, erro objeto **E2404**, ambiente presente mas não reconhecido, sem mensagem genérica ou identidade DPS. O relatório v2 não distinguia texto numérico, enum textual, zero e nulo. O v3 acrescenta **Representação do ambiente**, usando apenas uma lista fixa de valores de protocolo, com tipo/categoria e omissão para qualquer outro valor. Isso não normaliza nem aceita o retorno; a validação continua exigindo o ambiente inteiro `2` e o contrato capturado. Swagger oficial sem A1 continua inacessível neste executor (503); a cópia secundária já identificada preserva `integer enum [1,2]` e não esclarece o valor real observado. Não atribuir ainda significado específico ao E2404 sem sua definição oficial.
+
+Validação do v3: 119 testes aprovados, seis opt-in ignorados; integração da ação, lint, TypeScript e build aprovados. Interface/cópia novamente verificadas com fronteiras sintéticas em 1440/390/320 e regressão dos demais fluxos. A classificação de texto, zero, nulo, objetos e valores privados foi testada sem mudar o resultado estrito de acesso.
+
 Validação desta atualização: 118 testes unitários aprovados e seis opt-in ignorados; integração da ação real com fronteiras sintéticas de sessão/banco/Vault/HTTP conferindo isolamento, quota, certificado revogado e ausência de mutação fiscal. Interface e cópia em 1440/390/320, com regressão dos demais fluxos até seis larguras. Lint, TypeScript e build aprovados. Não houve teste com A1 real, execução SQL ou transmissão fiscal pelo executor.
 
 ## Estado atual: documentação capturada e MEI

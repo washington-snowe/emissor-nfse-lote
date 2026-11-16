@@ -294,11 +294,11 @@ try {
     assert.equal(await page.getByRole("button", {name:"Copiar diagnóstico SEFIN",exact:true}).count(),0);
     await page.getByRole("button", {name:"Gerar diagnóstico da SEFIN",exact:true}).click();
     await page.getByText("Diagnóstico sintético, sem consulta fiscal.",{exact:true}).waitFor();
-    await page.getByText(/Diagnóstico: nfse-sefin-v2/).waitFor();
+    await page.getByText(/Diagnóstico: nfse-sefin-v3/).waitFor();
     await page.getByRole("button",{name:"Copiar diagnóstico SEFIN",exact:true}).click();
     await page.getByText("Diagnóstico SEFIN copiado.",{exact:true}).waitFor();
     const sefinClipboard=await page.evaluate(()=>window.workflowUiTest.clipboard);
-    assert.ok(sefinClipboard.includes("nfse-sefin-v2") && sefinClipboard.includes("HTTP 404 · JSON"));
+    assert.ok(sefinClipboard.includes("nfse-sefin-v3") && sefinClipboard.includes("HTTP 404 · JSON"));
     assert.ok(!sefinClipboard.includes("test-password-not-real"));
     assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
     await page.screenshot({ path: path.join(root, `shots/reports/certificate-${width}.png`), fullPage: true });
