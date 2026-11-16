@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { readFileSync } from "node:fs";
 import { createHash } from "node:crypto";
-import { verifiedSefinLookup } from "../src/lib/nfse/api-contract.ts";
+import { verifiedSefinLookup, sefinLookupEvidence } from "../src/lib/nfse/api-contract.ts";
 import { ownSefinLookupId, verifyOwnSefinTransport } from "../src/lib/nfse/transport-proof.ts";
 import { fiscalProbeReport } from "../src/lib/nfse/probe-report.ts";
 import { contractFixture } from "./helpers/fiscal-fixture.ts";
@@ -43,6 +43,33 @@ test("consulta SEFIN usa somente identidade própria e GET, sem consumir ou rese
   assert.ok(result); assert.equal(calls, 1);
   assert.equal(await verifyOwnSefinTransport({...input, holderCnpj: "11444777000161"}, credentials, contract(), async () => {throw new Error("Must not query foreign identity");}), false);
   for (const series of ["0", "50000", "../1"]) assert.throws(() => ownSefinLookupId(municipality, cnpj, series));
+});
+
+test("compatibilidade da SEFIN restrita reconhece somente GET DPS 404/E2404 com ambiente numérico zero",async()=>{
+  const official=JSON.parse(readFileSync(new URL("../integrations/nfse/contracts/sefin-homologation-v1.structural.json",import.meta.url),"utf8"));
+  const observed={tipoAmbiente:0,erro:{codigo:"E2404"}};
+  const body=Buffer.from(JSON.stringify(observed));
+  assert.equal(sefinLookupEvidence(404,body,id,official),"restricted_dps_404_environment_zero");
+  assert.ok(await verifyOwnSefinTransport({municipality,cnpj,holderCnpj:cnpj,series:"1"},credentials,official,async(environment,url)=>{
+    assert.equal(environment,"homologation");assert.equal(url,"https://sefin.producaorestrita.nfse.gov.br/SefinNacional/dps/"+id);
+    return {status:404,contentType:"application/json",body};
+  }));
+  for(const value of [1,"0",null,undefined,3,"HOMOLOGACAO","PRODUCAO_RESTRITA"]){
+    assert.equal(verifiedSefinLookup(404,Buffer.from(JSON.stringify({...observed,tipoAmbiente:value})),id,official),false);
+  }
+  for(const value of [
+    {tipoAmbiente:0,erro:{codigo:"E0002"}},
+    {tipoAmbiente:0,erro:[{codigo:"E2404"}]},
+    {tipoAmbiente:0,erros:[{codigo:"E2404"},{codigo:"E0002"}]},
+    {...observed,idDps:"foreign"}, {...observed,idDps:id},
+    {tipoAmbiente:0,message:"Not found"},
+    {tipoAmbiente:0,idDps:id,chaveAcesso:"1".repeat(50)},
+  ])assert.equal(verifiedSefinLookup(404,Buffer.from(JSON.stringify(value)),id,official),false);
+  for(const status of [200,400,401,403,429,500,503])assert.equal(verifiedSefinLookup(status,body,id,official),false);
+  assert.equal(verifiedSefinLookup(404,body,id,contractFixture()),false,"captured response schema remains required");
+  const arrayContract=structuredClone(official);
+  arrayContract.models.ResponseErro.properties.erro={type:"array",items:{$ref:"#/definitions/MensagemProcessamento"}};
+  assert.equal(verifiedSefinLookup(404,Buffer.from('{"tipoAmbiente":0,"erro":[{"codigo":"E2404"}]}'),id,arrayContract),false);
 });
 
 test("relatório copiável usa apenas rótulos fixos e status, sem certificado, URL ou conteúdo do provedor", () => {

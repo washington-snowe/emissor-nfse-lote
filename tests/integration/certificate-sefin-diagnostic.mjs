@@ -38,6 +38,10 @@ try{
   assert.deepEqual(h.gets,[{environment:'homologation',url:'https://sefin.producaorestrita.nfse.gov.br/SefinNacional/dps/DPS355030821122233300018100001000000000000001',timeout:5000}]);assert.ok(h.material.pfx.every(x=>x===0));
   assert.ok(h.reads.every(read=>read.filters.some(([key,value])=>key==='tenant_id'&&value===ids.tenant)));
   assert.deepEqual(h.calls.map(call=>call.name),['reserve_company_operation','fiscal_contract']);
+  h=reset();h.body=JSON.stringify({tipoAmbiente:0,erro:{codigo:'E2404'}});
+  const compatible=await diagnoseCertificateSefin(ids.certificate);
+  assert.match(compatible.details,/Resultado: sefin_verified/);assert.match(compatible.details,/Resposta compatível com o contrato: não/);assert.match(compatible.details,/compatibilidade restrita GET DPS/);
+  assert.deepEqual(h.calls.map(call=>call.name),['reserve_company_operation','fiscal_contract'],'transport compatibility must not write proof or enqueue invoices from a diagnostic');assert.equal(h.gets.length,1);
   h=reset();h.tenant='00000000-0000-4000-8000-000000000099';assert.ok((await diagnoseCertificateSefin(ids.certificate)).error);assert.equal(h.calls.length+h.loads.length+h.gets.length,0);
   h=reset();h.rows.companies[0].tenant_id='foreign';assert.ok((await diagnoseCertificateSefin(ids.certificate)).error);assert.equal(h.calls.length+h.loads.length+h.gets.length,0);
   h=reset();h.rows.company_certificates[0].status='revoked';assert.ok((await diagnoseCertificateSefin(ids.certificate)).error);assert.equal(h.calls.length+h.loads.length+h.gets.length,0);

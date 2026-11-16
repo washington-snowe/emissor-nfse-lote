@@ -100,6 +100,12 @@ test("404 e duplicidade E0014 não liberam retransmissão", async () => {
     await executeFiscalJob(s.job, s.deps); assert.deepEqual(s.finishes, [outcome]);
   }
 });
+test("compatibilidade 404/E2404 do GET de acesso não autoriza nota nem repete POST",async()=>{
+  const s=scenario();s.deps.request=async(method)=>{s.events.push(method);return {status:404,body:Buffer.from('{"tipoAmbiente":0,"erro":{"codigo":"E2404"}}')};};
+  await executeFiscalJob(s.job,s.deps);
+  assert.deepEqual(s.finishes,["uncertain"]);assert.equal(s.events.filter(event=>event==="POST").length,1);
+  assert.equal(s.events.filter(event=>event==="GET").length,0);assert.ok(s.pfx.every(byte=>byte===0));
+});
 test("produção, dinheiro numérico e prazo insuficiente não iniciam transmissão", async () => {
   const production = scenario(); production.job.environment = "production"; await executeFiscalJob(production.job, production.deps);
   assert.equal(production.events.includes("POST"), false);

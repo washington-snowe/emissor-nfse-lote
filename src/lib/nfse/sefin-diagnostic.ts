@@ -1,6 +1,6 @@
 import {automaticCertificateCheck,type CertificateCheckIdentity} from './automatic-certificate-check.ts';
 import {ownSefinLookupId} from './transport-proof.ts';
-import {readFiscalJson} from './api-contract.ts';
+import {readFiscalJson,sefinLookupEvidence} from './api-contract.ts';
 import {fiscalTransportError,type NfseTransportFailure} from './transport-error.ts';
 
 type Dependencies=Parameters<typeof automaticCertificateCheck>[1];
@@ -20,10 +20,10 @@ export function sefinEnvironmentDiagnostic(value:unknown):string {
 
 /** Only fixed categories, booleans and whitelisted Edddd codes leave this boundary. */
 export async function diagnoseSefinAccess(identity:CertificateCheckIdentity,deps:Dependencies,revision?:string){
- let loaded=false,response:Awaited<ReturnType<Dependencies['get']>>|undefined,transport:NfseTransportFailure|undefined;
+ let loaded=false,response:Awaited<ReturnType<Dependencies['get']>>|undefined,transport:NfseTransportFailure|undefined,contract:unknown;
  const result=await automaticCertificateCheck(identity,{
   load:async()=>{const material=await deps.load();loaded=true;return material;},
-  contract:deps.contract,
+  contract:async credentials=>{contract=await deps.contract(credentials);return contract;},
   get:async(url,credentials)=>{
    try{response=await deps.get(url,credentials);return response;}
    catch(error){transport=fiscalTransportError(error).reason;throw error;}
@@ -51,7 +51,9 @@ export async function diagnoseSefinAccess(identity:CertificateCheckIdentity,deps
   lines.push(`Mensagem genérica da API: ${data&&['message','Message','mensagem','Mensagem'].some(key=>Object.hasOwn(data,key))?'presente':'ausente'}`);
   let ownId='';try{ownId=ownSefinLookupId(identity.municipality,identity.cnpj,identity.series);}catch{/* Identity already validated by the shared pipeline. */}
   lines.push(`Identidade DPS: ${data?.idDps===undefined?'ausente':data.idDps===ownId?'corresponde à consulta':'não corresponde à consulta'}`);
-  lines.push(`Resposta compatível com o contrato: ${result.code==='sefin_verified'?'sim':'não'}`);
+  const evidence=sefinLookupEvidence(result.http,body,ownId,contract);
+  lines.push(`Resposta compatível com o contrato: ${evidence==='documented_response'?'sim':'não'}`);
+  lines.push(`Critério de acesso: ${evidence==='restricted_dps_404_environment_zero'?'compatibilidade restrita GET DPS · 404/E2404 · ambiente 0':evidence==='documented_response'?'resposta documentada':'não confirmado'}`);
  }
  if(transport)lines.push(`Transporte: ${transport}`);
  lines.push('Nenhuma nota foi enviada por este diagnóstico.');

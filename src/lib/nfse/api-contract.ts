@@ -75,30 +75,44 @@ export function readFiscalJson(body: Buffer): ObjectValue | null {
   } catch { return null; }
 }
 
-/** A generic 404/HTML or municipal-parameter response cannot prove SEFIN access. */
-export function verifiedSefinLookup(status: number, body: Buffer, requestedId: string, rawContract: unknown): boolean {
+export type SefinLookupEvidence = "documented_response" | "restricted_dps_404_environment_zero";
+
+/** GET /dps only. This is transport evidence, never fiscal authorization. */
+export function sefinLookupEvidence(status: number, body: Buffer, requestedId: string, rawContract: unknown): SefinLookupEvidence | null {
   try {
-    if (status !== 200 && status !== 404) return false;
+    if (status !== 200 && status !== 404) return null;
     const supported = supportedNfseContract(rawContract), data = readFiscalJson(body);
-    if (!supported || !data || data.tipoAmbiente !== 2) return false;
+    if (!supported || !data) return null;
     const contract = object(rawContract), models = object(contract.models);
     const operation = object(object(object(contract.paths)[supported.dpsPath]).get);
     const response = object(object(operation.responses)[String(status)]);
     const shape = model(response.schema ?? object(object(response.content)["application/json"]).schema, models);
     const properties = object(shape.properties);
-    if (object(properties.tipoAmbiente).type !== "integer") return false;
-    if (status === 200) return object(properties.idDps).type === "string" && object(properties.chaveAcesso).type === "string" &&
-      data.idDps === requestedId && typeof data.chaveAcesso === "string" && /^\d{50}$/.test(data.chaveAcesso);
+    if (object(properties.tipoAmbiente).type !== "integer") return null;
+    if (status === 200) return data.tipoAmbiente === 2 && object(properties.idDps).type === "string" && object(properties.chaveAcesso).type === "string" &&
+      data.idDps === requestedId && typeof data.chaveAcesso === "string" && /^\d{50}$/.test(data.chaveAcesso) ? "documented_response" : null;
     const errorKey = Object.keys(properties).find(key => /^erros?$/i.test(key));
-    if (!errorKey) return false;
+    if (!errorKey) return null;
     const errors = model(properties[errorKey], models);
     const entry = errors.type === "array" ? model(errors.items, models) : errors;
     const codeKey = Object.keys(object(entry.properties)).find(key => /^codigo$/i.test(key) && object(object(entry.properties)[key]).type === "string");
-    if (!codeKey) return false;
+    if (!codeKey) return null;
     const values = errors.type === "array" ? data[errorKey] : [data[errorKey]];
-    return Array.isArray(values) && values.length > 0 && values.length <= 100 && values.every(value =>
-      typeof object(value)[codeKey] === "string" && /^E\d{4}$/.test(object(value)[codeKey] as string));
-  } catch { return false; }
+    if (!Array.isArray(values) || !values.length || values.length > 100 || !values.every(value =>
+      typeof object(value)[codeKey] === "string" && /^E\d{4}$/.test(object(value)[codeKey] as string))) return null;
+    if (data.tipoAmbiente === 2) return "documented_response";
+    // Live sanitized observation: the restricted DPS handler returns 404/E2404 with numeric 0.
+    // Keep 0 unchanged; allow only this singular error envelope, not 200, arrays or other errors.
+    // Callers pin the homologation host, own holder/identity and verified mTLS before this check.
+    if (data.tipoAmbiente === 0 && errors.type === "object" && values.length === 1 &&
+      object(values[0])[codeKey] === "E2404" && data.idDps === undefined) return "restricted_dps_404_environment_zero";
+    return null;
+  } catch { return null; }
+}
+
+/** A generic 404/HTML or municipal-parameter response cannot prove SEFIN access. */
+export function verifiedSefinLookup(status: number, body: Buffer, requestedId: string, rawContract: unknown): boolean {
+  return sefinLookupEvidence(status, body, requestedId, rawContract) !== null;
 }
 export function readCompressedNfse(value: unknown): string | null {
   try {

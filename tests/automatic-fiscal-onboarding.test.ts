@@ -47,6 +47,12 @@ test("verificação automática consulta SEFIN com identidade própria e não en
   assert.match(calls[1],/^https:\/\/sefin\.producaorestrita\.nfse\.gov\.br\/SefinNacional\/dps\/DPS355030821122233300018100001000000000000001$/);
   assert.ok(material.pfx.every(x=>x===0));
 });
+test("verificação automática aceita a compatibilidade observada 404/E2404 sem converter ambiente 0 em 2",async()=>{
+  const {deps,material,calls}=dependencies();
+  const body=Buffer.from('{"tipoAmbiente":0,"erro":{"codigo":"E2404"}}');deps.get=async(url:string)=>{calls.push(url);return {status:404,body};};
+  assert.deepEqual(await automaticCertificateCheck(identity,deps),{code:"sefin_verified",http:404});
+  assert.equal(JSON.parse(body.toString()).tipoAmbiente,0);assert.equal(calls.length,2);assert.ok(material.pfx.every(x=>x===0));
+});
 test("HTML 404, ADN, erro de autenticação e timeout não viram conexão verificada",async()=>{
   for(const [status,body] of [[404,Buffer.from('<html>404</html>')],[200,Buffer.from('{"parametrosConvenio":{}}')],[401,validMissing],[403,validMissing],[503,validMissing],[404,Buffer.from('{"tipoAmbiente":1,"erro":{"codigo":"E0002"}}')]] as const){
     const {deps,material}=dependencies();deps.get=async()=>({status,body});

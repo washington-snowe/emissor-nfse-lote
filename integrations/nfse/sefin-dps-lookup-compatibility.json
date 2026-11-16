@@ -1,0 +1,20 @@
+{
+  "kind": "user_reported_sanitized_transport_observation",
+  "diagnostic_version": "nfse-sefin-v3",
+  "diagnostic_deploy": "15c4450",
+  "environment_requested": "homologation",
+  "source_url_template": "https://sefin.producaorestrita.nfse.gov.br/SefinNacional/dps/{ownId}",
+  "observed": {
+    "certificate_locally_loaded": true,
+    "http_status": 404,
+    "body_format": "JSON",
+    "tipoAmbiente": 0,
+    "error_shape": "object",
+    "error_codes": ["E2404"],
+    "generic_message": false,
+    "idDps": "absent"
+  },
+  "documented_baseline": "contracts/sefin-homologation-v1.provenance.json",
+  "compatibility_scope": "GET DPS transport only, on the pinned official homologation host with verified TLS, local A1 holder and own lookup identity. The captured official contract must still declare the DPS error envelope and integer environment. Only numeric 0 plus the singular E2404 error object and absent idDps qualify. No coercion of 0 to 2. No success, production, string, null, generic 404, array or other error compatibility.",
+  "limitations": "The executor did not obtain the A1 or raw response. Observation came from the application's sanitized authenticated diagnostic returned by the user. The captured schema declares integer 1/2, so 0 is an explicit runtime compatibility exception, not a documented environment. No official description of E2404 is asserted. This establishes a response from the DPS lookup handler, not fiscal eligibility, numbering permission by itself, a validated DPS or invoice authorization. POST responses and signed-document validation remain unchanged."
+}

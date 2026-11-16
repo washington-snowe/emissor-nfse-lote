@@ -28,14 +28,18 @@ test("diagnóstico SEFIN usa o mesmo GET de identidade própria, sanitiza e zera
   assert.deepEqual(h.calls,["load","https://sefin.producaorestrita.nfse.gov.br/SefinNacional/dps/DPS355030821122233300018100001000000000000001"]);
   assert.ok(h.material.pfx.every(byte=>byte===0));
 });
-test("representação do ambiente distingue enum textual, nulo e zero sem copiar texto arbitrário",async()=>{
+test("representação distingue enum textual, nulo e zero; somente 404/E2404 admite compatibilidade de acesso",async()=>{
   for(const [value,expected] of [[0,'número 0'],[1,'número 1 (produção)'],[2,'número 2 (homologação)'],['2','texto: 2'],['PRODUCAO_RESTRITA','texto: PRODUCAO_RESTRITA'],[null,'nulo'],[sensitive,'outro texto (valor omitido)'],[11222333000181,'outro número (valor omitido)'],[{},'objeto'],[[],'lista'],[false,'booleano']] as const){
     assert.equal(sefinEnvironmentDiagnostic(value),expected);
     const h=fixture(JSON.stringify({tipoAmbiente:value,erro:{codigo:'E2404'}}));
     const diagnostic=await diagnoseSefinAccess(identity,h.deps);
     assert.ok(diagnostic.details.includes(`Representação do ambiente: ${expected}`));
     assert.ok(!diagnostic.details.includes(sensitive));assert.ok(!diagnostic.details.includes(identity.cnpj));
-    assert.equal(diagnostic.result.code,value===2?'sefin_verified':'sefin_unavailable','diagnostic classification must not relax verification');
+    assert.equal(diagnostic.result.code,value===2||value===0?'sefin_verified':'sefin_unavailable');
+    if(value===0){
+      assert.match(diagnostic.details,/Resposta compatível com o contrato: não/);
+      assert.match(diagnostic.details,/Critério de acesso: compatibilidade restrita GET DPS · 404\/E2404 · ambiente 0/);
+    }
   }
 });
 test("404 genérico, HTML e ambiente incorreto continuam bloqueados sem copiar corpo ou mensagens",async()=>{

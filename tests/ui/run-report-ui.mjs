@@ -300,6 +300,7 @@ try {
     const sefinClipboard=await page.evaluate(()=>window.workflowUiTest.clipboard);
     assert.ok(sefinClipboard.includes("nfse-sefin-v3") && sefinClipboard.includes("HTTP 404 · JSON"));
     assert.ok(!sefinClipboard.includes("test-password-not-real"));
+    assert.ok(sefinClipboard.includes("Representação do ambiente: número 0") && sefinClipboard.includes("compatibilidade restrita GET DPS"));
     assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
     await page.screenshot({ path: path.join(root, `shots/reports/certificate-${width}.png`), fullPage: true });
     console.log(`Workflow ${width}px: A1 fixture form and cleared password, no overflow`);
