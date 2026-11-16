@@ -73,17 +73,21 @@ test("assinatura verifica certificado conhecido e detecta alterações, referên
   assert.throws(() => parseFiscalXml("<a>".repeat(33) + "</a>".repeat(33)), /Invalid fiscal XML/);
 });
 
-test("XSD preservado reproduz incompatibilidade da série; adaptação pontual valida DPS assinada", async () => {
+test("XSD legado preserva adaptação da série; homologação exige finalidade e usa pacote próprio sem adaptações", async () => {
   const built = sign(fixture());
   const provenance = JSON.parse(await readFile("integrations/nfse/provenance.json", "utf8"));
   const files = await Promise.all(provenance.files.map(async ({ file }: { file: string }) => ({
     fileName: file.split("/").at(-1)!, contents: await readFile(file, "utf8"),
   })));
   const schema = files.find(file => file.fileName === "DPS_v1.01.xsd")!;
-  const upstream = await validateXML({ xml: built.xml, schema, preload: files.filter(file => file !== schema),
+  const legacyBuilt=sign({...fixture(),environment:"production"});
+  const upstream = await validateXML({ xml: legacyBuilt.xml, schema, preload: files.filter(file => file !== schema),
     maxMemoryPages: 1024, modifyArguments: args => ["--nonet", ...args] });
   assert.equal(upstream.valid, false);
   assert.ok(upstream.rawOutput.includes("serie") && upstream.rawOutput.includes("pattern"));
+  assert.equal(await validateFiscalSchema(legacyBuilt.xml,"DPS","production-20260209"),true);
+  assert.equal(await validateFiscalSchema(legacyBuilt.xml,"DPS"),false);
+  assert.equal(await validateFiscalSchema(built.xml,"DPS","production-20260209"),false);
   assert.equal(await validateFiscalSchema(built.xml, "DPS"), true);
   assert.equal(await validateFiscalSchema(built.xml.replace("<serie>00001", "<serie>90000"), "DPS"), false);
   assert.equal(await validateFiscalSchema(built.xml.replace("<serie>00001</serie>", "<serie>^00001$</serie>"), "DPS"), false);
@@ -121,4 +125,24 @@ test("validação de prévia em lote é limitada e recusa o lote inteiro se um X
   assert.equal(await validateFiscalDocuments(Array(500).fill(xml), "DPS"), true);
   assert.equal(await validateFiscalDocuments(Array(501).fill(xml), "DPS"), false);
   assert.equal(await validateFiscalDocuments([xml, xml.replace("<cTribNac>010101", "<cTribNac>invalid")], "DPS"), false);
+});
+
+test('homologação reproduz E1235 por finalidade ausente e valida o XML corrigido no pacote oficial sem adaptação',async()=>{
+  const input=fixture();input.profile.nbsCode='123456789';
+  const built=sign(input),doc=parseFiscalXml(built.xml),namespace=doc.documentElement!.namespaceURI!;
+  assert.equal(doc.getElementsByTagNameNS(namespace,'finNFSe').item(0)!.textContent,'0');
+  assert.match(built.xml,/<tpEmit>1<\/tpEmit><finNFSe>0<\/finNFSe><cLocEmi>/);
+  assert.match(built.xml,/<cNBS>123456789<\/cNBS><xDescServ>/);
+  const manifest=JSON.parse(await readFile('integrations/nfse/homologation-20261020.provenance.json','utf8'));
+  const files=await Promise.all(manifest.files.map(async({file}:{file:string})=>({fileName:file.split('/').at(-1)!,contents:await readFile(file,'utf8')})));
+  const schema=files.find(f=>f.fileName==='DPS_v1.01.xsd')!;
+  const validate=(xml:string)=>validateXML({xml,schema,preload:files.filter(f=>f!==schema),maxMemoryPages:1024,modifyArguments:args=>['--nonet',...args]});
+  assert.equal((await validate(built.xml)).valid,true,'upstream bytes, no series regex adaptation');
+  assert.equal((await validate(built.xml.replace('<finNFSe>0</finNFSe>',''))).valid,false);
+  assert.equal((await validate(built.xml.replace('<finNFSe>0</finNFSe>','<finNFSe>1</finNFSe>'))).valid,false,'credit purpose is not supported by the published XSD');
+  const wrongOrder=built.xml.replace(/(<cNBS>[^<]*<\/cNBS>)(<xDescServ>[\s\S]*?<\/xDescServ>)/,'$2$1');
+  assert.equal((await validate(wrongOrder)).valid,false,'legacy NBS order is incompatible');
+  const production=buildDps({...input,environment:'production'}).xml;
+  assert.ok(!production.includes('<finNFSe>'));
+  assert.match(production,/<\/xDescServ><cNBS>/,'production builder keeps its separate original sequence');
 });

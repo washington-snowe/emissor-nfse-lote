@@ -73,6 +73,13 @@ test("ausência de A1 ou origem já reservada não obtêm permissão de envio", 
   assert.ok(overlap.events.includes("release:source_duplicate"));
   assert.equal(overlap.events.includes("POST"), false);
 });
+
+test('XML legado sem finNFSe é bloqueado antes da intenção e do POST em novas preparações',async()=>{
+ const s=scenario();s.deps.sign=(xml,id,key,cert)=>signDps(xml.replace('<finNFSe>0</finNFSe>',''),id,key,cert);
+ await executeFiscalJob(s.job,s.deps);
+ assert.ok(s.events.includes('release:invalid_xml'));assert.ok(!s.events.includes('persist-send-intent'));assert.ok(!s.events.includes('POST'));
+ assert.ok(s.pfx.every(byte=>byte===0));
+});
 test("confirmação de intenção negada ou sem resposta impede POST", async () => {
   for (const throwing of [false, true]) {
     const s = scenario(); s.deps.begin = async () => { if (throwing) throw new Error("synthetic lost acknowledgement"); return false; };

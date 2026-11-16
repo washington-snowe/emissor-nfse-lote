@@ -7,19 +7,25 @@ import { NFSE_NAMESPACE } from "./dps.ts";
 import { SCHEMA_FIELDS } from './schema-evidence.ts';
 
 type SchemaFile = { fileName: string; contents: string };
-let cached: Promise<SchemaFile[]> | undefined;
+export type FiscalSchemaRevision='homologation-20261020'|'production-20260209';
+const DEFAULT_REVISION:FiscalSchemaRevision='homologation-20261020';
+const cached=new Map<FiscalSchemaRevision,Promise<SchemaFile[]>>();
 const SERIES_PATTERN = '<xs:pattern value="^0{0,4}\\d{1,5}$"/>';
 
-async function schemas(): Promise<SchemaFile[]> {
-  const provenance = JSON.parse(await readFile(join(process.cwd(), "integrations/nfse/provenance.json"), "utf8")) as {
+async function schemas(revision:FiscalSchemaRevision): Promise<SchemaFile[]> {
+  if(!['homologation-20261020','production-20260209'].includes(revision))throw new Error('Unknown fiscal schema revision');
+  const legacy=revision==='production-20260209';
+  const directory=legacy?'schemas/1.01':'schemas/homologation/20261020';
+  const manifest=legacy?'provenance.json':'homologation-20261020.provenance.json';
+  const provenance = JSON.parse(await readFile(join(process.cwd(),'integrations/nfse',manifest), "utf8")) as {
     files: { file: string; sha256: string }[];
   };
   return Promise.all(provenance.files.map(async entry => {
-    if (!/^integrations\/nfse\/schemas\/1\.01\/[\w.-]+\.xsd$/.test(entry.file)) throw new Error("Fiscal schema unavailable");
-    const bytes = await readFile(join(process.cwd(), "integrations/nfse/schemas/1.01", basename(entry.file)));
+    if (entry.file!==`integrations/nfse/${directory}/${basename(entry.file)}`||!/^\w[\w.-]*\.xsd$/.test(basename(entry.file))) throw new Error("Fiscal schema unavailable");
+    const bytes = await readFile(join(process.cwd(),'integrations/nfse',directory,basename(entry.file)));
     if (createHash("sha256").update(bytes).digest("hex") !== entry.sha256) throw new Error("Fiscal schema integrity failure");
     let contents = bytes.toString("utf8");
-    if (basename(entry.file) === "tiposSimples_v1.01.xsd") {
+    if (legacy&&basename(entry.file) === "tiposSimples_v1.01.xsd") {
       // libxml2 treats ^/$ as literals in XSD regex. Anexo I/RN144 requires numeric series.
       // Adapt exactly this facet in memory; preserve upstream bytes and enforce RN144 below.
       if (contents.split(SERIES_PATTERN).length !== 2) throw new Error("Unsupported fiscal schema revision");
@@ -29,16 +35,16 @@ async function schemas(): Promise<SchemaFile[]> {
   }));
 }
 
-export async function validateFiscalSchema(xml: string, kind: "DPS" | "NFSe"): Promise<boolean> {
-  return validateFiscalDocuments([xml], kind);
+export async function validateFiscalSchema(xml: string, kind: "DPS" | "NFSe", revision:FiscalSchemaRevision=DEFAULT_REVISION): Promise<boolean> {
+  return validateFiscalDocuments([xml], kind,revision);
 }
 
-export async function validateFiscalDocuments(xmls: string[], kind: "DPS" | "NFSe"): Promise<boolean> {
-  return (await inspectFiscalDocuments(xmls,kind)).valid;
+export async function validateFiscalDocuments(xmls: string[], kind: "DPS" | "NFSe",revision:FiscalSchemaRevision=DEFAULT_REVISION): Promise<boolean> {
+  return (await inspectFiscalDocuments(xmls,kind,revision)).valid;
 }
 
 /** Fixed field names only; raw XSD output may contain taxpayer data. */
-export async function inspectFiscalDocuments(xmls: string[], kind: "DPS" | "NFSe"):Promise<{valid:boolean;completed:boolean;fields:string[]}> {
+export async function inspectFiscalDocuments(xmls: string[], kind: "DPS" | "NFSe",revision:FiscalSchemaRevision=DEFAULT_REVISION):Promise<{valid:boolean;completed:boolean;fields:string[]}> {
   const unavailable={valid:false,completed:false,fields:[] as string[]};
   if (kind !== "DPS" && kind !== "NFSe") return unavailable;
   try {
@@ -51,8 +57,8 @@ export async function inspectFiscalDocuments(xmls: string[], kind: "DPS" | "NFSe
       const series = singleElement(dps.item(0)!, NFSE_NAMESPACE, "serie").textContent ?? "";
       if (!/^\d{5}$/.test(series) || BigInt(series) < 1n || BigInt(series) > 49999n) return {valid:false,completed:true,fields:['serie']};
     }
-    cached ??= schemas().catch(error => { cached = undefined; throw error; });
-    const files = await cached;
+    if(!cached.has(revision))cached.set(revision,schemas(revision).catch(error=>{cached.delete(revision);throw error;}));
+    const files = await cached.get(revision)!;
     const schema = files.find(file => file.fileName === `${kind}_v1.01.xsd`)!;
     return await new Promise<{valid:boolean;completed:boolean;fields:string[]}>(resolve => {
       const worker = new Worker(join(process.cwd(), "server/schema-worker.cjs"), {

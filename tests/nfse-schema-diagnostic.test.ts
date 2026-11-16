@@ -5,6 +5,7 @@ import {schemaFieldsFromMessage,SCHEMA_FIELDS} from '../src/lib/nfse/schema-evid
 import {fiscalResponseObservation} from '../src/lib/nfse/transport-observation.ts';
 import {durableFiscalReport} from '../src/lib/nfse/durable-report.ts';
 import {inspectStoredDps} from '../src/lib/nfse/stored-dps-diagnostic.ts';
+import {signDps} from '../src/lib/nfse/signature.ts';
 import {identity,signedDps} from './helpers/fiscal-fixture.ts';
 const secret='PRIVATE_RAW_CUSTOMER_DATA';
 test('erros XSD exportam só nomes de campos conhecidos, nunca valores ou descrições',()=>{
@@ -26,12 +27,19 @@ test('análise usa snapshot original, confere hash, assinatura e XSD sem devolve
  const holder=identity(),signed=signedDps(holder);
  const snapshot={...signed,sha256:createHash('sha256').update(signed.xml).digest('hex'),certificatePem:holder.certificatePem};
  const result=(await inspectStoredDps(snapshot)).join('\n');
- assert.match(result,/Hash do XML original: confere/);assert.match(result,/Assinatura com o certificado público original: confere/);assert.match(result,/XSD local 1.01: estrutura aceita/);
+ assert.match(result,/Hash do XML original: confere/);assert.match(result,/Assinatura com o certificado público original: confere/);assert.match(result,/XSD homologação 20\/10\/2026: estrutura aceita/);
  for(const privateValue of [signed.xml,signed.id,holder.certificatePem,'11222333000181','11.01'])assert.ok(!result.includes(privateValue));
  const tampered=signed.xml.replace('<cTribNac>010101','<cTribNac>private-invalid');
- const hashFailure=(await inspectStoredDps({...snapshot,xml:tampered})).join('\n');assert.match(hashFailure,/Hash do XML original: divergente/);assert.ok(!hashFailure.includes('XSD local'));
+ const hashFailure=(await inspectStoredDps({...snapshot,xml:tampered})).join('\n');assert.match(hashFailure,/Hash do XML original: divergente/);assert.ok(!hashFailure.includes('XSD homologação'));
  const invalid=(await inspectStoredDps({...snapshot,xml:tampered,sha256:createHash('sha256').update(tampered).digest('hex')})).join('\n');
  assert.match(invalid,/Assinatura com o certificado público original: não validada/);assert.match(invalid,/estrutura recusada/);assert.match(invalid,/Campos apontados pelo XSD local: cTribNac/);assert.ok(!invalid.includes('private-invalid'));
+ const legacyUnsigned=signed.xml.replace('<finNFSe>0</finNFSe>','').replace(/<Signature[\s\S]*<\/Signature>/,'');
+ const legacyXml=signDps(legacyUnsigned,signed.id,holder.privateKeyPem,holder.certificatePem);
+ const legacy=(await inspectStoredDps({...snapshot,xml:legacyXml,sha256:createHash('sha256').update(legacyXml).digest('hex')})).join('\n');
+ assert.match(legacy,/Finalidade regular finNFSe em infDPS: ausente/);
+ assert.match(legacy,/XSD homologação 20\/10\/2026: estrutura recusada/);
+ assert.match(legacy,/XSD de produção 09\/02\/2026 \(legado\): estrutura aceita/);
+ assert.match(legacy,/Assinatura com o certificado público original: confere/);
  assert.match((await inspectStoredDps(null)).join(''),/indisponível/);
  const malformed='<!DOCTYPE DPS><DPS/>';
  assert.match((await inspectStoredDps({...snapshot,xml:malformed,sha256:createHash('sha256').update(malformed).digest('hex')})).join('\n'),/Estrutura XML: inválida/);

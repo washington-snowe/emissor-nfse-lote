@@ -1,7 +1,7 @@
 import { createHash, X509Certificate } from "node:crypto";
 import { XMLSerializer } from "@xmldom/xmldom";
 import { SignedXml } from "xml-crypto";
-import { parseFiscalXml, singleElement, directElements, DSIG_NAMESPACE } from "./xml.ts";
+import { parseFiscalXml, singleElement, directElements, DSIG_NAMESPACE,dpsRoot } from "./xml.ts";
 import { NFSE_NAMESPACE } from "./dps.ts";
 import { verifiedDpsReference, unsignedDpsReference } from "./signature.ts";
 import { validateFiscalSchema } from "./schema.ts";
@@ -9,7 +9,12 @@ import { validateFiscalSchema } from "./schema.ts";
 /** Only call for XML obtained through the pinned official mTLS transport, never uploaded XML. */
 export async function verifyOfficialNfseContents(xml: string, expected: { dpsId: string; signedDps: string; holderCert: string; issuerCnpj: string; accessKey: string }) {
   try {
-    if (!/^\d{50}$/.test(expected.accessKey) || !await validateFiscalSchema(xml, "NFSe")) return null;
+    const requestReference = verifiedDpsReference(expected.signedDps, expected.dpsId, expected.holderCert);
+    if(!requestReference)return null;
+    // Choose historical compatibility from the pinned original, never from the incoming NFSe.
+    const original=dpsRoot(expected.signedDps,expected.dpsId,true);
+    const revision=directElements(original.info,NFSE_NAMESPACE,'finNFSe').length?'homologation-20261020':'production-20260209';
+    if (!/^\d{50}$/.test(expected.accessKey) || !await validateFiscalSchema(xml, "NFSe",revision)) return null;
     const doc = parseFiscalXml(xml), root = doc.documentElement!;
     const info = singleElement(root, NFSE_NAMESPACE, "infNFSe");
     if (info.getAttribute("Id") !== `NFS${expected.accessKey}` || singleElement(singleElement(info, NFSE_NAMESPACE, "emit"), NFSE_NAMESPACE, "CNPJ").textContent !== expected.issuerCnpj) return null;
@@ -18,7 +23,6 @@ export async function verifyOfficialNfseContents(xml: string, expected: { dpsId:
     const serializer = new XMLSerializer();
     const embeddedNode = singleElement(info, NFSE_NAMESPACE, "DPS");
     const embedded = serializer.serializeToString(embeddedNode);
-    const requestReference = verifiedDpsReference(expected.signedDps, expected.dpsId, expected.holderCert);
     const returnedReference = embeddedNode.getElementsByTagNameNS(DSIG_NAMESPACE, "Signature").length ?
       verifiedDpsReference(embedded, expected.dpsId, expected.holderCert) : unsignedDpsReference(embedded, expected.dpsId);
     if (!requestReference || !returnedReference || createHash("sha256").update(requestReference).digest("hex") !== createHash("sha256").update(returnedReference).digest("hex")) return null;

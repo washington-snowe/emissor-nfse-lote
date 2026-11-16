@@ -1,5 +1,8 @@
 # Configuração fiscal e XML
 
+Atualização de 16/11/2026: a emissão ativa em homologação usa o pacote oficial de produção restrita **20/10/2026**, preservado separadamente e sem adaptação da série. Ele exige `finNFSe=0` para as notas regulares suportadas e posiciona NBS antes da descrição. O pacote de produção de fevereiro e sua adaptação histórica permanecem somente como revisão explícita para análise/reconciliação do original. Fontes em `integrations/nfse/homologation-20261020.provenance.json`; detalhes e limites em [diagnóstico](diagnostico-homologacao.md). Nenhum documento antigo é refeito/retransmitido por essa mudança; produção continua bloqueada.
+
+
 ## Entrega e limites
 
 `/painel/empresas/{id}/fiscal` permite ao dono autenticado salvar configurações da própria empresa. A migração 8 cria histórico imutável: uma alteração acrescenta versão; uma gravação com versão antiga falha, inclusive quando duas sessões salvam simultaneamente. A referência da orientação fiscal e sua data de início acompanham cada versão. Dados são protegidos por RLS e a gravação só pode ser feita pelo servidor após validar o usuário.

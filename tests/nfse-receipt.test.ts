@@ -5,6 +5,7 @@ import { identity, signedDps, nfseFixture, contractFixture } from "./helpers/fis
 import { verifyOfficialNfseContents } from "../src/lib/nfse/receipt.ts";
 import { supportedNfseContract, readCompressedNfse, definitiveRejection, dpsTransportBody } from "../src/lib/nfse/api-contract.ts";
 import { validateFiscalSchema } from "../src/lib/nfse/schema.ts";
+import {signDps} from '../src/lib/nfse/signature.ts';
 
 test("adaptador condicional exige os campos e caminhos no contrato capturado, sem habilitar por mera presença de /nfse", () => {
   const contract = supportedNfseContract(contractFixture());
@@ -25,6 +26,16 @@ test("XML comprimido tem base64 canônico, limite de expansão e encoding UTF-8 
   assert.equal(readCompressedNfse("AAAA\n"), null);
   const body = JSON.parse(dpsTransportBody("<synthetic/>").toString());
   assert.equal(readCompressedNfse(body.dpsXmlGZipB64), "<synthetic/>");
+});
+
+test('reconciliação conserva a assinatura/DPS original legada e não escolhe o schema pelo documento recebido',async()=>{
+ const holder=identity(),service=identity(),current=signedDps(holder);
+ const unsigned=current.xml.replace('<finNFSe>0</finNFSe>','').replace(/<Signature[\s\S]*<\/Signature>/,'');
+ const legacy=signDps(unsigned,current.id,holder.privateKeyPem,holder.certificatePem),key='1'.repeat(50);
+ const receipt=nfseFixture(legacy,service,key);
+ const expected={dpsId:current.id,signedDps:legacy,holderCert:holder.certificatePem,issuerCnpj:'11222333000181',accessKey:key};
+ assert.ok(await verifyOfficialNfseContents(receipt,expected),'legacy receipt remains verifiable against its pinned original');
+ assert.equal(await verifyOfficialNfseContents(receipt,{...expected,signedDps:current.xml}),null,'incoming legacy XML cannot downgrade the new original layout');
 });
 test("recibo sintético exige XSD, chave, emitente, conteúdo original da DPS e assinatura íntegra da NFS-e", async () => {
   const holder = identity(), service = identity(), dps = signedDps(holder), key = "1".repeat(50);
