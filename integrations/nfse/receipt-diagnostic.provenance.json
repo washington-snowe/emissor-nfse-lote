@@ -13,7 +13,7 @@
     "Existing snapshot RPC checks owner and quota",
     "Original XML SHA256, DPS identity, holder signature and issuer match stored operation",
     "Current protected certificate holder matches issuer",
-    "DPS GET returns homologation, exact original identity and a 50-digit key before document GET"
+    "DPS GET returns homologation, a 50-digit key and exact identity, or the narrowly observed absent-identity 1.6.0 transport compatibility; the final XML binding is always required."
   ],
   "diagnostic_only": [
     "Inspect each returned identity field separately, exporting categories and changed component names only",
@@ -21,5 +21,10 @@
     "Namespace/prefix-only differences can be labelled but never bypass the canonical hash guard",
     "No original POST envelope is recoverable from the new GET; no raw identifiers, keys, XML, certificate or credentials are returned"
   ],
-  "limits": "HTTP201 metadata alone is not authorization. No POST, numbering, lease, queue or authorization transition is available to this diagnostic. A1 access is audited by the existing protected read function; quota uses migration19. Test boundaries are synthetic and do not prove real fiscal authorization."
+  "limits": "HTTP201 metadata alone is not authorization. No POST, numbering, lease, queue or authorization transition is available to this diagnostic. A1 access is audited by the existing protected read function; quota uses migration19. Test boundaries are synthetic and do not prove real fiscal authorization.",
+  "restricted_1_6_lookup_compatibility": {
+    "observation": "User report d1b0128 / b8333bad15826614: owned GET DPS 200 JSON/homologation, no identity fields, SefinNacional_1.6.0; subsequent GET NFSe 200. Explicit nfse-receipt-v1 confirmed the missing field stopped retrieval.",
+    "scope": "Diagnostic-only GET of the signed original on the pinned homologation host. HTTP200, environment2, exact software SefinNacional_1.6.0, absent idDps/idDPS and a 50-digit key. Null/foreign supplied identities or other versions/environments are not covered.",
+    "effect": "Permits retrieving the NFSe XML only. All XSD/key/issuer/embedded DPS/canonical hash/cryptographic signature checks still apply before a document is considered verified. No fiscal status transition or POST."
+  }
 }

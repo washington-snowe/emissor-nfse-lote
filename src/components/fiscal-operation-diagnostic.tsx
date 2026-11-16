@@ -17,7 +17,7 @@ export function FiscalOperationDiagnostic({id}:{id:string}){
    await copy(result.details,'Diagnóstico da emissão copiado.');
   }catch{setMessage('Não foi possível ler o diagnóstico nesta tentativa.');}
  })}>{pending?'Aguarde…':'Copiar diagnóstico da emissão'}</button>
- {receiptAvailable&&<div><p className="field-hint">A SEFIN retornou HTTP 201. Confira o documento com consultas pelo A1, sem reenviar ou alterar esta operação.</p><button type="button" className="btn btn--secondary" disabled={pending} onClick={()=>start(async()=>{
+ {receiptAvailable&&<div><p className="field-hint">Próximo passo: clique em “Conferir documento na SEFIN” para gerar o relatório nfse-receipt-v1. Serão feitas somente consultas pelo A1, sem reenviar ou alterar esta operação.</p><button type="button" className="btn btn--secondary" disabled={pending} onClick={()=>start(async()=>{
   setMessage('');
   try{
    const result=await getFiscalReceiptDiagnostic(id);

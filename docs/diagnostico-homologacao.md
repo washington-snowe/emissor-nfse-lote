@@ -1,5 +1,16 @@
 # Diagnóstico de acesso com A1
 
+## GET200 sem identidade na SEFIN1.6.0
+
+O usuário enviou dois relatórios da mesma R$5: o histórico `nfse-operation-v2 (d1b0128)` mostra GET DPS200 e GET NFS-e200 JSON/homologação/SEFIN1.6.0, sem identidade; o `nfse-receipt-v1` confirmou que a conferência interrompeu a leitura pela ausência do campo no primeiro GET. O botão também podia ficar indisponível quando o histórico era copiado durante o estado transitório “Consultando resultado”.
+
+A conferência, que só faz GETs, fica disponível também durante `reconciling`, sem alterar a reserva/estado do worker. Para a ausência de identidade há uma compatibilidade limitada de transporte: GET da DPS original validada pelo hash/assinatura/prestador, no host fixo de homologação, HTTP200, ambiente2, versão exata `SefinNacional_1.6.0`, ausência dos dois aliases de identidade e chave50dígitos. Isso permite **somente buscar o XML**. Outra versão/ambiente, identidade fornecida nula/alheia, chave inválida e requisição sem original validado continuam bloqueados. Não permite autorização por status HTTP ou por chave isolada: o XML ainda exige XSD, chave, empresa, identidade e referência da DPS original, status fiscal e assinatura criptográfica conforme a política existente. Fonte/limites em `receipt-diagnostic.provenance.json`.
+
+O relatório informa ambiente, versão e categoria do formato da chave, sem revelar valores. **Copiar diagnóstico da emissão** permanece sem consulta fiscal e abre acesso ao botão **Conferir documento na SEFIN**, que gera/copiará `nfse-receipt-v1`. Não usar “Consultar novamente” em sequência, criar nova nota ou repetir SQL. Esta mudança não atualiza status fiscal nem relaxa validação do documento.
+
+
+Validação da compatibilidade GET200: 147 testes aprovados e seis opt-in ignorados; caso1.6.0 sem identidade busca o XML e ainda recusa conteúdo alterado, versão/ambiente/identidade alheios; ações isoladas funcionam em reconciling sem RPC de lease/fila; interface em seis larguras, lint, TypeScript e build aprovados. Nenhum SQL alterado ou banco retestado; nenhuma chamada fiscal com A1 real pelo executor.
+
 ## HTTP201 com documento ainda não confirmado
 
 O teste independente de R$5 (`b8333bad15826614`, versão `7b2384b`) registrou HTTP201 JSON em homologação, sem código fiscal de erro, software `SefinNacional_1.6.0`. A identidade agregada do envelope não corresponde integralmente à esperada e o recibo não passou nos guards. **HTTP201 pode indicar nota já emitida. Não criar outro teste, reenviar ou zerar a operação.** A categoria não revela os valores/aliases do envelope perdido; não concluir que seja outra nota nem normalizar uma identidade divergente para autorizar.

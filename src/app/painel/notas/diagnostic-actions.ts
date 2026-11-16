@@ -29,5 +29,5 @@ export async function getFiscalOperationDiagnostic(id:string):Promise<{error?:st
    details+='\n'+(contract.error?['Contrato SEFIN atual: leitura indisponível.']:storedContractReport(contract.data)).join('\n');
   }
  }
- return {details,receiptAvailable:hasStoredCreatedResponse(traces.data)&&operation.data.transmit_count===1&&['uncertain','intervention'].includes(operation.data.status)};
+ return {details,receiptAvailable:hasStoredCreatedResponse(traces.data)&&operation.data.transmit_count===1&&['uncertain','intervention','reconciling'].includes(operation.data.status)};
 }

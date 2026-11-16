@@ -63,3 +63,13 @@ test('diferença de namespace é diagnosticada e assinatura da NFS-e ainda é co
  s=scenario();s.h.document=nfseFixture(namespaced.replace('<vServ>11.01','<vServ>11.02'),service,key);result=await s.run();
  assert.equal(result.verified,false);assert.ok(!result.details.includes('Diferença canônica restrita'));assert.match(result.details,/Assinatura criptográfica da NFS-e: confere/);
 });
+test('GET 200/1.6.0 sem idDps permite só recuperar o documento pela DPS original; assinatura e vínculos continuam obrigatórios',async()=>{
+ let s=scenario();delete s.h.lookup.body.idDps;s.h.lookup.body.versaoAplicativo='SefinNacional_1.6.0';
+ let result=await s.run();assert.equal(s.h.paths.length,2);assert.equal(result.verified,true);assert.match(result.details,/Compatibilidade GET 200 da SEFIN 1.6.0/);
+ for(const change of [{tipoAmbiente:1},{versaoAplicativo:'SefinNacional_1.7.0'},{idDps:null},{idDps:'foreign'}]){
+  s=scenario();delete s.h.lookup.body.idDps;Object.assign(s.h.lookup.body,{versaoAplicativo:'SefinNacional_1.6.0'},change);
+  result=await s.run();assert.equal(s.h.paths.length,1);assert.equal(result.verified,false);assert.ok(s.h.pfx.every(byte=>byte===0));
+ }
+ s=scenario();delete s.h.lookup.body.idDps;s.h.lookup.body.versaoAplicativo='SefinNacional_1.6.0';s.h.document=s.h.document.replace('<vServ>11.01','<vServ>11.02');
+ result=await s.run();assert.equal(s.h.paths.length,2);assert.equal(result.verified,false,'missing envelope identity cannot bypass the signed original/content verification');
+});

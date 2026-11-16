@@ -40,9 +40,16 @@ export async function diagnoseIssuedNfse(identity:Identity,deps:Dependencies,rev
      else{
       const identities=['idDps','idDPS'].filter(key=>Object.hasOwn(data,key)).map(key=>data[key]);
       const key=data.chaveAcesso;
-      if(data.tipoAmbiente!==2||!identities.includes(identity.dpsId)||identities.some(id=>id!=null&&id!==identity.dpsId)||typeof key!=='string'||!/^\d{50}$/.test(key)){
+      lines.push(`Ambiente da consulta: ${data.tipoAmbiente===2?'homologação':data.tipoAmbiente===1?'produção':'não reconhecido'}.`,
+       `Versão do serviço na consulta: ${observation.serverVersion??'não identificada'}.`,
+       `Formato da chave da consulta: ${typeof key==='string'&&/^\d{50}$/.test(key)?'50 dígitos':'não reconhecido'}.`);
+      // Observed restricted GET 200 on 1.6.0 omits idDps. The request still pins the signed original;
+      // this permits document retrieval only, never authorization without the embedded DPS checks.
+      const missingIdentity=identities.length===0&&data.versaoAplicativo==='SefinNacional_1.6.0';
+      if(data.tipoAmbiente!==2||(!missingIdentity&&!identities.includes(identity.dpsId))||identities.some(id=>id!=null&&id!==identity.dpsId)||typeof key!=='string'||!/^\d{50}$/.test(key)){
        lines.push('Consulta da DPS: ambiente, identidade ou chave não vinculados à operação.');
       }else{
+       if(missingIdentity)lines.push('Compatibilidade GET 200 da SEFIN 1.6.0: identidade omitida; chave obtida pela consulta à DPS original. O XML ainda exige vínculo integral.');
        const response=await deps.get(NFSE_BASES.homologation+contract.nfsePath.replace(/\{[^}]+\}/,key),material);
        const body=readFiscalJson(response.body);
        lines.push(`Consulta da NFS-e pela chave vinculada: HTTP ${Number.isInteger(response.status)&&response.status>=100&&response.status<=599?response.status:0}.`);

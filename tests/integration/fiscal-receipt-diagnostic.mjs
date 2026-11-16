@@ -29,6 +29,7 @@ try{
  const result=await build({entryPoints:[path.join(root,'src/app/painel/notas/receipt-diagnostic-actions.ts')],bundle:true,platform:'node',format:'esm',write:false,tsconfig:path.join(root,'tsconfig.json'),plugins:[{name:'synthetic-boundaries',setup(b){b.onResolve({filter:/.*/},a=>Object.hasOwn(virtual,a.path)?{path:a.path,namespace:'boundary'}:undefined);b.onLoad({filter:/.*/,namespace:'boundary'},a=>({contents:virtual[a.path],loader:'js'}));}}]});
  const modulePath=path.join(directory,'action.mjs');await writeFile(modulePath,result.outputFiles[0].text);const {getFiscalReceiptDiagnostic}=await import(modulePath);
  let h=reset();assert.match((await getFiscalReceiptDiagnostic(id)).details,/SYNTHETIC receipt/);assert.equal(h.http.length,1);assert.equal(h.rpcCalls.length,3);assert.equal(h.loads.length,1);assert.ok(h.reads[0].some(([k,v])=>k==='tenant_id'&&v==='own'));
+ h=reset();h.operation.status='reconciling';assert.match((await getFiscalReceiptDiagnostic(id)).details,/SYNTHETIC receipt/);assert.equal(h.http.length,1,'read-only inspection can run alongside reconciliation without touching its lease');
  h=reset();h.tenant='foreign';assert.ok((await getFiscalReceiptDiagnostic(id)).error);assert.equal(h.rpcCalls.length,0);assert.equal(h.loads.length,0);assert.equal(h.http.length,0);
  h=reset();h.authenticated=false;await assert.rejects(getFiscalReceiptDiagnostic(id),/AUTH_REQUIRED/);assert.equal(h.reads.length,0);
  h=reset();assert.ok((await getFiscalReceiptDiagnostic('invalid')).error);assert.equal(h.reads.length,0);

@@ -25,7 +25,7 @@ try{
  const modulePath=path.join(temporary,'action.mjs');await writeFile(modulePath,built.outputFiles[0].text);const {getFiscalOperationDiagnostic}=await import(modulePath);
  let h=reset();const result=await getFiscalOperationDiagnostic(id);assert.match(result.details,/nfse-operation-v2/);assert.match(result.details,/primeiro resultado: 5 s/);assert.equal(h.reads.length,2);assert.match(result.details,/Primeiro envio: HTTP 403 · JSON/);assert.equal(h.rpcs.length,1);assert.ok(h.reads.every(r=>r.filters.some(([k,v])=>k==='tenant_id'&&v==='synthetic-own')));
  assert.equal(h.adminCalls.length,0);
- h=reset();h.createdResponse=true;assert.equal((await getFiscalOperationDiagnostic(id)).receiptAvailable,true);assert.equal(h.adminCalls.length,0,'history report never opens A1 or queries SEFIN');
+ h=reset();h.createdResponse=true;h.operation.status='reconciling';assert.equal((await getFiscalOperationDiagnostic(id)).receiptAvailable,true);assert.equal(h.adminCalls.length,0,'history report never opens A1 or queries SEFIN');
  h=reset();h.schemaError=true;assert.match((await getFiscalOperationDiagnostic(id)).details,/SYNTHETIC local inspection only/);assert.equal(h.adminCalls.length,2);assert.equal(h.rpcs.length,1);
  h=reset();h.schemaError=true;h.snapshotError={code:'PGRST202'};assert.match((await getFiscalOperationDiagnostic(id)).details,/análise local aguardando atualização/);
  h=reset();h.timeError=true;const timeResult=await getFiscalOperationDiagnostic(id);assert.match(timeResult.details,/SYNTHETIC local inspection only/);assert.match(timeResult.details,/E0008: a SEFIN considerou dhEmi posterior/);assert.equal(h.adminCalls.length,2);assert.equal(h.rpcs.length,1);

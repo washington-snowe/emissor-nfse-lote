@@ -11,7 +11,7 @@ export async function getFiscalReceiptDiagnostic(id:string):Promise<{error?:stri
  if(!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id))return {error:'Operação indisponível.'};
  const operation=await client.from('fiscal_operations').select('id,company_id,issuer_cnpj,environment,dps_id,status,transmit_count').eq('id',id).eq('tenant_id',context.tenantId).maybeSingle();
  const own=operation.data;
- if(operation.error||!own||own.environment!=='homologation'||own.transmit_count!==1||!['uncertain','intervention'].includes(own.status)||typeof own.dps_id!=='string'||!/^DPS\d{42}$/.test(own.dps_id))return {error:'Esta operação não está disponível para conferência do retorno.'};
+ if(operation.error||!own||own.environment!=='homologation'||own.transmit_count!==1||!['uncertain','intervention','reconciling'].includes(own.status)||typeof own.dps_id!=='string'||!/^DPS\d{42}$/.test(own.dps_id))return {error:'Esta operação não está disponível para conferência do retorno.'};
  const traces=await client.rpc('fiscal_transport_diagnostic_report',{p_operation:own.id});
  if(traces.error||!hasStoredCreatedResponse(traces.data))return {error:'A operação não possui retorno HTTP 201 registrado para esta conferência.'};
  const admin=createAdminClient();
