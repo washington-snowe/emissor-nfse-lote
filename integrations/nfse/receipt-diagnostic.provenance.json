@@ -1,0 +1,25 @@
+{
+  "checked_on": "2026-11-16",
+  "kind": "owned_read_only_receipt_diagnostic",
+  "source_url": "https://sefin.producaorestrita.nfse.gov.br/SefinNacional/swagger/docs/v1",
+  "structural_contract_file": "integrations/nfse/contracts/sefin-homologation-v1.structural.json",
+  "structural_sha256": "05f57433760a9a2086eab3c6f2b19439e2a51608bb1375fc4120818cda22374a",
+  "documented_requests": [
+    "GET /dps/{id}",
+    "GET /nfse/{chaveAcesso}"
+  ],
+  "prerequisites": [
+    "Session and tenant own a homologation operation with one dispatch and stored HTTP 201",
+    "Existing snapshot RPC checks owner and quota",
+    "Original XML SHA256, DPS identity, holder signature and issuer match stored operation",
+    "Current protected certificate holder matches issuer",
+    "DPS GET returns homologation, exact original identity and a 50-digit key before document GET"
+  ],
+  "diagnostic_only": [
+    "Inspect each returned identity field separately, exporting categories and changed component names only",
+    "Inspect original binding, XSD, issuer, fiscal status, DPS canonical hash, signature policy/certificate and cryptographic signature",
+    "Namespace/prefix-only differences can be labelled but never bypass the canonical hash guard",
+    "No original POST envelope is recoverable from the new GET; no raw identifiers, keys, XML, certificate or credentials are returned"
+  ],
+  "limits": "HTTP201 metadata alone is not authorization. No POST, numbering, lease, queue or authorization transition is available to this diagnostic. A1 access is audited by the existing protected read function; quota uses migration19. Test boundaries are synthetic and do not prove real fiscal authorization."
+}

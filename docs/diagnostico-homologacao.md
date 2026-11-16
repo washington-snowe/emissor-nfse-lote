@@ -1,5 +1,22 @@
 # Diagnóstico de acesso com A1
 
+## HTTP201 com documento ainda não confirmado
+
+O teste independente de R$5 (`b8333bad15826614`, versão `7b2384b`) registrou HTTP201 JSON em homologação, sem código fiscal de erro, software `SefinNacional_1.6.0`. A identidade agregada do envelope não corresponde integralmente à esperada e o recibo não passou nos guards. **HTTP201 pode indicar nota já emitida. Não criar outro teste, reenviar ou zerar a operação.** A categoria não revela os valores/aliases do envelope perdido; não concluir que seja outra nota nem normalizar uma identidade divergente para autorizar.
+
+**Copiar diagnóstico da emissão** continua lendo somente registros já armazenados, sem abrir A1 ou consultar a SEFIN. Quando encontra o 201 registrado em uma operação incerta/intervenção com uma transmissão, oferece separadamente **Conferir documento na SEFIN**. Esse botão faz até dois GETs sequenciais pelos destinos oficiais já capturados, sem POST, reserva, alteração de lease/status/contador ou inscrição de e-mail.
+
+A ação relê operação própria pela sessão/tenant, exige homologação/uma transmissão/201 e usa a RPC de snapshot19 existente, com dono e quota de dez conferências por dez minutos. Confere hash, identidade, assinatura e CNPJ do XML original; só então abre o A1 protegido com propósito reconcile e exige titular correspondente. Primeiro busca a DPS original; a chave50dígitos da resposta200 só é usada se ambiente2 e identidade exata forem confirmados. Identidade alheia/ausente, chave inválida ou ambiente diferente interrompem a busca. Depois recebe o XML comprimido da NFS-e pela chave vinculada. O material não vai a disco/log e o pfx é zerado em finally, inclusive nas falhas; o acesso ao A1 é auditado pela função protegida já existente.
+
+O relatório `nfse-receipt-v1` retorna apenas categorias de identidade separadas por campo, nomes de componentes divergentes, status HTTP, XSD/campos conhecidos, vínculo de chave/emitente/DPS, código cStat limitado, métodos de assinatura de uma lista fixa, validade e verificação criptográfica. Não retorna IDs, chave, certificado, XML, valores da nota, senha, erro livre ou conteúdo de exceção. Não recupera o envelope do POST original e não altera o estado fiscal, mesmo se o documento passar pela política atual. Nenhum SQL novo.
+
+Os guards de autorização permanecem os mesmos. A instrumentação permite conferir a assinatura da NFS-e mesmo se o conteúdo canônico da DPS divergir, mas a divergência continua impedindo retorno de documento autorizado. Uma projeção estrutural interna identifica diferenças restritas a declarações/prefixos de namespace, preservando namespace URI, atributos e textos; isso serve só ao diagnóstico, sem normalização para aceitar documento. Status inválido, empresa/DPS/chave alheias, XSD incompatível, assinatura alterada ou política desconhecida continuam recusados. Fontes e limites em `integrations/nfse/receipt-diagnostic.provenance.json`.
+
+Após publicação: na mesma R$5, copiar o histórico e depois usar **Conferir documento na SEFIN**, enviando esse novo relatório. A conferência pelo portal oficial foi solicitada como informação complementar e ainda não há resposta; não presumir emissão/ausência. Nenhuma nova emissão deve ser solicitada nesta etapa.
+
+
+Validação da conferência de recibo: 146 testes aprovados e seis opt-in ignorados; ação real com fronteiras sintéticas de sessão/admin/A1/GET prova isolamento, gate de201 e bloqueio antes do A1 quando indisponível; testes criptográficos sintéticos conferem as duas consultas próprias, rejeição de documento alheio, pfx zerado, ausência de XML/identidades na saída e divergência de namespace sem autorização; interface/cópia em seis larguras, lint, TypeScript e build aprovados. Nenhum SQL foi alterado, o banco não foi retestado nesta etapa e o executor não acessou A1 real ou serviço fiscal autenticado.
+
 ## E0008 após a correção de layout
 
 O usuário confirmou no XML original de R$3 a ausência de `finNFSe`, recusa pelo XSD restrito e aceitação pelo legado. O teste independente seguinte de R$4, na versão `8493d89`, retornou POST400 JSON/homologação/E0008, com identidade correspondente e `SefinNacional_1.6.0`. A operação ficou incerta; uma consulta posterior retornou 404/ambiente0/E2404. Isso não autoriza retransmissão ou mudança dos registros antigos.

@@ -2,9 +2,9 @@
 import {requireWorkspace} from '@/lib/tenancy-server';
 import {fiscalOperationReport} from '@/lib/nfse/operation-report';
 import {createAdminClient} from '@/lib/supabase/admin';
-import {needsStoredDpsInspection,storedContractReport} from '@/lib/nfse/durable-report';
+import {needsStoredDpsInspection,storedContractReport,hasStoredCreatedResponse} from '@/lib/nfse/durable-report';
 import {inspectStoredDps} from '@/lib/nfse/stored-dps-diagnostic';
-export async function getFiscalOperationDiagnostic(id:string):Promise<{error?:string;details?:string}>{
+export async function getFiscalOperationDiagnostic(id:string):Promise<{error?:string;details?:string;receiptAvailable?:boolean}>{
  const {client,context}=await requireWorkspace();
  if(!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id))return {error:'Operação indisponível.'};
  const operation=await client.from('fiscal_operations').select('id,status,reason,transmit_count,reconcile_attempts,created_at,updated_at').eq('id',id).eq('tenant_id',context.tenantId).maybeSingle();
@@ -29,5 +29,5 @@ export async function getFiscalOperationDiagnostic(id:string):Promise<{error?:st
    details+='\n'+(contract.error?['Contrato SEFIN atual: leitura indisponível.']:storedContractReport(contract.data)).join('\n');
   }
  }
- return {details};
+ return {details,receiptAvailable:hasStoredCreatedResponse(traces.data)&&operation.data.transmit_count===1&&['uncertain','intervention'].includes(operation.data.status)};
 }

@@ -16,7 +16,7 @@ export async function probeCertificate() { return { success: "Verificação sint
 export async function confirmReportReview() { window.workflowUiTest.calls++; return { success: "Confirmação sintética, sem banco ou emissão." }; }
 export async function enqueueReport() { window.workflowUiTest.calls++; return { success: "Fila sintética sem emissão." }; }
 export async function manageOperation(_id: string, action: string) { window.workflowUiTest.calls++; return { success: `Ação sintética ${action}, sem emissão.` }; }
-export async function getFiscalOperationDiagnostic(){return {details:'Diagnóstico: nfse-operation-v2 (local)\nCorrelação técnica: abcdef0123456789\nEstado: Resultado incerto · somente consulta\nInícios de envio registrados: 1\nIntervalo entre início e primeiro resultado: 5 s\nArmazenamento do diagnóstico: disponível\nPrimeiro envio: HTTP 403 · HTML · ambiente ausente · códigos não identificados · 0.9 s\nAnálise local da DPS original armazenada (sem consulta ou envio).\nHash do XML original: confere.\nFuso de dhEmi: UTC (+00:00).\ndhEmi menos início de envio registrado: -0.3 s.\nAssinatura com o certificado público original: confere.\nFinalidade regular finNFSe em infDPS: ausente.\nXSD homologação 20/10/2026: estrutura recusada.\nXSD de produção 09/02/2026 (legado): estrutura aceita.\nEste relatório analisa apenas registros já armazenados. Não consulta a SEFIN nem envia notas.'};}
+export async function getFiscalOperationDiagnostic(){return {receiptAvailable:true,details:'Diagnóstico: nfse-operation-v2 (local)\nCorrelação técnica: abcdef0123456789\nEstado: Resultado incerto · somente consulta\nInícios de envio registrados: 1\nPrimeiro envio: HTTP 201 · JSON · homologação · códigos não identificados\nIdentidade na resposta: não corresponde integralmente ao identificador esperado.\nEste relatório analisa apenas registros já armazenados. Não consulta a SEFIN nem envia notas.'};}
 export async function resumeBatch() { window.workflowUiTest.calls++; return { success: "Retomada sintética sem emissão." }; }
 export async function saveReport(form: FormData) {
   window.workflowUiTest.calls++;
@@ -37,3 +37,5 @@ export async function openBilling() { window.workflowUiTest.calls++; return {err
 
 export async function enableBatchEmails(){return {success:"Entrega sintética preparada, sem envio."};}
 export async function retryInvoiceEmail(_id:string,_state:unknown,form:FormData){window.workflowUiTest.emailCorrection=form.get("destination");return {success:"Nova tentativa sintética, sem envio."};}
+
+export async function getFiscalReceiptDiagnostic(){return {verified:false,details:"Diagnóstico: nfse-receipt-v1 (local)\nConsulta da DPS original: HTTP 200.\nXSD da NFS-e: estrutura aceita.\nConteúdo autenticado da DPS preservado: não validado.\nEstado da operação preservado. Nenhuma nota foi enviada."};}

@@ -27,7 +27,7 @@ export function durableFiscalReport(traces:unknown[]|null|undefined){
     lines.push(`Campos informados pela SEFIN: ${fields.length?fields.join(', '):'não preservados ou não identificados'}.`);
    }
    if(codes.includes('E0008'))lines.push('E0008: a SEFIN considerou dhEmi posterior à data/hora do processamento (definição oficial).');
-   const identities:Record<string,string>={missing:'ausente',null:'nula',matching:'corresponde à operação',mismatch:'diferente da operação',invalid:'formato não reconhecido'};
+   const identities:Record<string,string>={missing:'ausente',null:'nula',matching:'corresponde à operação',mismatch:'não corresponde integralmente ao identificador esperado',invalid:'formato não reconhecido'};
    if(typeof data.dpsIdentity==='string'&&Object.hasOwn(identities,data.dpsIdentity))lines.push(`Identidade na resposta: ${identities[data.dpsIdentity]}.`);
    if(typeof data.serverVersion==='string'&&/^SefinNacional_[0-9]{1,2}(\.[0-9]{1,6}){1,5}$/.test(data.serverVersion))lines.push(`Versão informada pelo serviço: ${data.serverVersion}.`);
   }
@@ -38,6 +38,9 @@ export function durableFiscalReport(traces:unknown[]|null|undefined){
 }
 export function hasStoredSchemaRejection(traces:unknown):boolean{
  return Array.isArray(traces)&&traces.slice(0,21).some(value=>{const row=object(value),data=object(row.data);return row.stage==='submit'&&data.phase==='response'&&Array.isArray(data.codes)&&data.codes.includes('E1235');});
+}
+export function hasStoredCreatedResponse(traces:unknown):boolean{
+ return Array.isArray(traces)&&traces.slice(0,21).some(value=>{const row=object(value),data=object(row.data);return row.stage==='submit'&&data.phase==='response'&&data.http===201;});
 }
 export function needsStoredDpsInspection(traces:unknown):boolean{
  return hasStoredSchemaRejection(traces)||Array.isArray(traces)&&traces.slice(0,21).some(value=>{const row=object(value),data=object(row.data);return row.stage==='submit'&&data.phase==='response'&&Array.isArray(data.codes)&&data.codes.includes('E0008');});

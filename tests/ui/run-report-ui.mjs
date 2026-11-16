@@ -28,6 +28,7 @@ try {
     "@/app/painel/importacoes/quick-actions": path.join(root, "tests/ui/workflow-actions.ts"),
     "@/app/painel/notas/email-actions": path.join(root, "tests/ui/workflow-actions.ts"),
     "@/app/painel/notas/diagnostic-actions": path.join(root, "tests/ui/workflow-actions.ts"),
+    "@/app/painel/notas/receipt-diagnostic-actions": path.join(root, "tests/ui/workflow-actions.ts"),
     "@/app/painel/notas/actions": path.join(root, "tests/ui/workflow-actions.ts"),
     "next/navigation": path.join(root, "tests/ui/navigation.ts"),
     "next/link": path.join(root, "tests/ui/link.tsx"),
@@ -504,8 +505,11 @@ try {
     await uncertain.getByText('Diagnóstico da emissão copiado.',{exact:true}).waitFor();
     assert.equal(await page.evaluate(()=>window.workflowUiTest.calls),callsBefore,'diagnostic must not resume or enqueue');
     assert.ok(await page.evaluate(()=>window.workflowUiTest.clipboard.includes('nfse-operation-v2')));
-    assert.ok(await page.evaluate(()=>window.workflowUiTest.clipboard.includes('Finalidade regular finNFSe em infDPS: ausente.')));
-    assert.ok(await page.evaluate(()=>window.workflowUiTest.clipboard.includes('Fuso de dhEmi: UTC (+00:00).')));
+    assert.ok(await page.evaluate(()=>window.workflowUiTest.clipboard.includes('Primeiro envio: HTTP 201')));
+    await uncertain.getByRole('button',{name:'Conferir documento na SEFIN',exact:true}).click();
+    await uncertain.getByText('Conferência do documento copiada.',{exact:true}).waitFor();
+    assert.equal(await page.evaluate(()=>window.workflowUiTest.calls),callsBefore,'receipt diagnostic must not resume or enqueue');
+    assert.ok(await page.evaluate(()=>window.workflowUiTest.clipboard.includes('nfse-receipt-v1')));
     await uncertain.getByRole('button', { name: 'Consultar novamente' }).click();
     await uncertain.getByRole('status').filter({ hasText: 'Ação sintética resume' }).waitFor();
     assert.equal(await page.locator('.fiscal-operation').nth(2).getByRole('button').count(), 0);
