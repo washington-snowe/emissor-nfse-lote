@@ -1,16 +1,30 @@
 # Diagnóstico de acesso com A1
 
-## Operação atual sem confirmação após o início de envio
+## Registro persistente: migração 18 pendente de aplicação
+
+O primeiro teste ficou incerto em **0,8 s**; o teste independente de R$ 2,00 também ficou incerto em **0,9 s**. O usuário não encontrou os registros na Vercel. Esses intervalos não comprovam timeout do limite antigo de cinco segundos. A resposta original dos dois testes não está armazenada e não pode ser recuperada retroativamente. O usuário conseguiu acessar o portal web em janela anônima; o painel de homologação não listava emissões recentes. Isso não permite classificar os POSTs antigos como rejeitados nem liberar retransmissão.
+
+A migração **202611160018_fiscal_transport_diagnostics.sql** acrescenta um ledger privado de metadados limitados. `begin_fiscal_send_traced` chama o guard original e grava a intenção diagnóstica na mesma transação que permite o único POST. `finish_fiscal_attempt_traced` grava a observação HTTP/falha e a conclusão fiscal na mesma transação, antes de liberar o lease. Privilégios diretos dos helpers antigos são retirados do `service_role`, para impedir workers antigos de passar por fora do registro. As funções originais e as migrações aplicadas não são editadas; o limite de um POST permanece.
+
+O ledger aceita somente etapa, fase, status HTTP, formato, categoria de ambiente, até dez códigos `Edddd` e duração. Não guarda corpo, mensagens livres, URL fiscal, XML, A1, senha ou chave. O token de lease fica exclusivamente na tabela privada; a RPC de leitura o omite e verifica a operação pelo tenant da sessão. O registro é cercado por status/token/prazo; finais são imutáveis e replay idêntico é idempotente. Consultas de rodadas diferentes não colidem mesmo após retomada manual.
+
+Sem a migração, o worker atualizado só pode reclamar reconciliações e a interface informa que novas transmissões aguardam atualização. Após a aplicação, **Copiar diagnóstico da emissão** fornece `nfse-operation-v2` com metadados persistidos diretamente no banco; os logs da Vercel deixam de ser necessários para essa leitura. O botão continua sem HTTP fiscal ou mutação. Os novos metadados não substituem a validação do documento nem transformam status HTTP em autorização.
+
+A migração cria registros/funções/permissões, sem emitir, reenviar, apagar dados ou alterar A1s, contadores ou estados existentes. As respostas anteriores continuam indisponíveis. Não fazer outro teste enquanto a migração e a persistência não forem confirmadas. O usuário deve executar somente a 18 no SQL Editor; o executor não dispõe de conexão administrativa ao projeto. Migrações anteriores e fixtures de banco não devem ser repetidas no projeto hospedado.
+
+Validação: **128 testes aprovados e seis opt-in ignorados**; suíte PostgreSQL 17 completa, com 20 asserções específicas de privilégios, isolamento, fencing, replay, imutabilidade, metadados inválidos e rollback da conclusão. Oito conclusões simultâneas preservam um único registro; o guard original continua permitindo um único início de envio. Integrações de ação/worker, interface/cópia em até seis larguras, lint, TypeScript e build aprovados. Testes usam fronteiras e dados sintéticos, sem A1 real ou chamada fiscal externa.
+
+## Histórico anterior à migração 18: operação sem confirmação
 
 Após a compatibilidade do GET de acesso, o usuário retomou a mesma nota de teste e passou a ver **A consulta ainda não localizou a DPS**. O aviso persistiu depois de aguardar e consultar. `transmit_count=1` registra a intenção persistida; não comprova recebimento ou autorização pela SEFIN. Essa operação permanece somente em reconciliação: não cancelar, reiniciar contador, preparar outra nota equivalente ou repetir POST para contornar o estado.
 
 O banco dessa versão guarda a transição de estado e eventos auditados, mas não o HTTP/corpo do primeiro envio. A resposta original não pode ser reconstruída retroativamente pelo novo código. O botão **Copiar diagnóstico da emissão**, na operação transmitida ainda não autorizada, lê exclusivamente operação e auditoria da sessão/tenant atuais. O relatório `nfse-operation-v1` mostra estado, contadores, horários, intervalo entre início e primeiro resultado e uma correlação SHA-256 abreviada. Não inclui UUID original, DPS, CNPJ, tomador, valor, XML, A1 ou credenciais. Essa coleta não faz GET fiscal, não agenda trabalho nem altera estado.
 
-O transporte antes limitava qualquer POST a cinco segundos. O worker passa a permitir até **20 segundos**, reduzidos conforme o prazo restante e reservando **oito segundos** para registrar o resultado. Isso é uma mitigação para próximas transmissões, não prova de que o caso atual foi timeout nem autorização para reenviar. GET mantém cinco segundos no worker; a consulta inicial não muda.
+O transporte antes limitava qualquer POST a cinco segundos. O worker permite até **20 segundos**, reduzidos conforme o prazo restante e reservando agora **dez segundos** para concluir a gravação atômica. Isso é uma mitigação para próximas transmissões, não prova de que o caso atual foi timeout nem autorização para reenviar. GET mantém cinco segundos no worker; a consulta inicial não muda.
 
 Novas requisições do worker registram `nfse_transport` nos logs da Vercel: correlação, etapa fixa, início/prazo, HTTP, formato, categoria de ambiente, códigos `Edddd` limitados, duração ou categoria de transporte. Nenhum corpo, URL com identificadores, XML, certificado, senha, token ou erro original vai ao log. Falha no logger não muda o resultado fiscal nem repete requisição. A retenção desses logs depende da Vercel; não são um histórico permanente de respostas no banco. Procurar a correlação do relatório para ler os registros novos; não prometer que o POST antigo estará disponível.
 
-Não há migração nova. A mudança não soluciona automaticamente a operação já incerta nem altera a exigência de documento íntegro para autorizar. Produção continua bloqueada.
+A versão b66d9be não exigiu migração. A mudança não soluciona automaticamente a operação já incerta nem altera a exigência de documento íntegro para autorizar. Produção continua bloqueada.
 
 Validação: 127 testes aprovados e seis opt-in ignorados; timeout de 20s testado com relógio simulado e uma única requisição; observação sem conteúdo privado e falha do logger sem repetição; isolamento da ação de histórico entre sessões/tenants; worker real com limites e uma resposta sintética de rejeição. Interface/cópia testadas até seis larguras, sem retomar a operação ao copiar. Lint, TypeScript e build aprovados. Sem SQL ou emissão real pelo executor.
 

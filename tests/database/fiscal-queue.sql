@@ -112,27 +112,27 @@ select pg_temp.queue_check(public.reserve_fiscal_identity(current_setting('test.
 select public.record_fiscal_transport(current_setting('test.fq_operation')::uuid,current_setting('test.fq_token')::uuid,current_setting('test.fq_certificate')::uuid);
 select pg_temp.queue_check(public.reserve_fiscal_identity(current_setting('test.fq_operation')::uuid,current_setting('test.fq_old_token')::uuid,current_setting('test.fq_certificate')::uuid) is null,'stale worker cannot reserve identity');
 select set_config('test.fq_dps_id',public.reserve_fiscal_identity(current_setting('test.fq_operation')::uuid,current_setting('test.fq_token')::uuid,current_setting('test.fq_certificate')::uuid)->>'id',false);
-select pg_temp.queue_check(not public.begin_fiscal_send(current_setting('test.fq_operation')::uuid,current_setting('test.fq_old_token')::uuid,current_setting('test.fq_certificate')::uuid,'synthetic '||current_setting('test.fq_dps_id'),'BEGIN CERTIFICATE synthetic only'),'stale worker cannot start POST');
-select pg_temp.queue_check(public.begin_fiscal_send(current_setting('test.fq_operation')::uuid,current_setting('test.fq_token')::uuid,current_setting('test.fq_certificate')::uuid,'synthetic '||current_setting('test.fq_dps_id'),'BEGIN CERTIFICATE synthetic only'),'dispatch is durably recorded before transport');
-select pg_temp.queue_check(not public.begin_fiscal_send(current_setting('test.fq_operation')::uuid,current_setting('test.fq_token')::uuid,current_setting('test.fq_certificate')::uuid,'synthetic '||current_setting('test.fq_dps_id'),'BEGIN CERTIFICATE synthetic only'),'same DPS cannot start a second POST');
+select pg_temp.queue_check(not public.begin_fiscal_send_traced(current_setting('test.fq_operation')::uuid,current_setting('test.fq_old_token')::uuid,current_setting('test.fq_certificate')::uuid,'synthetic '||current_setting('test.fq_dps_id'),'BEGIN CERTIFICATE synthetic only'),'stale worker cannot start POST');
+select pg_temp.queue_check(public.begin_fiscal_send_traced(current_setting('test.fq_operation')::uuid,current_setting('test.fq_token')::uuid,current_setting('test.fq_certificate')::uuid,'synthetic '||current_setting('test.fq_dps_id'),'BEGIN CERTIFICATE synthetic only'),'dispatch is durably recorded before transport');
+select pg_temp.queue_check(not public.begin_fiscal_send_traced(current_setting('test.fq_operation')::uuid,current_setting('test.fq_token')::uuid,current_setting('test.fq_certificate')::uuid,'synthetic '||current_setting('test.fq_dps_id'),'BEGIN CERTIFICATE synthetic only'),'same DPS cannot start a second POST');
 reset role;
 select pg_temp.queue_check((select transmit_count=1 and status='sending' from public.fiscal_operations where id=current_setting('test.fq_operation')::uuid),'single transmission intent recorded');
 update private.fiscal_execution set lease_until=now()-interval '1 second' where operation_id=current_setting('test.fq_operation')::uuid;
 set role service_role;
 select set_config('test.fq_reconcile_job',j::text,false),set_config('test.fq_reconcile_token',j->>'lease_token',false) from public.claim_fiscal_jobs(current_setting('test.fq_tenant')::uuid,1) j;
 select pg_temp.queue_check(current_setting('test.fq_reconcile_job')::jsonb->>'mode'='reconcile','interrupted sending becomes reconciliation only');
-select pg_temp.queue_check(not public.finish_fiscal_attempt(current_setting('test.fq_operation')::uuid,current_setting('test.fq_token')::uuid,'authorized',null,repeat('1',50),'synthetic'), 'stale completion cannot acknowledge a new lease');
-select pg_temp.queue_check(public.finish_fiscal_attempt(current_setting('test.fq_operation')::uuid,current_setting('test.fq_reconcile_token')::uuid,'not_found','not_found'),'not found is recorded without permission to resend');
+select pg_temp.queue_check(not public.finish_fiscal_attempt_traced(current_setting('test.fq_operation')::uuid,current_setting('test.fq_token')::uuid,'authorized',null,repeat('1',50),'synthetic'), 'stale completion cannot acknowledge a new lease');
+select pg_temp.queue_check(public.finish_fiscal_attempt_traced(current_setting('test.fq_operation')::uuid,current_setting('test.fq_reconcile_token')::uuid,'not_found','not_found'),'not found is recorded without permission to resend');
 select pg_temp.queue_check(not public.manage_fiscal_operation('00000000-0000-4000-8000-000000000001',current_setting('test.fq_operation')::uuid,'cancel'),'once dispatch starts local cancellation is forbidden');
 select pg_temp.queue_check(public.manage_fiscal_operation('00000000-0000-4000-8000-000000000001',current_setting('test.fq_operation')::uuid,'resume'),'manual recovery can request another consultation');
 select set_config('test.fq_reconcile_token',j->>'lease_token',false) from public.claim_fiscal_jobs(current_setting('test.fq_tenant')::uuid,1) j;
 do $$ begin
- begin perform public.finish_fiscal_attempt(current_setting('test.fq_operation')::uuid,current_setting('test.fq_reconcile_token')::uuid,'authorized',null,repeat('1',50),'<NFSe>unrelated</NFSe>'); raise exception 'Unrelated XML accepted';
+ begin perform public.finish_fiscal_attempt_traced(current_setting('test.fq_operation')::uuid,current_setting('test.fq_reconcile_token')::uuid,'authorized',null,repeat('1',50),'<NFSe>unrelated</NFSe>'); raise exception 'Unrelated XML accepted';
  exception when invalid_parameter_value then perform pg_temp.queue_check(true,'document persistence requires operation and access-key binding'); end;
 end $$;
-select pg_temp.queue_check(public.finish_fiscal_attempt(current_setting('test.fq_operation')::uuid,current_setting('test.fq_reconcile_token')::uuid,'authorized',null,repeat('1',50),
+select pg_temp.queue_check(public.finish_fiscal_attempt_traced(current_setting('test.fq_operation')::uuid,current_setting('test.fq_reconcile_token')::uuid,'authorized',null,repeat('1',50),
  'SYNTHETIC DATABASE STATE TEST ONLY NFS'||repeat('1',50)||' '||current_setting('test.fq_dps_id')),'trusted server completion atomically stores document and status');
-select pg_temp.queue_check(not public.finish_fiscal_attempt(current_setting('test.fq_operation')::uuid,current_setting('test.fq_reconcile_token')::uuid,'authorized',null,repeat('1',50),'duplicate'),'repeated completion creates no second document');
+select pg_temp.queue_check(not public.finish_fiscal_attempt_traced(current_setting('test.fq_operation')::uuid,current_setting('test.fq_reconcile_token')::uuid,'authorized',null,repeat('1',50),'duplicate'),'repeated completion creates no second document');
 select pg_temp.queue_check(not public.manage_fiscal_operation('00000000-0000-4000-8000-000000000001',current_setting('test.fq_operation')::uuid,'resume'),'authorized operation cannot be resent');
 reset role;
 select set_config('test.fq_document',(select id::text from public.fiscal_documents where operation_id=current_setting('test.fq_operation')::uuid),false);

@@ -17,9 +17,11 @@ export default async function Invoices({ searchParams }: { searchParams: Promise
   const legacy = list.error?.code === "PGRST202" || list.error?.code === "42883";
   if (legacy) [list, counts] = await Promise.all([client.rpc("list_fiscal_operations", { p_limit: 50, p_offset: (page - 1) * 50 }), client.rpc("fiscal_status_totals")]);
   const operations = await attachEmailStatuses(client,context.tenantId,(list.data ?? []) as OperationDisplay[]);
+  const diagnostics=await client.rpc("fiscal_diagnostics_ready");
   return <WorkspaceShell email={context.user.email} active="invoices" companyId={selected?.id}><div className="dashboard-content company-page">
     <div className="company-page-heading"><div><span className="eyebrow">Homologação</span><h1>Suas notas.</h1><p>Preparação, envio e consulta têm estados próprios. Uma resposta incerta nunca libera novo envio automático.</p></div><Link className="btn btn--primary" href={selected ? `/painel/notas/nova?empresa=${selected.id}` : "/painel/notas/nova"}>Preparar nota avulsa</Link></div>
     {legacy && <p className="save-notice">Enquanto a atualização do banco está pendente, esta lista mostra todas as empresas da sua conta. Após aplicar a migração 13, o filtro da empresa selecionada será usado.</p>}
+    {(diagnostics.error||diagnostics.data!==true)&&<p className="save-notice">Novas transmissões aguardam a atualização do registro técnico. Operações já enviadas continuam permitindo somente consulta.</p>}
     {!counts.error && <dl className="report-totals">{["queued", "blocked", "uncertain", "authorized"].map(status => <div key={status}><dt>{fiscalStatusLabels[status]}</dt><dd>{counts.data?.[status] ?? 0}</dd></div>)}</dl>}
     <FiscalRefresh waiting={operations.some(operation => ["queued", "preparing", "sending", "reconciling", "uncertain"].includes(operation.status))} />
     {list.error ? <section className="dashboard-welcome"><h2>Estrutura de emissão ainda pendente.</h2><p>Confira as migrações da fila fiscal. Suas empresas e relatórios continuam preservados.</p></section> :

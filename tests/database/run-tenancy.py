@@ -279,13 +279,27 @@ try:
     dps_id = json.loads(sql(f"set role service_role; select public.reserve_fiscal_identity('{same_operation}','{token}','{cert_id}');").strip())['id']
 
     def begin_fiscal(_):
-        return sql(f"""set role service_role; select public.begin_fiscal_send('{same_operation}','{token}','{cert_id}',
+        return sql(f"""set role service_role; select public.begin_fiscal_send_traced('{same_operation}','{token}','{cert_id}',
           'Synthetic DB concurrency only {dps_id}','BEGIN CERTIFICATE synthetic only');""").strip()
     with ThreadPoolExecutor(max_workers=8) as pool:
         begun = list(pool.map(begin_fiscal, range(8)))
     assert begun.count('t') == 1 and begun.count('f') == 7, "More than one worker obtained dispatch permission"
     assert sql(f"select transmit_count from public.fiscal_operations where id='{same_operation}';").strip() == '1'
     print("Fiscal concurrency: shared issuer sequence across two tenants; 8 clicks -> 1 operation; 8 workers -> 1 lease/dispatch intent")
+    assert sql(f"select count(*)=1 and bool_and(details->>'phase'='intent') from private.fiscal_transport_diagnostics where operation_id='{same_operation}';").strip() == 't', 'Dispatch and diagnostic intent must commit atomically'
+    def finish_transport(_):
+        return sql(f"""set role service_role;select public.record_fiscal_transport_diagnostic('{same_operation}','{token}','submit',
+          '{{"phase":"response","http":403,"format":"json_object","environment":"number_2","codes":["E0710"],"elapsedMs":900}}');""").strip()
+    with ThreadPoolExecutor(max_workers=8) as pool:
+        traces=list(pool.map(finish_transport,range(8)))
+    assert traces.count('t') == 8
+    assert sql(f"select count(*) from private.fiscal_transport_diagnostics where operation_id='{same_operation}';").strip() == '1'
+    trace_source=f"select set_config('test.td_operation','{same_operation}',false);select set_config('test.td_token','{token}',false);"+(ROOT/'tests/database/fiscal-transport-diagnostics.sql').read_text()
+    trace_result=sql(trace_source)
+    trace_count=re.search(r'^TRANSPORT_ASSERTIONS=(\d+)$',trace_result,re.M)
+    assert trace_count and int(trace_count[1])>=13
+    print(f"Fiscal transport: {trace_count[1]} assertions; 8 concurrent final records -> 1 immutable trace; no HTTP")
+
 
     def lookup(_):
         return sql("""

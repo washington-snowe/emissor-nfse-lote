@@ -13,15 +13,16 @@ const temporary=await mkdtemp(path.join(tmpdir(),'fiscal-transport-preparation-'
 const contract=JSON.parse(await readFile(path.join(root,'integrations/nfse/contracts/sefin-homologation-v1.structural.json'),'utf8'));
 const previous=process.env.NFSE_HOMOLOGATION_ENABLED,originalInfo=console.info;
 function reset(){
- const h={events:[],observations:[],allowSend:false,proof:true,body:JSON.stringify({tipoAmbiente:0,erro:{codigo:'E2404'}}),material:{pfx:Buffer.from('SYNTHETIC'),password:'SYNTHETIC',privateKeyPem:'SYNTHETIC',certificatePem:'SYNTHETIC',metadata:{subject_cnpj:'11222333000181'}},job:{id:'synthetic-operation',tenant_id:'synthetic-tenant',company_id:'synthetic-company',lease_token:'synthetic-lease',mode:'prepare',environment:'homologation',issuer_cnpj:'11222333000181',profile_snapshot:fiscalProfile,competence_date:'2026-10-31',amount:'1.00',foreign_amount:null,dps_number:null,dps_id:null,recipient,intermediary:null,signed_dps_xml:null,holder_certificate_pem:null}};
+ const h={events:[],observations:[],allowSend:false,diagnosticsReady:true,proof:true,body:JSON.stringify({tipoAmbiente:0,erro:{codigo:'E2404'}}),material:{pfx:Buffer.from('SYNTHETIC'),password:'SYNTHETIC',privateKeyPem:'SYNTHETIC',certificatePem:'SYNTHETIC',metadata:{subject_cnpj:'11222333000181'}},job:{id:'synthetic-operation',tenant_id:'synthetic-tenant',company_id:'synthetic-company',lease_token:'synthetic-lease',mode:'prepare',environment:'homologation',issuer_cnpj:'11222333000181',profile_snapshot:fiscalProfile,competence_date:'2026-10-31',amount:'1.00',foreign_amount:null,dps_number:null,dps_id:null,recipient,intermediary:null,signed_dps_xml:null,holder_certificate_pem:null}};
  h.admin={async rpc(name,args){h.events.push(name);
   if(name==='fiscal_contract')return {data:contract};
-  if(name==='claim_fiscal_jobs'){assert.equal(args.p_tenant,'synthetic-tenant');return {data:[h.job]};}
+  if(name==='fiscal_diagnostics_ready')return {data:h.diagnosticsReady};
+    if(name==='claim_fiscal_jobs'){assert.equal(args.p_tenant,'synthetic-tenant');return {data:args.p_reconcile_only?[]:[h.job]};}
   if(name==='fiscal_processing_certificate')return {data:'synthetic-certificate'};
   if(name==='record_fiscal_transport'){assert.ok(h.events.includes('GET'));assert.deepEqual(args,{p_operation:h.job.id,p_token:h.job.lease_token,p_certificate:'synthetic-certificate'});return {data:h.proof};}
   if(name==='reserve_fiscal_identity'){assert.ok(h.events.indexOf('record_fiscal_transport')<h.events.indexOf(name));assert.equal(h.proof,true);return {data:{id:'DPS355030821122233300018100001000000000000001',number:'1'}};}
-  if(name==='begin_fiscal_send')return {data:h.allowSend};
-  if(name==='finish_fiscal_attempt'){h.outcome=args.p_outcome;return {data:true};}
+  if(name==='begin_fiscal_send_traced')return {data:h.allowSend};
+  if(name==='finish_fiscal_attempt_traced'){h.outcome=args.p_outcome;h.persisted=args.p_diagnostics[0].data;return {data:true};}
   if(name==='release_fiscal_preparation'){h.reason=args.p_reason;return {data:true};}
   throw new Error('Unexpected RPC: '+name);
  }};globalThis.fiscalTransportHarness=h;return h;
@@ -45,6 +46,7 @@ try{
  h=reset();h.body=JSON.stringify({tipoAmbiente:0,erro:{codigo:'E0002'}});await processFiscalJobs('synthetic-tenant');assert.equal(h.reason,'certificate_unavailable');assert.ok(!h.events.includes('record_fiscal_transport'));assert.ok(!h.events.includes('reserve_fiscal_identity'));assert.ok(h.material.pfx.every(x=>x===0));
  h=reset();h.proof=false;await processFiscalJobs('synthetic-tenant');assert.equal(h.reason,'certificate_unavailable');assert.ok(!h.events.includes('reserve_fiscal_identity'));assert.ok(h.material.pfx.every(x=>x===0));
  h=reset();h.material.metadata.subject_cnpj='11444777000161';await processFiscalJobs('synthetic-tenant');assert.equal(h.reason,'certificate_unavailable');assert.ok(!h.events.includes('GET'));assert.ok(!h.events.includes('reserve_fiscal_identity'));
- h=reset();h.allowSend=true;await processFiscalJobs('synthetic-tenant');assert.equal(h.outcome,'rejected');assert.equal(h.events.filter(x=>x==='POST').length,1);assert.ok(h.timeout>5000&&h.timeout<=20000);assert.equal(h.observations[1].http,400);assert.deepEqual(h.observations[1].codes,['E0001']);assert.ok(!JSON.stringify(h.observations).includes('SYNTHETIC_PRIVATE_RESPONSE'));
+ h=reset();h.allowSend=true;await processFiscalJobs('synthetic-tenant');assert.equal(h.outcome,'rejected');assert.equal(h.events.filter(x=>x==='POST').length,1);assert.ok(h.timeout>5000&&h.timeout<=20000);assert.equal(h.persisted.http,400);assert.equal(h.observations[1].http,400);assert.deepEqual(h.observations[1].codes,['E0001']);assert.ok(!JSON.stringify(h.observations).includes('SYNTHETIC_PRIVATE_RESPONSE'));
+ h=reset();h.diagnosticsReady=false;await processFiscalJobs('synthetic-tenant');assert.ok(!h.events.includes('load'));assert.ok(!h.events.includes('POST'));
  console.log('Fiscal preparation: 404/E2404/zero requires own holder and pinned GET; proof persists before reservation, failed proof or other zero error cannot reserve. Denied send intent blocks transmission. All external boundaries synthetic.');
 }finally{console.info=originalInfo;delete globalThis.fiscalTransportHarness;if(previous===undefined)delete process.env.NFSE_HOMOLOGATION_ENABLED;else process.env.NFSE_HOMOLOGATION_ENABLED=previous;await rm(temporary,{recursive:true,force:true});}

@@ -9,5 +9,7 @@ export async function getFiscalOperationDiagnostic(id:string):Promise<{error?:st
  const events=await client.from('audit_events').select('event,created_at').eq('tenant_id',context.tenantId).eq('resource_id',operation.data.id)
   .in('event',['fiscal.dispatch_started','fiscal.uncertain','fiscal.not_found','fiscal.authorized','fiscal.rejected','fiscal.intervention','fiscal.resume']).order('created_at',{ascending:true}).limit(50);
  if(events.error)return {error:'Não foi possível ler o histórico da operação.'};
- return {details:fiscalOperationReport(operation.data,events.data??[],process.env.VERCEL_GIT_COMMIT_SHA)};
+ const traces=await client.rpc('fiscal_transport_diagnostic_report',{p_operation:operation.data.id});
+ if(traces.error&&!['PGRST202','42883'].includes(traces.error.code))return {error:'Não foi possível ler o diagnóstico técnico da operação.'};
+ return {details:fiscalOperationReport(operation.data,events.data??[],process.env.VERCEL_GIT_COMMIT_SHA,Array.isArray(traces.data)?traces.data:null)};
 }

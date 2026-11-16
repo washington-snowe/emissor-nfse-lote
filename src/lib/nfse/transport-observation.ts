@@ -6,7 +6,7 @@ export type FiscalRequestStage = "submit" | "dps_lookup" | "nfse_lookup";
 export function fiscalCorrelation(operationId: string) { return createHash("sha256").update(operationId).digest("hex").slice(0,16); }
 export function fiscalRequestTimeout(method: "GET" | "POST", remainingMs: number) {
   // Leave time for the final persisted outcome. An increased timeout never allows another POST.
-  return Number.isFinite(remainingMs)?Math.max(1, Math.min(method === "POST" ? 20_000 : 5000, Math.floor(remainingMs - 8000))):1;
+  return Number.isFinite(remainingMs)?Math.max(1, Math.min(method === "POST" ? 20_000 : 5000, Math.floor(remainingMs - 10000))):1;
 }
 export function fiscalResponseObservation(status: number, body: Buffer) {
   const data=readFiscalJson(body);
@@ -28,16 +28,16 @@ export function fiscalResponseObservation(status: number, body: Buffer) {
 }
 
 /** All emitted properties are fixed categories, hashes or bounded numbers; no raw request/response/error. */
-export async function observedFiscalRequest<T extends {status:number;body:Buffer}>(input:{operationId:string;stage:FiscalRequestStage;timeoutMs:number},request:()=>Promise<T>,observe:(event:Record<string,unknown>)=>void){
+export async function observedFiscalRequest<T extends {status:number;body:Buffer}>(input:{operationId:string;stage:FiscalRequestStage;timeoutMs:number},request:()=>Promise<T>,observe:(event:Record<string,unknown>)=>void|Promise<void>){
   const correlation=fiscalCorrelation(input.operationId),started=Date.now(),stage=["submit","dps_lookup","nfse_lookup"].includes(input.stage)?input.stage:"unknown";
-  const emit=(fields:Record<string,unknown>)=>{try{observe({event:"nfse_transport",correlation,stage,...fields});}catch{/* Logging must not alter fiscal state or cause retries. */}};
-  emit({phase:"start",timeoutMs:Number.isFinite(input.timeoutMs)?Math.min(20_000,Math.max(1,Math.floor(input.timeoutMs))):1});
+  const emit=async(fields:Record<string,unknown>)=>{try{await observe({event:"nfse_transport",correlation,stage,...fields});}catch{/* Observation failure must not alter fiscal state or cause retries. */}};
+  await emit({phase:"start",timeoutMs:Number.isFinite(input.timeoutMs)?Math.min(20_000,Math.max(1,Math.floor(input.timeoutMs))):1});
   try{
     const response=await request();
-    emit({phase:"response",...fiscalResponseObservation(response.status,response.body),elapsedMs:Math.min(60_000,Math.max(0,Date.now()-started))});
+    await emit({phase:"response",...fiscalResponseObservation(response.status,response.body),elapsedMs:Math.min(60_000,Math.max(0,Date.now()-started))});
     return response;
   }catch(error){
-    emit({phase:"failure",transport:fiscalTransportError(error).reason,elapsedMs:Math.min(60_000,Math.max(0,Date.now()-started))});
+    await emit({phase:"failure",transport:fiscalTransportError(error).reason,elapsedMs:Math.min(60_000,Math.max(0,Date.now()-started))});
     throw error;
   }
 }
