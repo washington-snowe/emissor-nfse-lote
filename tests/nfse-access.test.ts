@@ -121,3 +121,14 @@ test("erro síncrono do OpenSSL também é sanitizado e timeout não provoca out
     assert.equal(calls, 2);
   } finally { hanging.mock.restore(); }
 });
+test("POST permite aguardar até 20 segundos, sem repetir a requisição após o prazo",async context=>{
+  context.mock.timers.enable({apis:["setTimeout"]});
+  let calls=0,destroyed=false;
+  const request=new EventEmitter() as EventEmitter & {end:()=>void;destroy:(error:Error)=>void};
+  request.end=()=>{};request.destroy=error=>{destroyed=true;request.emit("error",error);};
+  context.mock.method(https,"request",()=>{calls++;return request;});
+  const pending=nfseRequest("homologation","POST",NFSE_BASES.homologation+"/nfse",credentials,Buffer.from('{}'),20000);
+  const checked=assert.rejects(pending,(error:unknown)=>error instanceof NfseTransportError&&error.reason==="timeout");
+  context.mock.timers.tick(6000);assert.equal(destroyed,false);
+  context.mock.timers.tick(14000);await checked;assert.equal(destroyed,true);assert.equal(calls,1);
+});

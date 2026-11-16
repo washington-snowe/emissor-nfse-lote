@@ -1,5 +1,19 @@
 # Diagnóstico de acesso com A1
 
+## Operação atual sem confirmação após o início de envio
+
+Após a compatibilidade do GET de acesso, o usuário retomou a mesma nota de teste e passou a ver **A consulta ainda não localizou a DPS**. O aviso persistiu depois de aguardar e consultar. `transmit_count=1` registra a intenção persistida; não comprova recebimento ou autorização pela SEFIN. Essa operação permanece somente em reconciliação: não cancelar, reiniciar contador, preparar outra nota equivalente ou repetir POST para contornar o estado.
+
+O banco dessa versão guarda a transição de estado e eventos auditados, mas não o HTTP/corpo do primeiro envio. A resposta original não pode ser reconstruída retroativamente pelo novo código. O botão **Copiar diagnóstico da emissão**, na operação transmitida ainda não autorizada, lê exclusivamente operação e auditoria da sessão/tenant atuais. O relatório `nfse-operation-v1` mostra estado, contadores, horários, intervalo entre início e primeiro resultado e uma correlação SHA-256 abreviada. Não inclui UUID original, DPS, CNPJ, tomador, valor, XML, A1 ou credenciais. Essa coleta não faz GET fiscal, não agenda trabalho nem altera estado.
+
+O transporte antes limitava qualquer POST a cinco segundos. O worker passa a permitir até **20 segundos**, reduzidos conforme o prazo restante e reservando **oito segundos** para registrar o resultado. Isso é uma mitigação para próximas transmissões, não prova de que o caso atual foi timeout nem autorização para reenviar. GET mantém cinco segundos no worker; a consulta inicial não muda.
+
+Novas requisições do worker registram `nfse_transport` nos logs da Vercel: correlação, etapa fixa, início/prazo, HTTP, formato, categoria de ambiente, códigos `Edddd` limitados, duração ou categoria de transporte. Nenhum corpo, URL com identificadores, XML, certificado, senha, token ou erro original vai ao log. Falha no logger não muda o resultado fiscal nem repete requisição. A retenção desses logs depende da Vercel; não são um histórico permanente de respostas no banco. Procurar a correlação do relatório para ler os registros novos; não prometer que o POST antigo estará disponível.
+
+Não há migração nova. A mudança não soluciona automaticamente a operação já incerta nem altera a exigência de documento íntegro para autorizar. Produção continua bloqueada.
+
+Validação: 127 testes aprovados e seis opt-in ignorados; timeout de 20s testado com relógio simulado e uma única requisição; observação sem conteúdo privado e falha do logger sem repetição; isolamento da ação de histórico entre sessões/tenants; worker real com limites e uma resposta sintética de rejeição. Interface/cópia testadas até seis larguras, sem retomar a operação ao copiar. Lint, TypeScript e build aprovados. Sem SQL ou emissão real pelo executor.
+
 ## Retorno SEFIN identificado: 404/E2404 com ambiente 0
 
 O diagnóstico real do usuário em `15c4450` mostrou A1 aberto/validado localmente, GET DPS **404 JSON**, `tipoAmbiente` **número 0**, erro objeto **E2404**, sem mensagem genérica e sem identidade DPS na resposta. O contrato oficial capturado declara ambiente inteiro `1/2`; a validação recusava esse valor 0. O motivo legado `certificate_unavailable` da fila também englobava essa recusa de acesso, sem comprovar perda do A1. Sua apresentação já foi corrigida para explicar ambas as possibilidades.

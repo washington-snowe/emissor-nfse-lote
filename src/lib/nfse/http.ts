@@ -75,7 +75,7 @@ export function nfseRequest(environment: NfseEnvironment, method: "GET" | "POST"
   if (!target || !["GET", "POST"].includes(method) || method === "POST" && (target.href !== NFSE_BASES[environment] + "/nfse" || !body || body.length > 512_000)) return Promise.reject(new NfseTransportError("invalid_destination"));
   return new Promise((resolve,reject) => {
     let request: ReturnType<typeof https.request> | undefined;
-    const limit = Number.isFinite(timeoutMs) ? Math.max(1, Math.min(timeoutMs, method === "GET" ? 15000 : 5000)) : 5000;
+    const limit = Number.isFinite(timeoutMs) ? Math.max(1, Math.min(timeoutMs, method === "GET" ? 15000 : 20000)) : 5000;
     const timer = setTimeout(() => request?.destroy(new NfseTransportError("timeout")), limit);
     const fail = (error: unknown) => { clearTimeout(timer); reject(fiscalTransportError(error)); };
     try { request = https.request(target, {

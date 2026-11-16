@@ -8,6 +8,7 @@ import { verifyOwnSefinTransport } from "@/lib/nfse/transport-proof";
 import { signDps } from "@/lib/nfse/signature";
 import { validateFiscalSchema } from "@/lib/nfse/schema";
 import { verifyOfficialNfseContents } from "@/lib/nfse/receipt";
+import { fiscalRequestTimeout, observedFiscalRequest } from "@/lib/nfse/transport-observation";
 
 export async function processFiscalJobs(tenantId?: string, deadline = Date.now() + 45_000) {
   const admin = createAdminClient();
@@ -62,7 +63,11 @@ export async function processFiscalJobs(tenantId?: string, deadline = Date.now()
     begin: (material, xml) => rpc("begin_fiscal_send", { p_operation: job.id, p_token: job.lease_token,
       p_certificate: material.certificateId, p_signed_xml: xml, p_certificate_pem: material.certificatePem }),
     release: reason => rpc("release_fiscal_preparation", { p_operation: job.id, p_token: job.lease_token, p_reason: reason }),
-    request: (method, url, material, body) => nfseRequest("homologation", method, url, material, body),
+    request: (method, url, material, body) => {
+      const timeoutMs=fiscalRequestTimeout(method,deadline-Date.now());
+      return observedFiscalRequest({operationId:job.id,stage:method==="POST"?"submit":url.includes("/dps/")?"dps_lookup":"nfse_lookup",timeoutMs},
+        ()=>nfseRequest("homologation",method,url,material,body,timeoutMs),event=>console.info(JSON.stringify(event)));
+    },
     receipt: (xml, key, signedDps, holderCert, dpsId) => verifyOfficialNfseContents(xml, { dpsId, signedDps, holderCert, issuerCnpj: job.issuer_cnpj, accessKey: key }),
     finish: (outcome, reason, document) => rpc("finish_fiscal_attempt", { p_operation: job.id, p_token: job.lease_token,
       p_outcome: outcome, p_reason: reason ?? null, p_access_key: document?.accessKey ?? null, p_xml: document?.xml ?? null }),

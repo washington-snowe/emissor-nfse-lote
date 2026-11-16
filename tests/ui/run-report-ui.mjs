@@ -27,6 +27,7 @@ try {
     "@/app/painel/importacoes/review-actions": path.join(root, "tests/ui/workflow-actions.ts"),
     "@/app/painel/importacoes/quick-actions": path.join(root, "tests/ui/workflow-actions.ts"),
     "@/app/painel/notas/email-actions": path.join(root, "tests/ui/workflow-actions.ts"),
+    "@/app/painel/notas/diagnostic-actions": path.join(root, "tests/ui/workflow-actions.ts"),
     "@/app/painel/notas/actions": path.join(root, "tests/ui/workflow-actions.ts"),
     "next/navigation": path.join(root, "tests/ui/navigation.ts"),
     "next/link": path.join(root, "tests/ui/link.tsx"),
@@ -497,6 +498,12 @@ try {
     const uncertain = page.locator('.fiscal-operation').nth(1);
     assert.equal(await uncertain.getByRole('button', { name: 'Consultar novamente' }).count(), 1);
     assert.equal(await uncertain.getByRole('button', { name: 'Cancelar preparação' }).count(), 0);
+    await page.evaluate(()=>Object.defineProperty(navigator,'clipboard',{configurable:true,value:{writeText:async text=>{window.workflowUiTest.clipboard=text;}}}));
+    const callsBefore=await page.evaluate(()=>window.workflowUiTest.calls);
+    await uncertain.getByRole('button',{name:'Copiar diagnóstico da emissão',exact:true}).click();
+    await uncertain.getByText('Diagnóstico da emissão copiado.',{exact:true}).waitFor();
+    assert.equal(await page.evaluate(()=>window.workflowUiTest.calls),callsBefore,'diagnostic must not resume or enqueue');
+    assert.ok(await page.evaluate(()=>window.workflowUiTest.clipboard.includes('nfse-operation-v1')));
     await uncertain.getByRole('button', { name: 'Consultar novamente' }).click();
     await uncertain.getByRole('status').filter({ hasText: 'Ação sintética resume' }).waitFor();
     assert.equal(await page.locator('.fiscal-operation').nth(2).getByRole('button').count(), 0);

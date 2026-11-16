@@ -2,6 +2,7 @@ import Link from "next/link";
 import { FiscalControls } from "@/components/fiscal-controls";
 import { fiscalStatusLabels, fiscalReasonLabels, formatFiscalBrl } from "@/lib/nfse/status";
 import {InvoiceEmailControls} from "@/components/invoice-email-controls";
+import {FiscalOperationDiagnostic} from "@/components/fiscal-operation-diagnostic";
 
 export type OperationDisplay = { id: string; batch_id: string; status: string; reason: string | null; amount: string;
   recipient: { legalName: string }; dps_id: string | null; transmit_count: number; competence_date: string; document?: { id: string; access_key: string } | null;
@@ -17,5 +18,6 @@ export function FiscalOperationList({ operations }: { operations: OperationDispl
     {operation.document && operation.status === "authorized" && <Link className="btn btn--secondary" href={`/painel/notas/documentos/${operation.document.id}`}>Baixar XML de homologação</Link>}
     {operation.email&&<section className="invoice-email-status" aria-label="Entrega por e-mail"><strong>{emailLabels[operation.email.status]??"Entrega pendente"}</strong>{operation.email.test_mode&&<p>Teste de homologação · sem envio ao vendedor.</p>}{operation.email.destination&&<p className="field-hint">Destino previsto: {operation.email.destination}</p>}{operation.email.provider&&<p className="field-hint">Provedor: {operation.email.provider}</p>}{operation.email.status==="accepted"&&<p className="field-hint">Aceito para processamento; isso ainda não comprova chegada à caixa de entrada.</p>}{operation.email.reason&&<p>{emailReasons[operation.email.reason]??"Confira a entrega antes de prosseguir."}</p>}{["failed","blocked"].includes(operation.email.status)&&<InvoiceEmailControls deliveryId={operation.email.id} needsEmail={operation.email.reason==="invalid_email"}/>}</section>}
     <FiscalControls operationId={operation.id} status={operation.status} transmitCount={operation.transmit_count} />
+    {operation.transmit_count===1&&operation.status!=="authorized"&&<FiscalOperationDiagnostic id={operation.id}/>}
   </article>)}</div>;
 }

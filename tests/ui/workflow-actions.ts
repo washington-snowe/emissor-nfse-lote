@@ -16,6 +16,7 @@ export async function probeCertificate() { return { success: "Verificação sint
 export async function confirmReportReview() { window.workflowUiTest.calls++; return { success: "Confirmação sintética, sem banco ou emissão." }; }
 export async function enqueueReport() { window.workflowUiTest.calls++; return { success: "Fila sintética sem emissão." }; }
 export async function manageOperation(_id: string, action: string) { window.workflowUiTest.calls++; return { success: `Ação sintética ${action}, sem emissão.` }; }
+export async function getFiscalOperationDiagnostic(){return {details:'Diagnóstico: nfse-operation-v1 (local)\nCorrelação técnica: abcdef0123456789\nEstado: Resultado incerto · somente consulta\nInícios de envio registrados: 1\nIntervalo entre início e primeiro resultado: 5 s\nDetalhe HTTP do primeiro envio: não armazenado no histórico do banco.\nEste relatório só lê o histórico. Não consulta a SEFIN nem envia notas.'};}
 export async function resumeBatch() { window.workflowUiTest.calls++; return { success: "Retomada sintética sem emissão." }; }
 export async function saveReport(form: FormData) {
   window.workflowUiTest.calls++;
