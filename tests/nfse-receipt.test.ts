@@ -44,3 +44,16 @@ test("recibo sintético exige XSD, chave, emitente, conteúdo original da DPS e 
   const differentXml = different.xml.replace("<vServ>11.01", "<vServ>11.02");
   assert.equal(await verifyOfficialNfseContents(nfseFixture(differentXml, service), expected), null);
 });
+
+test('rejeição é reconhecida pelo status/schema capturados, com 403 explícito e sem inferir por HTML ou duplicidade',async()=>{
+  const {readFileSync}=await import('node:fs');
+  const raw=JSON.parse(readFileSync(new URL('../integrations/nfse/contracts/sefin-homologation-v1.structural.json',import.meta.url),'utf8'));
+  const contract=supportedNfseContract(raw)!;const id='DPS'+'1'.repeat(42),body={tipoAmbiente:2,idDPS:id,erros:[{codigo:'E0710'}]};
+  assert.ok(definitiveRejection(403,body,contract,id));assert.ok(definitiveRejection(400,body,contract,id));
+  assert.equal(definitiveRejection(422,body,contract,id),false,'undeclared status must not inherit another status schema');
+  assert.equal(definitiveRejection(500,body,contract,id),false,'server failure remains uncertain even with a declared error schema');
+  for(const candidate of [null,{message:'Forbidden'},{erros:[]},{erros:[{codigo:'E0014'}]},{erros:[{codigo:'E0710'},{codigo:'E0014'}]}, {...body,idDPS:'different'}, {...body,chaveAcesso:'1'.repeat(50)}, {...body,nfseXmlGZipB64:'ambiguous'}])
+    assert.equal(definitiveRejection(403,candidate,contract,id),false);
+  delete raw.paths['/nfse'].post.responses['403'];
+  assert.equal(definitiveRejection(403,body,supportedNfseContract(raw)!,id),false,'403 needs its own captured response model');
+});

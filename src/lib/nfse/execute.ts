@@ -72,7 +72,7 @@ export async function executeFiscalJob(job: FiscalJob, deps: Dependencies) {
       result = await deps.request("GET", base + deps.contract.nfsePath.replace(/\{[^}]+\}/, key), material);
     }
     const json = readFiscalJson(result.body);
-    if (job.mode === "prepare" && definitiveRejection(result.status, json, deps.contract)) {
+    if (job.mode === "prepare" && definitiveRejection(result.status, json, deps.contract,dpsId!)) {
       await deps.finish("rejected", "provider_rejection"); return;
     }
     if (result.status < 200 || result.status >= 300) { await deps.finish("uncertain", "network_uncertain"); return; }

@@ -29,7 +29,8 @@ function bodySchema(operation: ObjectValue, response: boolean, models: ObjectVal
   }
   return model(raw, models);
 }
-export type SupportedNfseContract = { dpsPath: string; nfsePath: string; errorCodesKey: string | null; errorsKey: string | null };
+type RejectionShape = { errorsKey:string; codeKey:string };
+export type SupportedNfseContract = { dpsPath: string; nfsePath: string; errorCodesKey: string | null; errorsKey: string | null; rejections:Record<string,RejectionShape> };
 
 /** Conditional adapter: disabled unless the captured official OpenAPI actually declares every required field/path. */
 export function supportedNfseContract(value: unknown): SupportedNfseContract | null {
@@ -46,19 +47,23 @@ export function supportedNfseContract(value: unknown): SupportedNfseContract | n
       object(object(bodySchema(object(object(paths[path]).get), true, models).properties).nfseXmlGZipB64).type === "string");
     if (!dpsPath || !nfsePath) return null;
     let errorsKey: string | null = null, errorCodesKey: string | null = null;
+    const rejections:Record<string,RejectionShape>={};
     const failures = object(post.responses);
-    for (const code of ["400", "422"]) {
+    for (const code of ["400", "403", "422"]) {
       const errorResponse = object(failures[code]);
       const shape = model(errorResponse.schema ?? object(object(errorResponse.content)["application/json"]).schema, models);
       const properties = object(shape.properties);
       const candidate = Object.keys(properties).find(key => /^erros$/i.test(key));
-      if (candidate) {
+      if (candidate && object(properties[candidate]).type === "array") {
         const items = model(object(properties[candidate]).items, models);
         const field = Object.keys(object(items.properties)).find(key => /^codigo$/i.test(key) && object(object(items.properties)[key]).type === "string");
-        if (field) { errorsKey = candidate; errorCodesKey = field; }
+        if (field) {
+          rejections[code]={errorsKey:candidate,codeKey:field};
+          if(code!=="403"){errorsKey = candidate; errorCodesKey = field;}
+        }
       }
     }
-    return { dpsPath, nfsePath, errorsKey, errorCodesKey };
+    return { dpsPath, nfsePath, errorsKey, errorCodesKey,rejections };
   } catch { return null; }
 }
 
@@ -122,11 +127,13 @@ export function readCompressedNfse(value: unknown): string | null {
     return new TextDecoder("utf-8", { fatal: true }).decode(gunzipSync(packed, { maxOutputLength: MAX_FISCAL_XML_BYTES }));
   } catch { return null; }
 }
-export function definitiveRejection(status: number, body: ObjectValue | null, contract: SupportedNfseContract): boolean {
-  if (![400, 422].includes(status) || !body || !contract.errorsKey || !contract.errorCodesKey) return false;
-  const errors = body[contract.errorsKey];
+export function definitiveRejection(status: number, body: ObjectValue | null, contract: SupportedNfseContract,expectedDpsId?:string): boolean {
+  const shape=contract.rejections[String(status)];
+  if (![400,403,422].includes(status) || !body || !shape || body.chaveAcesso!==undefined || body.nfseXmlGZipB64!==undefined) return false;
+  if(['idDps','idDPS'].some(key=>Object.hasOwn(body,key)&&body[key]!==expectedDpsId))return false;
+  const errors = body[shape.errorsKey];
   return Array.isArray(errors) && errors.length > 0 && errors.length <= 100 && errors.every(error => {
-    const code = object(error)[contract.errorCodesKey!];
+    const code = object(error)[shape.codeKey];
     return typeof code === "string" && /^E\d{4}$/.test(code) && code !== "E0014";
   });
 }

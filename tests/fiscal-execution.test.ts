@@ -114,3 +114,12 @@ test("produção, dinheiro numérico e prazo insuficiente não iniciam transmiss
   const budget = scenario(); budget.deps.remainingMs = () => 10_000; await executeFiscalJob(budget.job, budget.deps);
   assert.ok(budget.events.includes("release:preparation_retry")); assert.equal(budget.events.includes("POST"), false);
 });
+
+test('HTTP403 fiscal documentado termina rejeitado; resposta genérica, estrangeira ou E0014 continua incerta, sempre com um POST',async()=>{
+ const raw=JSON.parse(readFileSync(new URL('../integrations/nfse/contracts/sefin-homologation-v1.structural.json',import.meta.url),'utf8'));
+ for(const [body,expected] of [[{erros:[{codigo:'E0710'}]},'rejected'],[{message:'Forbidden'},'uncertain'],[{idDPS:'foreign',erros:[{codigo:'E0710'}]},'uncertain'],[{erros:[{codigo:'E0014'}]},'uncertain']] as const){
+  const s=scenario();s.deps.contract=supportedNfseContract(raw)!;
+  s.deps.request=async(method)=>{s.events.push(method);return {status:403,body:Buffer.from(JSON.stringify(body))};};
+  await executeFiscalJob(s.job,s.deps);assert.deepEqual(s.finishes,[expected]);assert.equal(s.events.filter(x=>x==='POST').length,1);
+ }
+});

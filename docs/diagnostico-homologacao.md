@@ -1,6 +1,16 @@
 # Diagnóstico de acesso com A1
 
-## Registro persistente: migração 18 pendente de aplicação
+## Classificação de rejeições por status documentado
+
+O contrato oficial capturado declara erro de POST `/nfse` em **400, 403 e 500**, com `NFSePostResponseErro`. O adaptador reconhecia rejeições somente em 400/422, sem vincular cada status ao seu próprio esquema. Agora constrói o mapa de rejeições por status a partir da captura efetivamente carregada: 403 só é definitivo quando seu próprio esquema declara a lista de erros e todos os códigos retornados são fiscais reconhecidos. 400/422 também exigem sua declaração específica. A origem continua sendo a captura oficial existente, sem alteração de URL, artefato ou schema persistido.
+
+HTML/JSON genérico, lista vazia/malformada, E0014 (inclusive junto de outros códigos), HTTP 5xx e status não declarado continuam incertos. Marcadores de sucesso junto de erros impedem inferir rejeição; se o envelope informa `idDps`/`idDPS`, precisa corresponder à DPS enviada. A mudança atua apenas sobre o retorno da tentativa corrente, sem alterar operações antigas, reservar novos números ou permitir novo POST. Não há nova migração. **Não sabemos se os testes antigos receberam 403**, pois seus retornos de POST não foram guardados; o 403 de login no portal web não comprova um 403 na API.
+
+Validação desta classificação: 130 testes aprovados e seis opt-in ignorados, incluindo respostas sintéticas de 403 documentado, erro genérico, identidade diferente, duplicidade e envelope contraditório; um único POST por execução. Integrações de worker/diagnóstico, lint, TypeScript e build aprovados. Sem alteração SQL ou transmissão fiscal pelo executor.
+
+## Registro persistente: migração 18 aplicada
+
+O usuário retornou `nfse-operation-v2 (613d3e5)` com **Armazenamento do diagnóstico: disponível** e duas consultas de DPS persistidas: **HTTP 404 JSON, ambiente 0, E2404**. Isso confirma a aplicação/persistência da migração 18; não repetir nem editar esse SQL. O diagnóstico das duas respostas originais de POST continua indisponível. As operações de R$1/R$2 permanecem incertas, sem retransmissão.
 
 O primeiro teste ficou incerto em **0,8 s**; o teste independente de R$ 2,00 também ficou incerto em **0,9 s**. O usuário não encontrou os registros na Vercel. Esses intervalos não comprovam timeout do limite antigo de cinco segundos. A resposta original dos dois testes não está armazenada e não pode ser recuperada retroativamente. O usuário conseguiu acessar o portal web em janela anônima; o painel de homologação não listava emissões recentes. Isso não permite classificar os POSTs antigos como rejeitados nem liberar retransmissão.
 
@@ -10,7 +20,7 @@ O ledger aceita somente etapa, fase, status HTTP, formato, categoria de ambiente
 
 Sem a migração, o worker atualizado só pode reclamar reconciliações e a interface informa que novas transmissões aguardam atualização. Após a aplicação, **Copiar diagnóstico da emissão** fornece `nfse-operation-v2` com metadados persistidos diretamente no banco; os logs da Vercel deixam de ser necessários para essa leitura. O botão continua sem HTTP fiscal ou mutação. Os novos metadados não substituem a validação do documento nem transformam status HTTP em autorização.
 
-A migração cria registros/funções/permissões, sem emitir, reenviar, apagar dados ou alterar A1s, contadores ou estados existentes. As respostas anteriores continuam indisponíveis. Não fazer outro teste enquanto a migração e a persistência não forem confirmadas. O usuário deve executar somente a 18 no SQL Editor; o executor não dispõe de conexão administrativa ao projeto. Migrações anteriores e fixtures de banco não devem ser repetidas no projeto hospedado.
+A migração criou registros/funções/permissões, sem emitir, reenviar, apagar dados ou alterar A1s, contadores ou estados existentes. As respostas anteriores continuam indisponíveis. A aplicação e a persistência já foram confirmadas; não executar a 18 novamente. O executor não dispõe de conexão administrativa ao projeto. Migrações anteriores e fixtures de banco não devem ser repetidas no projeto hospedado.
 
 Validação: **128 testes aprovados e seis opt-in ignorados**; suíte PostgreSQL 17 completa, com 20 asserções específicas de privilégios, isolamento, fencing, replay, imutabilidade, metadados inválidos e rollback da conclusão. Oito conclusões simultâneas preservam um único registro; o guard original continua permitindo um único início de envio. Integrações de ação/worker, interface/cópia em até seis larguras, lint, TypeScript e build aprovados. Testes usam fronteiras e dados sintéticos, sem A1 real ou chamada fiscal externa.
 
