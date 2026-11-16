@@ -1,5 +1,20 @@
 # Diagnóstico de acesso com A1
 
+## E0008 após a correção de layout
+
+O usuário confirmou no XML original de R$3 a ausência de `finNFSe`, recusa pelo XSD restrito e aceitação pelo legado. O teste independente seguinte de R$4, na versão `8493d89`, retornou POST400 JSON/homologação/E0008, com identidade correspondente e `SefinNacional_1.6.0`. A operação ficou incerta; uma consulta posterior retornou 404/ambiente0/E2404. Isso não autoriza retransmissão ou mudança dos registros antigos.
+
+A regra150 da aba RN DPS_NFS-e 1.01 do Anexo I restrito de 20/10/2026 (linha153 do XLSX) define E0008: **dhEmi deve ser anterior ou igual ao processamento dhProc**. Fonte e hash em `integrations/nfse/emission-time.provenance.json`. Não foram preservados dhProc nem o envelope completo do primeiro retorno. Não é possível concluir, só com o código, se houve diferença de relógio ou tratamento de fuso pela SEFIN.
+
+O worker usava `toISOString()` com `+00:00`. Agora formata o mesmo instante corrente em `America/Sao_Paulo`, com deslocamento explícito, inclusive na virada de dia. Não subtrai segundos/minutos, não usa competência como emissão e não muda arquivos assinados antigos. UTC e São Paulo equivalentes devem representar o mesmo instante; essa normalização ainda depende de confirmação real do serviço e não resolve por si só um eventual relógio adiantado. Testes conferem a igualdade dos instantes e o único POST.
+
+O classificador tinha outro caso de incerteza: `chaveAcesso:null` ou `nfseXmlGZipB64:null` eram tratados como marcadores de sucesso. Null não contém documento/chave e agora não veta uma rejeição documentada, desde que lista/códigos/identidade permaneçam válidos. Strings vazias e outros valores não nulos, E0014, status não declarado, identidade alheia e corpo genérico continuam incertos. **Não sabemos se essa foi a causa da classificação real.** Nenhum histórico é reclassificado.
+
+O diagnóstico da operação existente de R$4 passa a analisar o snapshot original pela RPC19 já aplicada. Retorna apenas categoria de fuso e delta limitado entre dhEmi e o primeiro início de envio registrado, sem exportar datas/valores do XML. Essa comparação é com o banco da aplicação, não com o dhProc perdido. Também informa o reconhecimento do contrato atualmente armazenado, sem tratá-lo como envelope histórico. Todas as leituras derivam da sessão/dono da operação; não há abertura de A1, GET à SEFIN, lease novo ou transmissão. **Não há SQL novo.** Atualizar e copiar o diagnóstico da mesma R$4; não criar outro teste nessa etapa.
+
+
+Validação desta etapa: 141 testes aprovados e seis opt-in ignorados; conversão de fuso/virada de dia preservando o instante e a competência, rejeições com campos null e cenários contraditórios/duplicidade, diagnóstico isolado entre contas com timestamp auditado e leitura do contrato atual, interface/copiar relatório em seis larguras; lint, TypeScript e build aprovados. Sem alteração SQL ou nova validação do banco nesta etapa. Sem A1 real ou transmissão fiscal pelo executor.
+
 ## Correção do pacote de homologação (20/10/2026)
 
 O relatório do usuário após a migração19 confirmou hash, identidade e assinatura da DPS original, aceita pelo XSD local de produção de 09/02/2026. A revisão da página oficial separada de **produção restrita** identificou outro pacote publicado, de **20/10/2026**. Os arquivos de produção usados anteriormente não eram a referência adequada para validar a homologação corrente.

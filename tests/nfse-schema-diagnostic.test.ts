@@ -26,8 +26,9 @@ test('erros XSD exportam só nomes de campos conhecidos, nunca valores ou descri
 test('análise usa snapshot original, confere hash, assinatura e XSD sem devolver XML ou identidade',async()=>{
  const holder=identity(),signed=signedDps(holder);
  const snapshot={...signed,sha256:createHash('sha256').update(signed.xml).digest('hex'),certificatePem:holder.certificatePem};
- const result=(await inspectStoredDps(snapshot)).join('\n');
+ const result=(await inspectStoredDps(snapshot,'2026-11-11T12:00:00.500Z')).join('\n');
  assert.match(result,/Hash do XML original: confere/);assert.match(result,/Assinatura com o certificado público original: confere/);assert.match(result,/XSD homologação 20\/10\/2026: estrutura aceita/);
+ assert.match(result,/Fuso de dhEmi: UTC/);assert.match(result,/registrado: -0.5 s/);
  for(const privateValue of [signed.xml,signed.id,holder.certificatePem,'11222333000181','11.01'])assert.ok(!result.includes(privateValue));
  const tampered=signed.xml.replace('<cTribNac>010101','<cTribNac>private-invalid');
  const hashFailure=(await inspectStoredDps({...snapshot,xml:tampered})).join('\n');assert.match(hashFailure,/Hash do XML original: divergente/);assert.ok(!hashFailure.includes('XSD homologação'));

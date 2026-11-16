@@ -129,7 +129,8 @@ export function readCompressedNfse(value: unknown): string | null {
 }
 export function definitiveRejection(status: number, body: ObjectValue | null, contract: SupportedNfseContract,expectedDpsId?:string): boolean {
   const shape=contract.rejections[String(status)];
-  if (![400,403,422].includes(status) || !body || !shape || body.chaveAcesso!==undefined || body.nfseXmlGZipB64!==undefined) return false;
+  // An explicitly null optional success field contains no document/key. Any non-null marker is contradictory.
+  if (![400,403,422].includes(status) || !body || !shape || body.chaveAcesso!=null || body.nfseXmlGZipB64!=null) return false;
   // Optional identity can be null when the XML was rejected before extracting it.
   if(['idDps','idDPS'].some(key=>Object.hasOwn(body,key)&&body[key]!==null&&body[key]!==undefined&&body[key]!==expectedDpsId))return false;
   const errors = body[shape.errorsKey];

@@ -1,0 +1,14 @@
+{
+  "checked_on": "2026-11-16",
+  "source": "https://www.gov.br/nfse/pt-br/biblioteca/documentacao-tecnica/producao-restrita/anexo_i-sefin_adn-dps_nfse-snnfse_prodrest-v1-01-20261020.xlsx",
+  "sha256": "72b05981c8882cdd807f3acf901b669465360f9cf1b9d9e235ac4363dacfb2d8",
+  "sheet": "RN DPS_NFS-e 1.01",
+  "xlsx_row": 153,
+  "rule": 150,
+  "field": "dhEmi",
+  "code": "E0008",
+  "description": "A data de emissão da DPS deve ser anterior ou igual à data e hora do seu processamento (dhProc) pelo Sistema Nacional NFS-e.",
+  "timezone_schema": "tiposSimples_v1.01.xsd / TSDateTimeUTC accepts an explicit TZD. Schema hashes in homologation-20261020.provenance.json.",
+  "application_policy": "Serialize the current instant in America/Sao_Paulo with its explicit offset, truncating milliseconds only. Do not change competence, invent dhProc, subtract a safety interval, or rewrite a signed historical request.",
+  "limits": "The reported E0008 proves the rejection code, not the underlying cause of the temporal comparison. Previous XML used UTC +00:00. Equal instants in UTC and Sao Paulo should compare equally in a timezone-aware service. The first response processing timestamp and success-field nullability were not retained and cannot be inferred from the code alone."
+}

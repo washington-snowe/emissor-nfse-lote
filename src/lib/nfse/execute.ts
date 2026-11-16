@@ -2,6 +2,7 @@ import { buildDps, type FiscalPerson } from "./dps.ts";
 import { parseFiscalProfile } from "./profile.ts";
 import { NFSE_BASES, type NfseEnvironment } from "./http.ts";
 import { dpsTransportBody, readFiscalJson, readCompressedNfse, definitiveRejection, type SupportedNfseContract } from "./api-contract.ts";
+import {fiscalEmissionTime} from './emission-time.ts';
 
 export type FiscalJob = {
   id: string; tenant_id: string; company_id: string; lease_token: string; mode: "prepare" | "reconcile";
@@ -49,7 +50,7 @@ export async function executeFiscalJob(job: FiscalJob, deps: Dependencies) {
       if ("blocked" in identity) { await deps.release(identity.blocked); return; }
       dpsId = identity.id;
       const built = buildDps({ environment: "homologation", issuerCnpj: job.issuer_cnpj, profile, dpsNumber: identity.number,
-        competenceDate: job.competence_date, emissionTime: new Date().toISOString().replace(/\.\d{3}Z$/, "+00:00"), amount: job.amount,
+        competenceDate: job.competence_date, emissionTime: fiscalEmissionTime(), amount: job.amount,
         recipient: job.recipient, intermediary: job.intermediary ?? undefined, foreignAmount: job.foreign_amount ?? undefined });
       if (built.id !== dpsId) { await deps.release("invalid_xml"); return; }
       signedDps = deps.sign(built.xml, built.id, material.privateKeyPem, material.certificatePem);

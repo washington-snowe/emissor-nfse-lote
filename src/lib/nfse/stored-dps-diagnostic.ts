@@ -3,9 +3,10 @@ import {verifyDpsSignature} from './signature.ts';
 import {inspectFiscalDocuments} from './schema.ts';
 import {MAX_FISCAL_XML_BYTES,parseFiscalXml,directElements} from './xml.ts';
 import {NFSE_NAMESPACE} from './dps.ts';
+import {emissionTimeReport} from './emission-time.ts';
 
 /** Inspect the immutable original snapshot in memory. No rebuilding, A1, HTTP or state changes. */
-export async function inspectStoredDps(snapshot:unknown):Promise<string[]>{
+export async function inspectStoredDps(snapshot:unknown,dispatchAt?:string):Promise<string[]>{
  const unavailable=['XML original: indisponível para análise local.'];
  if(!snapshot||typeof snapshot!=='object'||Array.isArray(snapshot))return unavailable;
  const {xml,sha256,id,certificatePem}=snapshot as Record<string,unknown>;
@@ -23,6 +24,8 @@ export async function inspectStoredDps(snapshot:unknown):Promise<string[]>{
   lines.push(`Identidade do XML: ${root.namespaceURI===NFSE_NAMESPACE&&root.localName==='DPS'&&infos.length===1&&infos.item(0)!.getAttribute('Id')===id?'confere':'divergente'}.`);
   const purposes=infos.length===1?directElements(infos.item(0)!,NFSE_NAMESPACE,'finNFSe'):[];
   lines.push(`Finalidade regular finNFSe em infDPS: ${!purposes.length?'ausente':purposes.length===1&&purposes[0].textContent==='0'?'presente':'não reconhecida'}.`);
+  const emission=infos.length===1?directElements(infos.item(0)!,NFSE_NAMESPACE,'dhEmi'):[];
+  lines.push(...emissionTimeReport(emission.length===1?emission[0].textContent:null,dispatchAt));
  }catch{return [...lines,'Estrutura XML: inválida ou fora dos limites locais.'];}
  lines.push(`Assinatura com o certificado público original: ${verifyDpsSignature(xml,id,certificatePem)?'confere':'não validada'}.`);
  const schema=await inspectFiscalDocuments([xml],'DPS','homologation-20261020');

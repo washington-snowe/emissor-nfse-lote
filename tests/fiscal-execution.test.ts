@@ -38,12 +38,27 @@ function scenario(mode: "prepare" | "reconcile" = "prepare") {
   return { job, deps, events, finishes, pfx };
 }
 test("pipeline local sintético persiste intenção antes do único POST e exige recibo íntegro", async () => {
-  const s = scenario(); await executeFiscalJob(s.job, s.deps);
+  const s = scenario();const begin=s.deps.begin;const start=Date.now();let emission=NaN;
+  s.deps.begin=async(material,xml)=>{
+   const dhEmi=/<dhEmi>([^<]+)<\/dhEmi>/.exec(xml)![1];assert.match(dhEmi,/-03:00$/);emission=Date.parse(dhEmi);
+   assert.ok(xml.includes('<dCompet>'+s.job.competence_date+'</dCompet>'));return begin(material,xml);
+  };
+  await executeFiscalJob(s.job, s.deps);
+  assert.ok(emission>=Math.floor(start/1000)*1000&&emission<=Date.now(),'no artificial backdating or future shift');
   assert.ok(s.events.indexOf("persist-send-intent") < s.events.indexOf("POST"));
   assert.ok(s.events.indexOf("verify-holder") < s.events.indexOf("reserve-number"));
   assert.equal(s.events.filter(event => event === "POST").length, 1);
   assert.deepEqual(s.finishes, ["authorized"]);
   assert.ok(s.pfx.every(byte => byte === 0));
+});
+
+test('HTTP400 E0008 com campos de sucesso nulos termina rejeitado; documento não nulo ou E0014 mantém incerteza',async()=>{
+ const raw=JSON.parse(readFileSync(new URL('../integrations/nfse/contracts/sefin-homologation-v1.structural.json',import.meta.url),'utf8'));
+ for(const [extra,expected] of [[{chaveAcesso:null,nfseXmlGZipB64:null},'rejected'],[{chaveAcesso:''},'uncertain'],[{nfseXmlGZipB64:'unexpected'},'uncertain'],[{erros:[{codigo:'E0014'}]},'uncertain']] as const){
+  const s=scenario();s.deps.contract=supportedNfseContract(raw)!;
+  s.deps.request=async(method)=>{s.events.push(method);return {status:400,body:Buffer.from(JSON.stringify({tipoAmbiente:2,idDPS:signed.id,erros:[{codigo:'E0008'}],...extra}))};};
+  await executeFiscalJob(s.job,s.deps);assert.deepEqual(s.finishes,[expected]);assert.equal(s.events.filter(x=>x==='POST').length,1);
+ }
 });
 test("contrato oficial capturado prevê HTTP 201 e ainda exige a verificação do documento", async () => {
   const official = JSON.parse(readFileSync(new URL("../integrations/nfse/contracts/sefin-homologation-v1.structural.json", import.meta.url), "utf8"));

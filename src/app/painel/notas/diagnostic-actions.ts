@@ -2,7 +2,7 @@
 import {requireWorkspace} from '@/lib/tenancy-server';
 import {fiscalOperationReport} from '@/lib/nfse/operation-report';
 import {createAdminClient} from '@/lib/supabase/admin';
-import {hasStoredSchemaRejection} from '@/lib/nfse/durable-report';
+import {needsStoredDpsInspection,storedContractReport} from '@/lib/nfse/durable-report';
 import {inspectStoredDps} from '@/lib/nfse/stored-dps-diagnostic';
 export async function getFiscalOperationDiagnostic(id:string):Promise<{error?:string;details?:string}>{
  const {client,context}=await requireWorkspace();
@@ -15,13 +15,18 @@ export async function getFiscalOperationDiagnostic(id:string):Promise<{error?:st
  const traces=await client.rpc('fiscal_transport_diagnostic_report',{p_operation:operation.data.id});
  if(traces.error&&!['PGRST202','42883'].includes(traces.error.code))return {error:'Não foi possível ler o diagnóstico técnico da operação.'};
  let details=fiscalOperationReport(operation.data,events.data??[],process.env.VERCEL_GIT_COMMIT_SHA,Array.isArray(traces.data)?traces.data:null);
- if(hasStoredSchemaRejection(traces.data)){
+ if(needsStoredDpsInspection(traces.data)){
   const admin=createAdminClient();
   if(!admin)details+='\nXML original: análise local indisponível.';
   else{
    const snapshot=await admin.rpc('fiscal_xml_snapshot_for_diagnostic',{p_actor:context.user.id,p_operation:operation.data.id});
    if(snapshot.error)details+='\nXML original: '+(['PGRST202','42883'].includes(snapshot.error.code)?'análise local aguardando atualização do banco.':'análise local indisponível.');
-   else details+='\n'+(await inspectStoredDps(snapshot.data)).join('\n');
+   else{
+    const dispatch=(events.data??[]).find(event=>event.event==='fiscal.dispatch_started')?.created_at;
+    details+='\n'+(await inspectStoredDps(snapshot.data,dispatch)).join('\n');
+   }
+   const contract=await admin.rpc('fiscal_contract',{p_environment:'homologation'});
+   details+='\n'+(contract.error?['Contrato SEFIN atual: leitura indisponível.']:storedContractReport(contract.data)).join('\n');
   }
  }
  return {details};

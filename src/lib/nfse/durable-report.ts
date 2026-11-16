@@ -1,4 +1,5 @@
 import {SCHEMA_FIELDS} from './schema-evidence.ts';
+import {supportedNfseContract} from './api-contract.ts';
 const object=(value:unknown):Record<string,unknown>=>value&&typeof value==='object'&&!Array.isArray(value)?value as Record<string,unknown>:{};
 const formats:Record<string,string>={empty:'vazio',json_object:'JSON',html:'HTML',other:'outro formato'};
 const environments:Record<string,string>={number_0:'ambiente 0',number_1:'produção',number_2:'homologação',missing:'ambiente ausente',other:'ambiente não reconhecido'};
@@ -25,6 +26,7 @@ export function durableFiscalReport(traces:unknown[]|null|undefined){
     const fields=Array.isArray(data.xsdFields)?data.xsdFields.filter(field=>SCHEMA_FIELDS.some(name=>name===field)).slice(0,10):[];
     lines.push(`Campos informados pela SEFIN: ${fields.length?fields.join(', '):'não preservados ou não identificados'}.`);
    }
+   if(codes.includes('E0008'))lines.push('E0008: a SEFIN considerou dhEmi posterior à data/hora do processamento (definição oficial).');
    const identities:Record<string,string>={missing:'ausente',null:'nula',matching:'corresponde à operação',mismatch:'diferente da operação',invalid:'formato não reconhecido'};
    if(typeof data.dpsIdentity==='string'&&Object.hasOwn(identities,data.dpsIdentity))lines.push(`Identidade na resposta: ${identities[data.dpsIdentity]}.`);
    if(typeof data.serverVersion==='string'&&/^SefinNacional_[0-9]{1,2}(\.[0-9]{1,6}){1,5}$/.test(data.serverVersion))lines.push(`Versão informada pelo serviço: ${data.serverVersion}.`);
@@ -36,4 +38,14 @@ export function durableFiscalReport(traces:unknown[]|null|undefined){
 }
 export function hasStoredSchemaRejection(traces:unknown):boolean{
  return Array.isArray(traces)&&traces.slice(0,21).some(value=>{const row=object(value),data=object(row.data);return row.stage==='submit'&&data.phase==='response'&&Array.isArray(data.codes)&&data.codes.includes('E1235');});
+}
+export function needsStoredDpsInspection(traces:unknown):boolean{
+ return hasStoredSchemaRejection(traces)||Array.isArray(traces)&&traces.slice(0,21).some(value=>{const row=object(value),data=object(row.data);return row.stage==='submit'&&data.phase==='response'&&Array.isArray(data.codes)&&data.codes.includes('E0008');});
+}
+export function storedContractReport(raw:unknown):string[]{
+ const contract=supportedNfseContract(raw);
+ if(!contract)return ['Contrato SEFIN atual: adaptador não reconhecido.'];
+ const statuses=['400','403','422'].filter(status=>Object.hasOwn(contract.rejections,status));
+ return ['Contrato SEFIN atual: adaptador reconhecido.',`Status com rejeição fiscal reconhecida no contrato atual: ${statuses.map(status=>'HTTP '+status).join(', ')||'nenhum'}.`,
+  'O contrato atual não recupera o envelope original nem reclassifica esta operação.'];
 }
