@@ -4,7 +4,7 @@ import { basename, join } from "node:path";
 import { Worker } from "node:worker_threads";
 import { parseFiscalXml, singleElement } from "./xml.ts";
 import { NFSE_NAMESPACE } from "./dps.ts";
-import { SCHEMA_FIELDS } from './schema-evidence.ts';
+import { LOCAL_SCHEMA_FIELDS } from './schema-evidence.ts';
 
 type SchemaFile = { fileName: string; contents: string };
 export type FiscalSchemaRevision='homologation-20261020'|'production-20260209';
@@ -62,7 +62,7 @@ export async function inspectFiscalDocuments(xmls: string[], kind: "DPS" | "NFSe
     const schema = files.find(file => file.fileName === `${kind}_v1.01.xsd`)!;
     return await new Promise<{valid:boolean;completed:boolean;fields:string[]}>(resolve => {
       const worker = new Worker(join(process.cwd(), "server/schema-worker.cjs"), {
-        workerData: { xmls, schema, preload: files.filter(file => file !== schema), diagnosticFields:SCHEMA_FIELDS },
+        workerData: { xmls, schema, preload: files.filter(file => file !== schema), diagnosticFields:LOCAL_SCHEMA_FIELDS },
         resourceLimits: { maxOldGenerationSizeMb: 32, maxYoungGenerationSizeMb: 8, stackSizeMb: 2 },
       });
       let finished = false;
@@ -74,7 +74,7 @@ export async function inspectFiscalDocuments(xmls: string[], kind: "DPS" | "NFSe
         resolve(result);
       };
       const timer = setTimeout(() => finish(unavailable), 8000);
-      worker.once("message", result => finish({valid:result?.valid===true,completed:typeof result?.valid==='boolean',fields:Array.isArray(result?.fields)?result.fields.filter((field:unknown)=>SCHEMA_FIELDS.some(name=>name===field)).slice(0,10):[]}));
+      worker.once("message", result => finish({valid:result?.valid===true,completed:typeof result?.valid==='boolean',fields:Array.isArray(result?.fields)?result.fields.filter((field:unknown)=>LOCAL_SCHEMA_FIELDS.some(name=>name===field)).slice(0,10):[]}));
       worker.once("error", () => finish(unavailable));
       worker.once("exit", () => finish(unavailable));
     });

@@ -42,6 +42,7 @@ test('snapshot alterado ou titular alheio não permite consulta; identidade/chav
 test('diagnóstico distingue XSD, status e integridade sem flexibilizar a validação fiscal',async()=>{
  let s=scenario();s.h.document=s.h.document.replace('<cTribNac>010101','<cTribNac>PRIVATE_BAD_VALUE');let result=await s.run();
  assert.equal(result.verified,false);assert.match(result.details,/XSD da NFS-e: estrutura recusada/);assert.ok(!result.details.includes('PRIVATE_BAD_VALUE'));
+ s=scenario();s.h.document=s.h.document.replace('<cStat>107','<cStat>PRIVATE_BAD_STATUS');result=await s.run();assert.equal(result.verified,false);assert.match(result.details,/Campos apontados pelo XSD da NFS-e: cStat/);assert.ok(!result.details.includes('PRIVATE_BAD_STATUS'));
  s=scenario();s.h.document=nfseFixture(signed.xml,service,key,'103');result=await s.run();assert.equal(result.verified,false);assert.match(result.details,/Código fiscal cStat: 103/);
  s=scenario();s.h.document=s.h.document.replace('<vServ>11.01','<vServ>11.02');result=await s.run();assert.equal(result.verified,false);assert.match(result.details,/Referência da DPS retornada: não validado/);
  const expected={dpsId:signed.id,signedDps:signed.xml,holderCert:holder.certificatePem,issuerCnpj:'11222333000181',accessKey:key};

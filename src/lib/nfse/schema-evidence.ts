@@ -1,5 +1,7 @@
 // Public XML field names only; raw validation messages and values never leave this boundary.
 export const SCHEMA_FIELDS=['DPS','infDPS','Id','versao','tpAmb','dhEmi','verAplic','serie','nDPS','dCompet','tpEmit','cLocEmi','prest','CNPJ','CPF','IM','fone','email','regTrib','opSimpNac','regApTribSN','regEspTrib','toma','xNome','end','endNac','cMun','CEP','xLgr','nro','xCpl','xBairro','serv','locPrest','cLocPrestacao','cServ','cTribNac','cTribMun','xDescServ','cNBS','valores','vServPrest','vServ','trib','tribMun','tribISSQN','tpRetISSQN','totTrib','indTotTrib','Signature','SignedInfo','CanonicalizationMethod','SignatureMethod','Reference','Transforms','Transform','DigestMethod','DigestValue','SignatureValue','KeyInfo','X509Data','X509Certificate'] as const;
+// Local inspection only; the persisted ledger vocabulary above stays compatible with migration19.
+export const LOCAL_SCHEMA_FIELDS=[...SCHEMA_FIELDS,'finNFSe','NFSe','infNFSe','xLocEmi','xLocPrestacao','nNFSe','cLocIncid','xLocIncid','xTribNac','xTribMun','xNBS','ambGer','tpEmis','procEmi','cStat','dhProc','nDFSe','emit','enderNac','UF','vLiq'] as const;
 export function schemaFieldsFromMessage(message:unknown):string[]{
  if(typeof message!=='string'||message.length>16384)return [];
  const found:string[]=[];
