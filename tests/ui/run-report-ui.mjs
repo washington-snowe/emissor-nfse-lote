@@ -504,6 +504,7 @@ try {
     await uncertain.getByText('Diagnóstico da emissão copiado.',{exact:true}).waitFor();
     assert.equal(await page.evaluate(()=>window.workflowUiTest.calls),callsBefore,'diagnostic must not resume or enqueue');
     assert.ok(await page.evaluate(()=>window.workflowUiTest.clipboard.includes('nfse-operation-v2')));
+    assert.ok(await page.evaluate(()=>window.workflowUiTest.clipboard.includes('Hash do XML original: confere.')));
     await uncertain.getByRole('button', { name: 'Consultar novamente' }).click();
     await uncertain.getByRole('status').filter({ hasText: 'Ação sintética resume' }).waitFor();
     assert.equal(await page.locator('.fiscal-operation').nth(2).getByRole('button').count(), 0);

@@ -24,12 +24,15 @@ export async function processFiscalJobs(tenantId?: string, deadline = Date.now()
   const contract = supportedNfseContract(contractResult.data);
   const diagnostics=await admin.rpc("fiscal_diagnostics_ready");
   const diagnosticsReady=!diagnostics.error&&diagnostics.data===true;
+  const schemaDiagnostics=await admin.rpc("fiscal_schema_diagnostics_ready");
+  const schemaDiagnosticsReady=!schemaDiagnostics.error&&schemaDiagnostics.data===true;
   if (!enabled || !contract) await rpc("block_fiscal_dependencies", { p_tenant: tenantId ?? null, p_company: null,
     p_reason: !enabled ? "transmission_disabled" : "contract_missing" });
   if (!contract) return { processed: 0, available: true };
   const claimed = await rpc("claim_fiscal_jobs", { p_tenant: tenantId ?? null, p_limit: 1, p_reconcile_only: !enabled||!diagnosticsReady });
   const job = claimed?.[0] as FiscalJob | undefined;
   if (!job) return { processed: 0, available: true };
+  let expectedDpsId=job.dps_id??undefined;
   const observations:{stage:unknown;data:Record<string,unknown>}[]=[];
   await executeFiscalJob(job, {
     contract, remainingMs: () => deadline - Date.now(), sign: signDps, validate: xml => validateFiscalSchema(xml, "DPS"),
@@ -37,6 +40,7 @@ export async function processFiscalJobs(tenantId?: string, deadline = Date.now()
       const result = await admin.rpc("reserve_fiscal_identity", { p_operation: job.id, p_token: job.lease_token, p_certificate: material.certificateId });
       if (result.error?.code === "23505") return { blocked: "source_duplicate" };
       if (result.error) throw new Error("Fiscal identity unavailable");
+      if(typeof result.data?.id==='string')expectedDpsId=result.data.id;
       return result.data;
     },
     loadMaterial: async () => {
@@ -68,11 +72,12 @@ export async function processFiscalJobs(tenantId?: string, deadline = Date.now()
     release: reason => rpc("release_fiscal_preparation", { p_operation: job.id, p_token: job.lease_token, p_reason: reason }),
     request: (method, url, material, body) => {
       const timeoutMs=fiscalRequestTimeout(method,deadline-Date.now());
-      return observedFiscalRequest({operationId:job.id,stage:method==="POST"?"submit":url.includes("/dps/")?"dps_lookup":"nfse_lookup",timeoutMs},
+      return observedFiscalRequest({operationId:job.id,stage:method==="POST"?"submit":url.includes("/dps/")?"dps_lookup":"nfse_lookup",timeoutMs,expectedDpsId},
         ()=>nfseRequest("homologation",method,url,material,body,timeoutMs),event=>{
           // The intent already exists. Retain final metadata for the atomic outcome RPC.
           if(event.phase!=="start"){
-            const data=Object.fromEntries(Object.entries(event).filter(([key])=>["phase","http","format","environment","codes","transport","elapsedMs"].includes(key)));
+            const allowed=["phase","http","format","environment","codes","transport","elapsedMs",...(schemaDiagnosticsReady?["xsdFields","dpsIdentity","serverVersion"]:[])];
+            const data=Object.fromEntries(Object.entries(event).filter(([key])=>allowed.includes(key)));
             observations.push({stage:event.stage,data});
           }
           console.info(JSON.stringify(event));

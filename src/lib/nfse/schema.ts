@@ -4,6 +4,7 @@ import { basename, join } from "node:path";
 import { Worker } from "node:worker_threads";
 import { parseFiscalXml, singleElement } from "./xml.ts";
 import { NFSE_NAMESPACE } from "./dps.ts";
+import { SCHEMA_FIELDS } from './schema-evidence.ts';
 
 type SchemaFile = { fileName: string; contents: string };
 let cached: Promise<SchemaFile[]> | undefined;
@@ -33,39 +34,45 @@ export async function validateFiscalSchema(xml: string, kind: "DPS" | "NFSe"): P
 }
 
 export async function validateFiscalDocuments(xmls: string[], kind: "DPS" | "NFSe"): Promise<boolean> {
-  if (kind !== "DPS" && kind !== "NFSe") return false;
+  return (await inspectFiscalDocuments(xmls,kind)).valid;
+}
+
+/** Fixed field names only; raw XSD output may contain taxpayer data. */
+export async function inspectFiscalDocuments(xmls: string[], kind: "DPS" | "NFSe"):Promise<{valid:boolean;completed:boolean;fields:string[]}> {
+  const unavailable={valid:false,completed:false,fields:[] as string[]};
+  if (kind !== "DPS" && kind !== "NFSe") return unavailable;
   try {
-    if (!Array.isArray(xmls) || xmls.length < 1 || xmls.length > 500 || xmls.reduce((size, xml) => size + Buffer.byteLength(xml), 0) > 4_000_000) return false;
+    if (!Array.isArray(xmls) || xmls.length < 1 || xmls.length > 500 || xmls.reduce((size, xml) => size + Buffer.byteLength(xml), 0) > 4_000_000) return unavailable;
     for (const xml of xmls) {
       const doc = parseFiscalXml(xml);
-      if (doc.documentElement!.localName !== kind || doc.documentElement!.namespaceURI !== NFSE_NAMESPACE) return false;
+      if (doc.documentElement!.localName !== kind || doc.documentElement!.namespaceURI !== NFSE_NAMESPACE) return {valid:false,completed:true,fields:[kind]};
       const dps = doc.getElementsByTagNameNS(NFSE_NAMESPACE, "infDPS");
-      if (dps.length !== 1) return false;
+      if (dps.length !== 1) return {valid:false,completed:true,fields:['infDPS']};
       const series = singleElement(dps.item(0)!, NFSE_NAMESPACE, "serie").textContent ?? "";
-      if (!/^\d{5}$/.test(series) || BigInt(series) < 1n || BigInt(series) > 49999n) return false;
+      if (!/^\d{5}$/.test(series) || BigInt(series) < 1n || BigInt(series) > 49999n) return {valid:false,completed:true,fields:['serie']};
     }
     cached ??= schemas().catch(error => { cached = undefined; throw error; });
     const files = await cached;
     const schema = files.find(file => file.fileName === `${kind}_v1.01.xsd`)!;
-    return await new Promise<boolean>(resolve => {
+    return await new Promise<{valid:boolean;completed:boolean;fields:string[]}>(resolve => {
       const worker = new Worker(join(process.cwd(), "server/schema-worker.cjs"), {
-        workerData: { xmls, schema, preload: files.filter(file => file !== schema) },
+        workerData: { xmls, schema, preload: files.filter(file => file !== schema), diagnosticFields:SCHEMA_FIELDS },
         resourceLimits: { maxOldGenerationSizeMb: 32, maxYoungGenerationSizeMb: 8, stackSizeMb: 2 },
       });
       let finished = false;
-      const finish = (valid: boolean) => {
+      const finish = (result:typeof unavailable) => {
         if (finished) return;
         finished = true;
         clearTimeout(timer);
         void worker.terminate();
-        resolve(valid);
+        resolve(result);
       };
-      const timer = setTimeout(() => finish(false), 8000);
-      worker.once("message", result => finish(result?.valid === true));
-      worker.once("error", () => finish(false));
-      worker.once("exit", () => finish(false));
+      const timer = setTimeout(() => finish(unavailable), 8000);
+      worker.once("message", result => finish({valid:result?.valid===true,completed:typeof result?.valid==='boolean',fields:Array.isArray(result?.fields)?result.fields.filter((field:unknown)=>SCHEMA_FIELDS.some(name=>name===field)).slice(0,10):[]}));
+      worker.once("error", () => finish(unavailable));
+      worker.once("exit", () => finish(unavailable));
     });
   } catch {
-    return false;
+    return unavailable;
   }
 }

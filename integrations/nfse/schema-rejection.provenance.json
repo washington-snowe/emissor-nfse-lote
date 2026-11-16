@@ -1,0 +1,12 @@
+{
+  "checked_on": "2026-11-16",
+  "source": "https://www.gov.br/nfse/pt-br/biblioteca/documentacao-tecnica/documentacao-atual/anexo_i-sefin_adn-dps_nfse-snnfse-v1-01-20260209.xlsx",
+  "sha256": "de5bc492959eadc8bfa7540e16939995924f2188f743648eaf84d3b31e9eeb7c",
+  "sheet": "RN_RECEPCAO_DPS",
+  "xlsx_row": 17,
+  "rule": 16,
+  "code": "E1235",
+  "description": "Falha no esquema XML do DF-e.",
+  "effect": "Rej.",
+  "limits": "The code does not identify the offending field, credential eligibility, deployed schema revision or signature acceptance. Local XSD/signature checks are not government authorization. No original response body was supplied by the user."
+}

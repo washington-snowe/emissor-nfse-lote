@@ -19,6 +19,6 @@ export function fiscalOperationReport(operation:OperationReportInput,events:{eve
  `Intervalo entre início e primeiro resultado: ${elapsed>=0&&elapsed<=86_400_000?`${Math.round(elapsed/100)/10} s`:'indisponível'}`,
  ...durableFiscalReport(traces)];
  for(const event of safeEvents)lines.push(`${time(event.created_at)} · ${labels[event.event]}`);
- lines.push('Este relatório só lê o histórico. Não consulta a SEFIN nem envia notas.');
+ lines.push('Este relatório analisa apenas registros já armazenados. Não consulta a SEFIN nem envia notas.');
  return lines.join('\n');
 }

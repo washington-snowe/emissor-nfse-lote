@@ -299,6 +299,11 @@ try:
     trace_count=re.search(r'^TRANSPORT_ASSERTIONS=(\d+)$',trace_result,re.M)
     assert trace_count and int(trace_count[1])>=13
     print(f"Fiscal transport: {trace_count[1]} assertions; 8 concurrent final records -> 1 immutable trace; no HTTP")
+    schema_source=f"select set_config('test.td_operation','{same_operation}',false);"+(ROOT/'tests/database/fiscal-schema-diagnostics.sql').read_text()
+    schema_result=sql(schema_source)
+    schema_count=re.search(r'^SCHEMA_ASSERTIONS=(\d+)$',schema_result,re.M)
+    assert schema_count and int(schema_count[1])>=20
+    print(f"Fiscal schema diagnostics: {schema_count[1]} assertions; private snapshot owner/quota and unchanged state; no HTTP")
 
 
     def lookup(_):

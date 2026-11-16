@@ -123,3 +123,11 @@ test('HTTP403 fiscal documentado termina rejeitado; resposta genérica, estrange
   await executeFiscalJob(s.job,s.deps);assert.deepEqual(s.finishes,[expected]);assert.equal(s.events.filter(x=>x==='POST').length,1);
  }
 });
+test('E1235 com idDPS opcional nulo é rejeição; identidade divergente ou sinais de sucesso preservam incerteza',async()=>{
+ const raw=JSON.parse(readFileSync(new URL('../integrations/nfse/contracts/sefin-homologation-v1.structural.json',import.meta.url),'utf8'));
+ for(const [extra,expected] of [[{idDPS:null},'rejected'],[{idDps:null,idDPS:null},'rejected'],[{idDPS:'foreign'},'uncertain'],[{idDPS:null,idDps:'foreign'},'uncertain'],[{idDPS:null,nfseXmlGZipB64:'unexpected'},'uncertain']] as const){
+  const s=scenario();s.deps.contract=supportedNfseContract(raw)!;
+  s.deps.request=async(method)=>{s.events.push(method);return {status:400,body:Buffer.from(JSON.stringify({tipoAmbiente:2,erros:[{codigo:'E1235'}],...extra}))};};
+  await executeFiscalJob(s.job,s.deps);assert.deepEqual(s.finishes,[expected]);assert.equal(s.events.filter(x=>x==='POST').length,1);
+ }
+});
