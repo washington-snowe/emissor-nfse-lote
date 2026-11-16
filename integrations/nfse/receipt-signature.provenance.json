@@ -1,0 +1,57 @@
+{
+  "checked_on": "2026-11-16",
+  "scope": "Incoming NFSe only, obtained by pinned official mTLS transport. Original DPS signing policy is unchanged.",
+  "sources": [
+    {
+      "url": "https://www.w3.org/TR/xmldsig-core1/",
+      "sha256": "4924a334deb880e7e18b54cd6db037aa6b4d0186e626a26d636c124f8a2e07a3",
+      "sections": [
+        "4.3.1 CanonicalizationMethod",
+        "4.3.3.2 Reference Processing Model",
+        "6.5 Canonicalization Algorithms"
+      ]
+    },
+    {
+      "url": "https://www.w3.org/TR/xml-exc-c14n/",
+      "sha256": "10b1ec71542db546b311a3e600589339505b9099bc60affafa4204ece31807e3",
+      "sections": [
+        "4 Use in XML Security",
+        "InclusiveNamespaces PrefixList"
+      ]
+    },
+    {
+      "file": "integrations/nfse/schemas/homologation/20261020/xmldsig-core-schema.xsd",
+      "sha256": "8c9792a056aedcadfc95bf16f2d7448a35da40df71533e20aea37d0329980c48",
+      "note": "CanonicalizationMethodType requires Algorithm:anyURI. The fiscal XSD must also accept the actual document; do not modify upstream schemas."
+    }
+  ],
+  "implementation": {
+    "package": "xml-crypto",
+    "version": "6.4.0",
+    "source_file": "node_modules/xml-crypto/lib/signed-xml.js",
+    "source_sha256": "96ea596425485c6527a49c1df251b90eef823999c6a1a0f72b5e63e6c0d19154",
+    "note": "Use built-in implementations. loadReference/getCanonXml append inclusive C14N1.0 when the last result is a node-set. No custom algorithm registry or external URI resolution."
+  },
+  "accepted_signed_info_methods": {
+    "http://www.w3.org/TR/2001/REC-xml-c14n-20010315": "C14N 1.0",
+    "http://www.w3.org/TR/2001/REC-xml-c14n-20010315#WithComments": "C14N 1.0 with comments",
+    "http://www.w3.org/2001/10/xml-exc-c14n#": "Exclusive C14N 1.0",
+    "http://www.w3.org/2001/10/xml-exc-c14n#WithComments": "Exclusive C14N 1.0 with comments"
+  },
+  "reference_chains": [
+    "No explicit transforms: full local target with implicit C14N1.0",
+    "Enveloped signature, with implicit C14N1.0",
+    "One accepted C14N transform",
+    "Enveloped signature followed by one accepted C14N transform"
+  ],
+  "required_checks": [
+    "RSA-SHA256 signature and SHA256 digest",
+    "Exactly one Reference with URI equal to #NFS plus the known access key",
+    "No XPath/XSLT, external references, custom transformations or unknown methods",
+    "Explicit parameter validation; official XSD still required. InclusiveNamespaces parameters may be refused by the pinned schema even if otherwise standard.",
+    "Certificate validity at processing and real cryptographic signature/digest verification",
+    "Exactly one verified signed infNFSe matching the expected key, issuer, fiscal status and full original DPS reference/content"
+  ],
+  "observation": "User nfse-receipt-v1 f045579 / b8333bad15826614: original DPS, returned XSD/key/issuer/cStat107/DPS content all match; reply RSA-SHA256 and digest SHA256; canonicalization label unknown under the old two-label diagnostic and old one-method policy. Exact reply URI was not supplied.",
+  "limits": "Standards-compatible signatures are still required to verify cryptographically. This is not authorization by method label or HTTP status. Unsupported C14N1.1/unknown methods stay rejected; DTD, entities, comment-node parser restrictions and original DPS signature policy remain. Existing stored signed XML is not edited and no POST is repeated."
+}

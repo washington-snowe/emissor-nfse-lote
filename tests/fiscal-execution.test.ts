@@ -114,6 +114,22 @@ test("reconciliação local usa somente GET e permite XML sem repetir chave no e
   assert.deepEqual(s.events.filter(event => event === "GET" || event === "POST"), ["GET", "GET"]);
   assert.deepEqual(s.finishes, ["authorized"]);
 });
+test('reconciliação confirma NFS-e com C14N com comentários na mesma DPS, usando somente GET',async()=>{
+ const s=scenario('reconcile'),originalId=s.job.dps_id,originalXml=s.job.signed_dps_xml;
+ s.deps.request=async(method,url)=>{
+  s.events.push(method);assert.equal(method,'GET');
+  if(url.includes('/dps/'))return {status:200,body:Buffer.from(JSON.stringify({tipoAmbiente:2,chaveAcesso:accessKey,versaoAplicativo:'SefinNacional_1.6.0'}))};
+  const xml=nfseFixture(s.job.signed_dps_xml!,service,accessKey,'107',{
+   canonicalization:'http://www.w3.org/TR/2001/REC-xml-c14n-20010315#WithComments',
+   transforms:['http://www.w3.org/2000/09/xmldsig#enveloped-signature'],
+  });
+  return {status:200,body:Buffer.from(JSON.stringify({nfseXmlGZipB64:gzipSync(Buffer.from(xml)).toString('base64')}))};
+ };
+ await executeFiscalJob(s.job,s.deps);assert.deepEqual(s.finishes,['authorized']);
+ assert.deepEqual(s.events.filter(event=>event==='GET'||event==='POST'),['GET','GET']);
+ assert.ok(!s.events.includes('reserve-number'));assert.ok(!s.events.includes('persist-send-intent'));
+ assert.equal(s.job.dps_id,originalId);assert.equal(s.job.signed_dps_xml,originalXml);assert.ok(s.pfx.every(byte=>byte===0));
+});
 test("404 e duplicidade E0014 não liberam retransmissão", async () => {
   const reconcile = scenario("reconcile"); reconcile.deps.request = async () => ({ status: 404, body: Buffer.from("{}") });
   await executeFiscalJob(reconcile.job, reconcile.deps); assert.deepEqual(reconcile.finishes, ["not_found"]);

@@ -6,6 +6,7 @@ import { NFSE_NAMESPACE } from "./dps.ts";
 import { verifiedDpsReference, unsignedDpsReference } from "./signature.ts";
 import { inspectFiscalDocuments } from "./schema.ts";
 import type {Element} from '@xmldom/xmldom';
+import {allowsNfseCanonicalization,allowsNfseReferenceTransforms,nfseCanonicalizationLabel,nfseReferenceTransformLabels} from './receipt-signature-policy.ts';
 
 export type ExpectedNfse={ dpsId: string; signedDps: string; holderCert: string; issuerCnpj: string; accessKey: string };
 type ReceiptObserver=(line:string)=>void;
@@ -14,8 +15,6 @@ const algorithms:Record<string,string>={
  'http://www.w3.org/2000/09/xmldsig#rsa-sha1':'RSA-SHA1',
  'http://www.w3.org/2001/04/xmlenc#sha256':'SHA256',
  'http://www.w3.org/2000/09/xmldsig#sha1':'SHA1',
- 'http://www.w3.org/TR/2001/REC-xml-c14n-20010315':'C14N 1.0',
- 'http://www.w3.org/2001/10/xml-exc-c14n#':'C14N exclusiva',
 };
 // Diagnostic only: no XML normalization is used to accept a document.
 function namespaceContextOnly(a:string,b:string):boolean{
@@ -79,15 +78,18 @@ export async function verifyOfficialNfseContents(xml: string, expected:ExpectedN
     stage='estrutura da assinatura da NFS-e';
     const signature = singleElement(root, DSIG_NAMESPACE, "Signature"), signedInfo = singleElement(signature, DSIG_NAMESPACE, "SignedInfo");
     const reference = singleElement(signedInfo, DSIG_NAMESPACE, "Reference");
-    const transforms = directElements(singleElement(reference, DSIG_NAMESPACE, "Transforms"), DSIG_NAMESPACE, "Transform");
-    for(const [label,uri] of [['Método da assinatura da NFS-e',singleElement(signedInfo,DSIG_NAMESPACE,'SignatureMethod').getAttribute('Algorithm')],['Digest da NFS-e',singleElement(reference,DSIG_NAMESPACE,'DigestMethod').getAttribute('Algorithm')],['Canonicalização da NFS-e',singleElement(signedInfo,DSIG_NAMESPACE,'CanonicalizationMethod').getAttribute('Algorithm')]])
+    const transformContainers=directElements(reference,DSIG_NAMESPACE,'Transforms');
+    const transforms=transformContainers.length===1?directElements(transformContainers[0],DSIG_NAMESPACE,'Transform'):[];
+    const canonicalization=singleElement(signedInfo,DSIG_NAMESPACE,'CanonicalizationMethod');
+    for(const [label,uri] of [['Método da assinatura da NFS-e',singleElement(signedInfo,DSIG_NAMESPACE,'SignatureMethod').getAttribute('Algorithm')],['Digest da NFS-e',singleElement(reference,DSIG_NAMESPACE,'DigestMethod').getAttribute('Algorithm')]])
       note(`${label}: ${uri&&Object.hasOwn(algorithms,uri)?algorithms[uri]:'não reconhecido'}.`);
+    note(`Canonicalização da NFS-e: ${nfseCanonicalizationLabel(canonicalization.getAttribute('Algorithm'))}.`);
+    note(`Transformações da referência: ${nfseReferenceTransformLabels(transforms).join(' + ')}.`);
     if (singleElement(signedInfo, DSIG_NAMESPACE, "SignatureMethod").getAttribute("Algorithm") !== "http://www.w3.org/2001/04/xmldsig-more#rsa-sha256" ||
-      singleElement(signedInfo, DSIG_NAMESPACE, "CanonicalizationMethod").getAttribute("Algorithm") !== "http://www.w3.org/TR/2001/REC-xml-c14n-20010315" ||
+      !allowsNfseCanonicalization(canonicalization) ||
       singleElement(reference, DSIG_NAMESPACE, "DigestMethod").getAttribute("Algorithm") !== "http://www.w3.org/2001/04/xmlenc#sha256" ||
-      reference.getAttribute("URI") !== `#NFS${expected.accessKey}` || transforms.length !== 2 ||
-      transforms[0].getAttribute("Algorithm") !== "http://www.w3.org/2000/09/xmldsig#enveloped-signature" ||
-      transforms[1].getAttribute("Algorithm") !== "http://www.w3.org/TR/2001/REC-xml-c14n-20010315") {check('Política da assinatura da NFS-e',false);return null;}
+      reference.getAttribute("URI") !== `#NFS${expected.accessKey}` || transformContainers.length>1 ||
+      !allowsNfseReferenceTransforms(transforms)) {check('Política da assinatura da NFS-e',false);return null;}
     check('Política da assinatura da NFS-e',true);
     const certificates = signature.getElementsByTagNameNS(DSIG_NAMESPACE, "X509Certificate");
     if(!check('Certificado público único da NFS-e',certificates.length===1))return null;
