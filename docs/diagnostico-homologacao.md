@@ -1,5 +1,17 @@
 # Diagnóstico de acesso com A1
 
+## Bloqueio atual: GET SEFIN 404 não reconhecido
+
+O usuário informou `SEFIN · homologação · sefin_unavailable · HTTP 404` na verificação automática e uma operação parada antes da reserva da DPS. Isso é diferente do 404 auxiliar do ADN descrito abaixo. O pipeline automático abriu o material e recebeu uma resposta, mas o retorno não passou na validação do contrato; ainda não sabemos se é uma resposta genérica de rota, ambiente incorreto ou divergência estrutural. Não concluir falta de credenciamento nem pedir novo A1 com base nesse status.
+
+O motivo legado `certificate_unavailable` da fila também cobre falhas ao verificar/registrar o acesso SEFIN. Sua apresentação passa a explicar as duas possibilidades, sem afirmar que o arquivo protegido desapareceu. Nenhuma regra de aceitação, rota, prova de transporte ou guard de numeração foi alterado.
+
+Na mesma empresa em **Empresa → Certificado**, o botão opcional **Gerar diagnóstico da SEFIN** executa somente o GET de identidade própria pelo mesmo pipeline da verificação automática. **Copiar diagnóstico SEFIN** fornece `nfse-sefin-v2`: carregamento local, resultado, HTTP, categoria do formato, categoria de ambiente, estrutura de erro, até dez códigos `Edddd`, presença de mensagem genérica e correspondência da identidade, sem exportar seu valor. Não inclui mensagens originais, corpo, URL completa, CNPJ, A1, senha ou chaves. A sessão e a propriedade do certificado/empresa são revalidadas antes da quota, abertura do A1 e consulta; aplica-se o limite existente de dez verificações por dez minutos.
+
+O diagnóstico não registra sucesso fiscal, não reserva número, não atualiza a fila e não transmite notas. A verificação automática continua sendo o fluxo principal. Nenhuma migração nova ou reenvio do A1 é necessário. Precisamos do texto desse diagnóstico na conta real para esclarecer o 404 antes de retomar a mesma operação; testes sintéticos não comprovam a resposta oficial do certificado do usuário.
+
+Validação desta atualização: 118 testes unitários aprovados e seis opt-in ignorados; integração da ação real com fronteiras sintéticas de sessão/banco/Vault/HTTP conferindo isolamento, quota, certificado revogado e ausência de mutação fiscal. Interface e cópia em 1440/390/320, com regressão dos demais fluxos até seis larguras. Lint, TypeScript e build aprovados. Não houve teste com A1 real, execução SQL ou transmissão fiscal pelo executor.
+
 ## Estado atual: documentação capturada e MEI
 
 O diagnóstico seguro enviado pelo usuário mostrou ADN **404 JSON**, índice do portal **200 HTML** e contrato SEFIN **200 JSON capturado**. A empresa foi informada como MEI. A RPC pública confirmou a captura oficial de `https://sefin.producaorestrita.nfse.gov.br/SefinNacional/swagger/docs/v1`, hash original `68980daaac06929bc1b0dd8806b4214dd6d2d1da480fd7278a2c58c8a10ca4d5`, em `2026-11-13T01:35:16.429806+00:00` (noite de 12/11 em São Paulo).

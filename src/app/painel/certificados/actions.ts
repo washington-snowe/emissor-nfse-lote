@@ -13,8 +13,30 @@ import { fiscalProbeFeedback, type FiscalContractStatus } from "@/lib/nfse/probe
 import { supportedNfseContract } from "@/lib/nfse/api-contract";
 import { ensureAutomaticFiscalSetup } from "@/lib/automatic-fiscal-setup";
 import { processCertificateChecks } from "@/lib/certificate-check-jobs";
+import {diagnoseSefinAccess} from "@/lib/nfse/sefin-diagnostic";
+import {nfseGet} from "@/lib/nfse/http";
 
 export type CertificateState = { error?: string; success?: string; notice?: string; details?: string; profileHref?: string };
+export async function diagnoseCertificateSefin(id:string):Promise<CertificateState>{
+  const {client,context}=await requireWorkspace(),admin=createAdminClient();
+  if(!admin||!/^[0-9a-f-]{36}$/i.test(id))return {error:"Diagnóstico indisponível."};
+  const certificate=await client.from("company_certificates").select("id,company_id").eq("id",id).eq("tenant_id",context.tenantId).eq("status","active").maybeSingle();
+  if(certificate.error||!certificate.data)return {error:"Certificado não encontrado no seu espaço."};
+  const company=await client.from("companies").select("id,cnpj,address").eq("id",certificate.data.company_id).eq("tenant_id",context.tenantId).maybeSingle();
+  const profile=await client.from("company_fiscal_profiles").select("configuration").eq("company_id",certificate.data.company_id).eq("tenant_id",context.tenantId).order("version",{ascending:false}).limit(1).maybeSingle();
+  if(company.error||!company.data||profile.error)return {error:"Não foi possível conferir a empresa e o perfil fiscal."};
+  const companyData=company.data,certificateData=certificate.data;
+  const quota=await admin.rpc("reserve_company_operation",{p_actor:context.user.id,p_company:company.data.id,p_operation:"fiscal_access_check"});
+  if(quota.error||quota.data!==true)return {error:"Aguarde alguns minutos antes de gerar outro diagnóstico."};
+  try{
+    const diagnostic=await diagnoseSefinAccess({cnpj:company.data.cnpj,municipality:company.data.address?.municipality_code??"",series:profile.data?.configuration?.series??"1"},{
+      load:()=>loadCertificateMaterial({tenantId:context.tenantId,companyId:companyData.id,certificateId:certificateData.id},"access_check"),
+      contract:async()=>{const captured=await admin.rpc("fiscal_contract",{p_environment:"homologation"});return captured.error?null:captured.data;},
+      get:(url,credentials)=>nfseGet("homologation",url,credentials,5000),
+    },process.env.VERCEL_GIT_COMMIT_SHA);
+    return {success:"Diagnóstico gerado. Ele não envia notas nem altera a fila fiscal.",details:diagnostic.details};
+  }catch{return {error:"Não foi possível concluir o diagnóstico nesta tentativa. O A1 armazenado foi preservado."};}
+}
 const errors: Record<string, string> = {
   file_or_password: "Não foi possível abrir o A1. Confira o arquivo e a senha.",
   processing_timeout: "O arquivo excedeu o limite seguro de processamento. Confira o certificado e tente novamente.",

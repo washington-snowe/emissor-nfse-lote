@@ -5,7 +5,7 @@ export const fiscalStatusLabels: Record<string, string> = {
 };
 export const fiscalReasonLabels: Record<string, string> = {
   transmission_disabled: "A transmissão em homologação ainda está desativada.", contract_missing: "O contrato oficial da API ainda precisa ser verificado.",
-  certificate_missing: "Cadastre um certificado A1 válido para esta empresa.", certificate_unavailable: "O certificado protegido não está disponível para esta operação.",
+  certificate_missing: "Cadastre um certificado A1 válido para esta empresa.", certificate_unavailable: "Não foi possível validar o A1 ou confirmar o acesso à SEFIN para esta operação. Confira o diagnóstico na página de certificados.",
   configuration_changed: "A revisão ou o perfil mudou. Cancele esta preparação e confira uma nova versão.",
   worker_interrupted: "O processamento foi interrompido. A fila preservou o estado para recuperação.",
   invalid_xml: "O XML não passou na validação. Revise os dados fiscais.", preparation_failed: "Não foi possível concluir a preparação com segurança.",
