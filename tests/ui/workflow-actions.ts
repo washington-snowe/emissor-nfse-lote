@@ -1,7 +1,7 @@
 // UI boundary fixtures only: no Auth, Vault, key, credential or database access.
 import {quickUiData} from "./quick-fixture";
 declare global {
-  interface Window { workflowUiTest: { calls: number; companyId: string; fileSize: number; passwordLength: number; reviewJson?: string; requestIds?: string[]; standaloneJson?: string; templateVersion?: string; path?: string; clipboard?: string;refreshes?:number;validityAdjustments?:number;validityInput?:string;emailOptIn?:FormDataEntryValue|null;emailCorrection?:FormDataEntryValue|null;manageError?:boolean;holdManage?:boolean;finishManage?:()=>void;updateOperation?:(status:string)=>void } }
+  interface Window { workflowUiTest: { calls: number; companyId: string; fileSize: number; passwordLength: number; reviewJson?: string; requestIds?: string[]; standaloneJson?: string; templateVersion?: string; path?: string; clipboard?: string;refreshes?:number;validityAdjustments?:number;validityInput?:string;emailOptIn?:FormDataEntryValue|null;emailCorrection?:FormDataEntryValue|null;manageError?:boolean;holdManage?:boolean;finishManage?:()=>void;updateOperation?:(status:string)=>void;providerTestDestination?:FormDataEntryValue|null } }
 }
 export async function uploadCertificate(_state: unknown, form: FormData) {
   window.workflowUiTest.calls++;
@@ -43,3 +43,4 @@ export async function enableBatchEmails(){return {success:"Entrega sintética pr
 export async function retryInvoiceEmail(_id:string,_state:unknown,form:FormData){window.workflowUiTest.emailCorrection=form.get("destination");return {success:"Nova tentativa sintética, sem envio."};}
 
 export async function getFiscalReceiptDiagnostic(){return {verified:false,details:"Diagnóstico: nfse-receipt-v1 (local)\nConsulta da DPS original: HTTP 200.\nXSD da NFS-e: estrutura aceita.\nConteúdo autenticado da DPS preservado: não validado.\nEstado da operação preservado. Nenhuma nota foi enviada."};}
+export async function requestProviderTests(_state:unknown,form:FormData){window.workflowUiTest.calls++;window.workflowUiTest.providerTestDestination=form.get('destination');return {success:'Três testes sintéticos preparados, sem envio real.'};}

@@ -1,0 +1,30 @@
+{
+  "checkedOn": "2026-11-16",
+  "scope": "Explicitly requested simple test message from each configured provider; no invoice, XML or attachment.",
+  "sources": [
+    {
+      "url": "https://api.brevo.com/v3/swagger_definition_v3.yml",
+      "sha256": "0d7ddf33dae6a1b4b196718f1babf890ff428c83fb15994cd4f55dcd3446bf69",
+      "version": "OpenAPI 3.0.1",
+      "evidence": "POST /smtp/email request body declares attachment without making it mandatory. Existing sender/to/subject/text fields are unchanged."
+    },
+    {
+      "url": "https://github.com/sendpulse/sendpulse-rest-api-node.js/blob/master/api/sendpulse.js",
+      "sha256": "936e82ea34553c916250590e399e6eb141299fea4e4efcf01029c94d29f4559b",
+      "evidence": "Official smtpSendMail serializes the supplied email object; attachments are not added or required by this adapter. Existing OAuth, PHP serialization and HTML encoding are unchanged."
+    },
+    {
+      "url": "https://dev.mailjet.com/email/guides/send-api-v31/",
+      "sha256": "d45e0e358977a066447fbdbf09b8fb9a3443e8f22a12a287df2346e60e31f4c5",
+      "evidence": "Send API v3.1 supports simple messages with From, To, Subject and TextPart; attachment fields are optional."
+    }
+  ],
+  "policy": {
+    "authorization": "User explicitly requested one test per Brevo, SendPulse and Mailjet to the personal destination supplied in the conversation. Personal address is not stored in this repository.",
+    "recipient": "Verified account mailbox or the server-configured NFSE_EMAIL_TEST_TO, selected through authenticated owner context. No arbitrary client destination.",
+    "dispatch": "Sequential, one durable intent per test, one request per tenant per rolling 24h; exactly one independent message per provider, no retries or fallback.",
+    "limits": "Same private attempt ledger, rolling caps 300/400/200 and global exclusion as invoice mail. SendPulse minimum spacing stays 75 seconds; no long wait inside Vercel.",
+    "delivery": "Provider acceptance does not prove inbox delivery. Expiration after intent and ambiguous responses remain uncertain, without automatic retransmission."
+  },
+  "limits": "Public sources and synthetic HTTP/SQL/UI tests only. No live credentials, authenticated production session or administrative database connection are available in the executor; no real test email was sent."
+}

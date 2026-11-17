@@ -27,6 +27,7 @@ try {
     "@/app/painel/importacoes/review-actions": path.join(root, "tests/ui/workflow-actions.ts"),
     "@/app/painel/importacoes/quick-actions": path.join(root, "tests/ui/workflow-actions.ts"),
     "@/app/painel/notas/email-actions": path.join(root, "tests/ui/workflow-actions.ts"),
+    "@/app/painel/notas/email-teste/actions": path.join(root, "tests/ui/workflow-actions.ts"),
     "@/app/painel/notas/diagnostic-actions": path.join(root, "tests/ui/workflow-actions.ts"),
     "@/app/painel/notas/receipt-diagnostic-actions": path.join(root, "tests/ui/workflow-actions.ts"),
     "@/app/painel/notas/actions": path.join(root, "tests/ui/workflow-actions.ts"),
@@ -545,6 +546,26 @@ try {
     assert.equal(await racing.getByRole('button').count(),0);
     assert.equal(await page.evaluate(()=>window.workflowUiTest.calls),1,'late response never retries or enqueues');
     console.log(`Invoices ${width}px: current errors remain visible; authorization removes stale notices, including late responses, without another action`);
+  }
+  for(const width of [1440,390,320]){
+    await page.setViewportSize({width,height:900});
+    await page.goto(`${origin}/?screen=provider-tests`);
+    assert.equal(await page.evaluate(()=>window.workflowUiTest.calls),0,'opening provider test page never sends a message');
+    assert.equal(await page.getByText('Aceito pelo provedor',{exact:true}).count(),1);
+    assert.equal(await page.getByText('Aceitação não confirmada',{exact:true}).count(),1);
+    await page.getByLabel('Receber os testes em').selectOption('configured@example.com');
+    await page.getByRole('button',{name:'Enviar um teste por provedor'}).click();
+    await page.getByRole('status').filter({hasText:'Três testes sintéticos'}).waitFor();
+    assert.equal(await page.evaluate(()=>window.workflowUiTest.providerTestDestination),'configured@example.com');
+    assert.equal(await page.evaluate(()=>window.workflowUiTest.calls),1);
+    assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),`Provider tests overflow ${width}`);
+    await page.screenshot({path:path.join(root,`shots/reports/provider-tests-${width}.png`),fullPage:true});
+    for(const mode of ['missing','database']){
+      await page.goto(`${origin}/?screen=provider-tests&${mode}=1`);
+      assert.equal(await page.getByRole('button',{name:'Enviar um teste por provedor'}).isDisabled(),true);
+      assert.equal(await page.evaluate(()=>window.workflowUiTest.calls),0,'missing credentials or migration never dispatches');
+    }
+    console.log(`Provider tests ${width}px: explicit single submit, trusted destination selection, independent statuses, configuration/migration gates, no overflow`);
   }
   assert.deepEqual(errors, []);
   console.log("Reports: cancelled read stays discarded; reload clears data; missing company blocks file selection; no runtime errors");

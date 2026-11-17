@@ -1,5 +1,6 @@
 import type {EmailProvider} from './config.ts';
 export type InvoiceMessage={from:string;to:string;subject:string;text:string;xml:string;filename:string};
+export type ProviderTestMessage=Omit<InvoiceMessage,'xml'|'filename'>;
 export type EmailOutcome={outcome:'accepted';id:string}|{outcome:'quota_rejected'|'failed'|'network_uncertain'};
 type Requester=(url:string,init:RequestInit)=>Promise<Response>;
 // SendPulse's official Node/Java SDKs serialize the email object using PHP's wire format.
@@ -19,14 +20,14 @@ async function jsonResponse(response:Response){
  return JSON.parse(Buffer.concat(chunks).toString('utf8'));
 }
 /** One external send, never parallel sends/retries. Ambiguous acceptance must be reconciled by an operator. */
-export async function sendInvoiceEmail(provider:EmailProvider,message:InvoiceMessage,env:Record<string,string|undefined>,request:Requester=fetch):Promise<EmailOutcome>{
+export async function sendInvoiceEmail(provider:EmailProvider,message:InvoiceMessage|ProviderTestMessage,env:Record<string,string|undefined>,request:Requester=fetch):Promise<EmailOutcome>{
  let sendStarted=false;
  try{
-  const attachment=Buffer.from(message.xml).toString('base64');
+  const file='xml' in message?{content:Buffer.from(message.xml).toString('base64'),name:message.filename}:null;
   let url:string,headers:Record<string,string>,payload:unknown;
   if(provider==='brevo'){
    url='https://api.brevo.com/v3/smtp/email';headers={'api-key':env.BREVO_API_KEY!};
-   payload={sender:{email:message.from,name:'rex'},to:[{email:message.to}],subject:message.subject,textContent:message.text,attachment:[{content:attachment,name:message.filename}]};
+   payload={sender:{email:message.from,name:'rex'},to:[{email:message.to}],subject:message.subject,textContent:message.text,...(file?{attachment:[file]}:{})};
   }else if(provider==='sendpulse'){
    // OAuth is not an email send. Token is memory-only, never logged or written to a temporary file.
    const auth=await request('https://api.sendpulse.com/oauth/access_token',{method:'POST',redirect:'error',signal:AbortSignal.timeout(10000),headers:{'Content-Type':'application/json'},body:JSON.stringify({grant_type:'client_credentials',client_id:env.SENDPULSE_CLIENT_ID,client_secret:env.SENDPULSE_CLIENT_SECRET})});
@@ -34,10 +35,10 @@ export async function sendInvoiceEmail(provider:EmailProvider,message:InvoiceMes
    const token=await jsonResponse(auth);if(typeof token.access_token!=='string'||!token.access_token.length)return {outcome:'failed'};
    url='https://api.sendpulse.com/smtp/emails';headers={Authorization:'Bearer '+token.access_token};
    const html='<pre>'+message.text.replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;')+'</pre>';
-   payload={email:sendPulseSerialize({from:{email:message.from,name:'rex'},to:[{email:message.to}],subject:message.subject,text:message.text,html:Buffer.from(html).toString('base64'),attachments_binary:{[message.filename]:attachment}})};
+   payload={email:sendPulseSerialize({from:{email:message.from,name:'rex'},to:[{email:message.to}],subject:message.subject,text:message.text,html:Buffer.from(html).toString('base64'),...(file?{attachments_binary:{[file.name]:file.content}}:{})})};
   }else{
    url='https://api.mailjet.com/v3.1/send';headers={Authorization:'Basic '+Buffer.from(env.MAILJET_API_KEY+':'+env.MAILJET_SECRET_KEY).toString('base64')};
-   payload={Messages:[{From:{Email:message.from,Name:'rex'},To:[{Email:message.to}],Subject:message.subject,TextPart:message.text,Attachments:[{ContentType:'application/xml',Filename:message.filename,Base64Content:attachment}]}]};
+   payload={Messages:[{From:{Email:message.from,Name:'rex'},To:[{Email:message.to}],Subject:message.subject,TextPart:message.text,...(file?{Attachments:[{ContentType:'application/xml',Filename:file.name,Base64Content:file.content}]}:{})}]};
   }
   sendStarted=true;
   const response=await request(url,{method:'POST',redirect:'error',cache:'no-store',signal:AbortSignal.timeout(15000),headers:{...headers,'Content-Type':'application/json'},body:JSON.stringify(payload)});

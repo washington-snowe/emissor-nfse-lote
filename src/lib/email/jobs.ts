@@ -7,10 +7,13 @@ import {sendInvoiceEmail,type InvoiceMessage} from './providers';
 import {validatePersistedReport} from '@/lib/persisted-report';
 import {parseFiscalXml,singleElement} from '@/lib/nfse/xml';
 import {NFSE_NAMESPACE} from '@/lib/nfse/dps';
+import {processProviderEmailTests} from './provider-tests';
 
 export async function processInvoiceEmails(tenantId?:string,deadline=Date.now()+45_000){
  const config=emailConfig(process.env),admin=createAdminClient();
  if(!config.enabled||!admin)return {processed:0,available:false};
+ const tests=await processProviderEmailTests(admin,tenantId,deadline);
+ if(tests.processed>0)return tests;
  let processed=0;
  for(let count=0;count<8&&deadline-Date.now()>20_000;count++){
   const claimed=await admin.rpc('claim_invoice_email',{p_tenant:tenantId??null});

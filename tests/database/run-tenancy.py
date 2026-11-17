@@ -92,7 +92,7 @@ try:
     assert access_count and int(access_count[1]) >= 40, "Authenticated access assertions did not complete"
     print(f"Password-session access/isolation: {access_count[1]} assertions passed (Auth gateway claims simulated)")
 
-    for filename, marker, minimum in [("account-navigation.sql", "NAVIGATION_ASSERTIONS", 18), ("billing.sql", "BILLING_ASSERTIONS", 25), ("billing-usage.sql", "USAGE_ASSERTIONS", 15), ("automatic-certificate-checks.sql", "AUTOMATIC_ASSERTIONS", 25), ("invoice-emails.sql", "EMAIL_ASSERTIONS", 20)]:
+    for filename, marker, minimum in [("account-navigation.sql", "NAVIGATION_ASSERTIONS", 18), ("billing.sql", "BILLING_ASSERTIONS", 25), ("billing-usage.sql", "USAGE_ASSERTIONS", 15), ("automatic-certificate-checks.sql", "AUTOMATIC_ASSERTIONS", 25), ("invoice-emails.sql", "EMAIL_ASSERTIONS", 20), ("email-provider-tests.sql", "PROVIDER_TEST_ASSERTIONS", 30)]:
         result = sql((ROOT / "tests/database" / filename).read_text())
         matched = re.search(r"^" + marker + r"=(\d+)$", result, re.M)
         assert matched and int(matched[1]) >= minimum, "Account/billing assertions did not complete"
@@ -420,6 +420,29 @@ try:
         email_finishes = list(pool.map(email_finish, range(8)))
     assert email_finishes.count('t') == 1 and email_finishes.count('f') == 7, "Email acknowledgement committed twice"
     print("Email concurrency: 8 workers -> 1 lease; 8 starts -> 1 dispatch/quota slot; 8 completions -> 1 acknowledgement (no provider contacted)")
+
+    provider_request = str(uuid.uuid4())
+    def request_provider_tests(_):
+        return sql(f"set role service_role;select public.request_email_provider_tests('00000000-0000-4000-8000-000000000001','{provider_request}','owner@example.com');").strip()
+    with ThreadPoolExecutor(max_workers=8) as pool:
+        provider_requests = list(pool.map(request_provider_tests, range(8)))
+    assert provider_requests.count('t') == 8
+    assert sql("select count(*) from private.email_provider_tests;").strip() == '3', "Concurrent requests created duplicate tests"
+    provider_claim = json.loads(sql(f"set role service_role;select public.claim_email_provider_test('{automatic_tenant}');").strip())
+    sql("update private.invoice_email_providers set next_allowed_at=now(),busy_until=now(),paused_until=now();")
+    def begin_provider_test(_):
+        value = sql(f"set role service_role;select public.begin_email_provider_test('{provider_claim['id']}','{provider_claim['token']}','notes@example.com',repeat('a',64));").strip()
+        return json.loads(value) if value else None
+    with ThreadPoolExecutor(max_workers=8) as pool:
+        provider_intents = [v for v in pool.map(begin_provider_test, range(8)) if v and v.get('provider')]
+    assert len(provider_intents) == 1, "Provider test obtained duplicate dispatch intents"
+    assert sql("select count(*) from private.invoice_email_attempts where provider_test_id is not null;").strip() == '1'
+    def finish_provider_test(_):
+        return sql(f"set role service_role;select public.finish_email_provider_test('{provider_claim['id']}','{provider_claim['token']}','accepted','synthetic-provider-id');").strip()
+    with ThreadPoolExecutor(max_workers=8) as pool:
+        provider_finishes = list(pool.map(finish_provider_test, range(8)))
+    assert provider_finishes.count('t') == 1 and provider_finishes.count('f') == 7
+    print("Provider test concurrency: 8 requests -> 3 jobs; 8 starts -> 1 shared quota/dispatch; 8 finishes -> 1 commit (no email sent)")
 
     cron_setup = (ROOT / "supabase/cron/invoice-email-worker.sql").read_text().replace("\nbegin;", "", 1).replace("\ncommit;", "", 1)
     cron_output = sql("begin;\n" + (ROOT / "tests/database/invoice-email-cron.sql").read_text() + "\n" + cron_setup + "\n" + (ROOT / "tests/database/invoice-email-cron-checks.sql").read_text() + "\nrollback;")

@@ -1,6 +1,10 @@
 import {mailbox} from './routing.ts';
 export const EMAIL_PROVIDERS=['brevo','sendpulse','mailjet'] as const;
 export type EmailProvider=typeof EMAIL_PROVIDERS[number];
+export const providerNames={brevo:'Brevo',sendpulse:'SendPulse',mailjet:'Mailjet'};
+export function allowedTestDestinations(email:string|undefined,confirmed:boolean,configured:string|null){
+ return [...new Set([confirmed?mailbox(email):null,mailbox(configured)].filter((v):v is string=>Boolean(v)))];
+}
 export function emailConfig(env:Record<string,string|undefined>){
  const providers:EmailProvider[]=[];
  if(env.BREVO_API_KEY)providers.push('brevo');

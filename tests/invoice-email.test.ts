@@ -2,7 +2,7 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {mailbox,sellerEmailRoute} from '../src/lib/email/routing.ts';
-import {emailConfig} from '../src/lib/email/config.ts';
+import {emailConfig,allowedTestDestinations} from '../src/lib/email/config.ts';
 import {sendInvoiceEmail,sendPulseSerialize,type InvoiceMessage} from '../src/lib/email/providers.ts';
 import {parseShopeeSellerCsv} from '../src/lib/shopee-seller-csv.ts';
 const message:InvoiceMessage={from:'nfse@example.com',to:'teste@example.com',subject:'NFS-e 1',text:'Teste sintético, sem entrega real.',xml:'<synthetic/>',filename:'NFSe-test.xml'};
@@ -47,4 +47,21 @@ test('only explicit 429/402 allow failover; timeout/5xx/malformed acknowledgemen
  let calls=0;assert.equal((await sendInvoiceEmail('brevo',message,{},async()=>{calls++;throw new Error('synthetic timeout');})).outcome,'network_uncertain');assert.equal(calls,1);
  assert.equal((await sendInvoiceEmail('brevo',message,{},async()=>Response.json({wrong:'format'}))).outcome,'network_uncertain');
  assert.equal((await sendInvoiceEmail('brevo',message,{},async()=>new Response('x'.repeat(70000)))).outcome,'network_uncertain');
+});
+test('provider tests target only a confirmed account or configured mailbox, and contain no XML attachment',async()=>{
+ assert.deepEqual(allowedTestDestinations('owner@example.com',false,null),[]);
+ assert.deepEqual(allowedTestDestinations('owner@example.com',true,'test@example.com'),['owner@example.com','test@example.com']);
+ assert.deepEqual(allowedTestDestinations('owner@example.com',true,'owner@example.com'),['owner@example.com']);
+ for(const provider of ['brevo','sendpulse','mailjet'] as const){
+  const simple={from:message.from,to:message.to,subject:'Teste '+provider,text:'Teste solicitado, sem nota fiscal.'};
+  const requests:string[]=[];
+  const result=await sendInvoiceEmail(provider,simple,{},async(url,init)=>{
+   requests.push(String(init.body));
+   if(url.endsWith('/oauth/access_token'))return Response.json({access_token:'synthetic'});
+   return Response.json(provider==='brevo'?{messageId:'test'}:provider==='sendpulse'?{result:true,id:'test'}:{Messages:[{Status:'success',To:[{MessageUUID:'test'}]}]});
+  });
+  assert.equal(result.outcome,'accepted');
+  assert.ok(!requests.at(-1)!.match(/attachment|Attachment|NFSe-test.xml/),'simple provider test must not attach an invoice');
+  assert.ok(requests.at(-1)!.includes(message.to));
+ }
 });
