@@ -98,7 +98,7 @@ export function nfseRequest(environment: NfseEnvironment, method: "GET" | "HEAD"
     try { request = https.request(target, {
       method, ...nfseTlsCredentials(credentials),
       rejectUnauthorized: true, minVersion: "TLSv1.2", agent: false,
-      headers: { Accept: allowedDanfseUrl(environment,url)&&/\/\d{50}$/.test(target.pathname)?"application/pdf":"application/json,text/html", "User-Agent": "EmissorNfse/0.1", ...(body ? { "Content-Type": "application/json", "Content-Length": String(body.length) } : {}) },
+      headers: { Accept: method==='HEAD'?'application/json':allowedDanfseUrl(environment,url)&&/\/\d{50}$/.test(target.pathname)?"application/pdf":"application/json,text/html", "User-Agent": "EmissorNfse/0.1", ...(body ? { "Content-Type": "application/json", "Content-Length": String(body.length) } : {}) },
     }, response => {
       const chunks: Buffer[] = [];
       let size = 0;

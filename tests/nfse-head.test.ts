@@ -41,7 +41,7 @@ test('prova HEAD usa somente identidade do titular e produção oficial, sem res
 test('transporte HEAD fixa método, TLS e caminho DPS; recusas não fazem requisição externa',async()=>{
  let calls=0;
  const replacement=((url:URL,options:https.RequestOptions,callback:(response:IncomingMessage)=>void)=>{
-  calls++;assert.equal(url.href,NFSE_BASES.production+'/dps/'+id);assert.equal(options.method,'HEAD');assert.equal(options.rejectUnauthorized,true);assert.equal(options.minVersion,'TLSv1.2');
+  calls++;assert.equal(url.href,NFSE_BASES.production+'/dps/'+id);assert.equal(options.method,'HEAD');assert.equal(options.rejectUnauthorized,true);assert.equal(options.minVersion,'TLSv1.2');assert.equal((options.headers as Record<string,string>).Accept,'application/json');
   const request=Object.assign(new EventEmitter(),{end(){queueMicrotask(()=>{const response=Object.assign(new EventEmitter(),{statusCode:404,headers:{}});callback(response as IncomingMessage);response.emit('end');});},destroy(error:Error){request.emit('error',error);}});
   return request as unknown as ClientRequest;
  }) as typeof https.request;
