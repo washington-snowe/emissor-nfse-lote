@@ -513,9 +513,38 @@ try {
     await uncertain.getByRole('button', { name: 'Consultar novamente' }).click();
     await uncertain.getByRole('status').filter({ hasText: 'Ação sintética resume' }).waitFor();
     assert.equal(await page.locator('.fiscal-operation').nth(2).getByRole('button').count(), 0);
+    // A denied click can race the worker's authorization. Keep real current-state errors,
+    // clear old-state results on refresh, and never replay the action automatically.
+    await page.evaluate(()=>{window.workflowUiTest.manageError=true;});
+    const refreshesBefore=await page.evaluate(()=>window.workflowUiTest.refreshes??0);
+    await uncertain.getByRole('button',{name:'Consultar novamente'}).click();
+    await uncertain.getByRole('alert').filter({hasText:'Recusa sintética'}).waitFor();
+    assert.ok(await page.evaluate(before=>(window.workflowUiTest.refreshes??0)>before,refreshesBefore),'denied action refreshes authoritative history');
+    await page.evaluate(()=>window.workflowUiTest.updateOperation('uncertain'));
+    assert.equal(await uncertain.getByRole('alert').count(),1,'unchanged status must preserve a relevant error');
+    const callsAfterDenial=await page.evaluate(()=>window.workflowUiTest.calls);
+    await page.evaluate(()=>window.workflowUiTest.updateOperation('authorized'));
+    await uncertain.getByRole('link',{name:'Baixar XML de homologação'}).waitFor();
+    assert.equal(await uncertain.getByRole('alert').count(),0,'confirmed authorization clears prior action errors');
+    assert.equal(await uncertain.getByRole('status').count(),0,'confirmed authorization clears prior action notices');
+    assert.equal(await uncertain.getByRole('button').count(),0);
+    assert.equal(await page.evaluate(()=>window.workflowUiTest.calls),callsAfterDenial,'status refresh must not run an action');
     assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), `Operations overflow ${width}`);
     await page.screenshot({ path: path.join(root, `shots/reports/operations-${width}.png`), fullPage: true });
     console.log(`Invoices ${width}px: amount-only with defaults, retry nonce, editable details, new note, consultation-only uncertainty, no overflow`);
+    await page.goto(`${origin}/?screen=operations`);
+    const racing=page.locator('.fiscal-operation').nth(1);
+    await page.evaluate(()=>{window.workflowUiTest.manageError=true;window.workflowUiTest.holdManage=true;});
+    await racing.getByRole('button',{name:'Consultar novamente'}).click();
+    await page.waitForFunction(()=>typeof window.workflowUiTest.finishManage==='function');
+    await page.evaluate(()=>window.workflowUiTest.updateOperation('authorized'));
+    await racing.getByRole('link',{name:'Baixar XML de homologação'}).waitFor();
+    await page.evaluate(()=>window.workflowUiTest.finishManage());
+    await page.waitForFunction(()=>(window.workflowUiTest.refreshes??0)>0);
+    assert.equal(await racing.getByRole('alert').count(),0,'late refusal from a previous state must not appear after authorization');
+    assert.equal(await racing.getByRole('button').count(),0);
+    assert.equal(await page.evaluate(()=>window.workflowUiTest.calls),1,'late response never retries or enqueues');
+    console.log(`Invoices ${width}px: current errors remain visible; authorization removes stale notices, including late responses, without another action`);
   }
   assert.deepEqual(errors, []);
   console.log("Reports: cancelled read stays discarded; reload clears data; missing company blocks file selection; no runtime errors");

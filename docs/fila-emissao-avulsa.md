@@ -2,7 +2,7 @@
 
 ## Entrega e configuração
 
-Esta etapa acrescenta `/painel/notas`, `/painel/notas/nova` e o acompanhamento por lote. A fila, numeração, proteção contra duplicidade, recuperação e integração condicional de homologação estão implementadas. **Não houve teste com A1 real nem homologação do envio. Produção permanece bloqueada.** A documentação OpenAPI oficial ainda precisa ser capturada e reconhecida; respostas de testes não são evidência de compatibilidade do serviço real.
+Esta etapa acrescenta `/painel/notas`, `/painel/notas/nova` e o acompanhamento por lote. A fila, numeração, proteção contra duplicidade, recuperação e integração condicional de homologação estão implementadas. Atualização de 16/11/2026: a documentação OpenAPI oficial foi capturada/reconhecida e o usuário confirmou visualmente a operação de teste de R$5 como **Autorizada em homologação**, com XML disponível na aplicação, após a reconciliação. Isso não comprova o lote inteiro nem entrega por e-mail. O executor não acessou o A1 real. **Produção permanece bloqueada.** Histórico e evidências em [diagnóstico de homologação](diagnostico-homologacao.md); as orientações de migração abaixo registram a entrega inicial, já aplicada, e não devem ser repetidas.
 
 O usuário confirmou as migrações 1–9, informou que terá o A1 no próximo dia e confirmou o CNPJ Shopee `35.635.824/0001-12`. Identidade e endereço foram consultados na BrasilAPI: **SHPS TECNOLOGIA E SERVICOS LTDA.** Proveniência e campos selecionados estão em `integrations/marketplaces/shopee-recipient.json`. Não foram armazenados QSA ou dados de sócios. O vínculo de tomador foi informado pelo usuário; a consulta cadastral não comprova a classificação fiscal da comissão.
 

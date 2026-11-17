@@ -9,8 +9,8 @@ export function FiscalControls({ operationId, batchId, reviewId, sha256, status,
   const [pending, start] = useTransition(), [result, setResult] = useState<FiscalActionState>({});
   const router = useRouter();
   const run = (action: () => Promise<FiscalActionState>) => start(async () => {
-    try { const next = await action(); setResult(next); if (next.id) router.push(`/painel/notas/lotes/${next.id}`); else if (next.success) router.refresh(); }
-    catch { setResult({ error: "Não foi possível confirmar a ação. Atualize o histórico antes de repetir." }); }
+    try { const next = await action(); setResult(next); if (next.id) router.push(`/painel/notas/lotes/${next.id}`); else router.refresh(); }
+    catch { setResult({ error: "Não foi possível confirmar a ação. Atualize o histórico antes de repetir." }); router.refresh(); }
   });
   return <div className="fiscal-controls">
     {batchId && <button className="btn btn--secondary" type="button" disabled={pending} onClick={() => run(() => resumeBatch(batchId))}>Retomar processamento do lote</button>}

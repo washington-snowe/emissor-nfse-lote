@@ -1,6 +1,7 @@
 import { AccountProfileForm, LoginChangeForm, ReferralLink } from "../../src/components/account-forms";
 import { SubscriptionPlans } from "../../src/components/subscription-plans";
 import { createRoot } from "react-dom/client";
+import {useEffect,useState} from "react";
 import { ReportPreview } from "../../src/components/report-preview";
 import { WorkspaceShell } from "../../src/components/workspace-shell";
 import { CertificateForm } from "../../src/components/certificate-form";
@@ -12,7 +13,7 @@ import { FiscalProfileForm } from "../../src/components/fiscal-profile-form";
 import { ReportReviewForm } from "../../src/components/report-review-form";
 import { ReviewConfirmation } from "../../src/components/review-confirmation";
 import { StandaloneInvoiceForm } from "../../src/components/standalone-invoice-form";
-import { FiscalOperationList } from "../../src/components/fiscal-operation-list";
+import { FiscalOperationList, type OperationDisplay } from "../../src/components/fiscal-operation-list";
 import { MeiFiscalSetup } from "../../src/components/mei-fiscal-setup";
 import { AutomaticAffiliateSummary } from "../../src/components/automatic-affiliate-summary";
 import { AutomaticCertificateStatus } from "../../src/components/automatic-certificate-status";
@@ -65,11 +66,22 @@ const standalone = <StandaloneInvoiceForm initial={{ configuration: { issuerMuni
     await new Promise(resolve => setTimeout(resolve, 150));
     return window.workflowUiTest.calls === 1 ? { error: "Falha sintética preserva sua solicitação." } : { id: "test-batch", templateVersion: 1, success: "Preparação sintética, sem banco ou emissão." };
   }} />;
-const operations = <FiscalOperationList operations={[
+function OperationsFixture(){
+ const [operations,setOperations]=useState<OperationDisplay[]>([
   { id: "test-queued", batch_id: "test-batch", status: "queued", reason: null, amount: "999999999999999.99", recipient: { legalName: "Tomador sintético A" }, dps_id: "DPS" + "1".repeat(42), transmit_count: 0, competence_date: "2026-10-31" },
   { id: "test-uncertain", batch_id: "test-batch", status: "uncertain", reason: "not_found", amount: "2.20", recipient: { legalName: "Tomador sintético B" }, dps_id: "DPS" + "2".repeat(42), transmit_count: 1, competence_date: "2026-10-31" },
   { id: "test-authorized", batch_id: "test-batch", status: "authorized", reason: null, amount: "3.30", recipient: { legalName: "Tomador sintético C" }, dps_id: "DPS" + "3".repeat(42), transmit_count: 1, competence_date: "2026-10-31", document: { id: "test-document", access_key: "1".repeat(50) } },
-]} />;
+ ]);
+ useEffect(()=>{
+  window.workflowUiTest.updateOperation=status=>setOperations(current=>current.map(operation=>operation.id==='test-uncertain'?{
+   ...operation,status,reason:status==='uncertain'?'not_found':null,
+   document:status==='authorized'?{id:'test-reconciled-document',access_key:'2'.repeat(50)}:null,
+  }:operation));
+  return ()=>{delete window.workflowUiTest.updateOperation;};
+ },[]);
+ return <FiscalOperationList operations={operations}/>;
+}
+const operations=<OperationsFixture/>;
 createRoot(document.getElementById("root")!).render(
   <WorkspaceShell name="Pessoa sintética de teste" email="interface@emissor.example" active={screen === "profile" ? "profile" : screen === "plans" ? "subscription" : screen === "login" ? "login" : "imports"} companies={[{id:"00000000-0000-4000-8000-000000000001",legal_name:"Empresa sintética A com nome extenso",cnpj:"11222333000181"},{id:"00000000-0000-4000-8000-000000000002",legal_name:"Empresa sintética B",cnpj:"11444777000161"}]} companyId="00000000-0000-4000-8000-000000000001">
     <div className="dashboard-content report-page">

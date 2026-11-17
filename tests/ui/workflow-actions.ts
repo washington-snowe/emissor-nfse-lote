@@ -1,7 +1,7 @@
 // UI boundary fixtures only: no Auth, Vault, key, credential or database access.
 import {quickUiData} from "./quick-fixture";
 declare global {
-  interface Window { workflowUiTest: { calls: number; companyId: string; fileSize: number; passwordLength: number; reviewJson?: string; requestIds?: string[]; standaloneJson?: string; templateVersion?: string; path?: string; clipboard?: string;refreshes?:number;validityAdjustments?:number;validityInput?:string;emailOptIn?:FormDataEntryValue|null;emailCorrection?:FormDataEntryValue|null } }
+  interface Window { workflowUiTest: { calls: number; companyId: string; fileSize: number; passwordLength: number; reviewJson?: string; requestIds?: string[]; standaloneJson?: string; templateVersion?: string; path?: string; clipboard?: string;refreshes?:number;validityAdjustments?:number;validityInput?:string;emailOptIn?:FormDataEntryValue|null;emailCorrection?:FormDataEntryValue|null;manageError?:boolean;holdManage?:boolean;finishManage?:()=>void;updateOperation?:(status:string)=>void } }
 }
 export async function uploadCertificate(_state: unknown, form: FormData) {
   window.workflowUiTest.calls++;
@@ -15,7 +15,11 @@ export async function diagnoseCertificateSefin() { return {success:"Diagnóstico
 export async function probeCertificate() { return { success: "Verificação sintética sem conexão fiscal.", notice: "Documentação sintética pendente; nenhuma conexão oficial. Referência: NFSE_CONTRACT_PENDING.", details: "Diagnóstico: nfse-adn-v1\nParâmetros ADN: HTTP 404 · consulta sintética\nContrato SEFIN: HTTP 404 · sem consulta oficial", profileHref: "/painel/empresas/test-company/fiscal?secao=servico" }; }
 export async function confirmReportReview() { window.workflowUiTest.calls++; return { success: "Confirmação sintética, sem banco ou emissão." }; }
 export async function enqueueReport() { window.workflowUiTest.calls++; return { success: "Fila sintética sem emissão." }; }
-export async function manageOperation(_id: string, action: string) { window.workflowUiTest.calls++; return { success: `Ação sintética ${action}, sem emissão.` }; }
+export async function manageOperation(_id: string, action: string) {
+  window.workflowUiTest.calls++;
+  if(window.workflowUiTest.holdManage)await new Promise<void>(resolve=>{window.workflowUiTest.finishManage=resolve;});
+  return window.workflowUiTest.manageError?{error:'A operação mudou ou não permite essa ação. Recusa sintética, sem emissão.'}:{ success: `Ação sintética ${action}, sem emissão.` };
+}
 export async function getFiscalOperationDiagnostic(){return {receiptAvailable:true,details:'Diagnóstico: nfse-operation-v2 (local)\nCorrelação técnica: abcdef0123456789\nEstado: Resultado incerto · somente consulta\nInícios de envio registrados: 1\nPrimeiro envio: HTTP 201 · JSON · homologação · códigos não identificados\nIdentidade na resposta: não corresponde integralmente ao identificador esperado.\nEste relatório analisa apenas registros já armazenados. Não consulta a SEFIN nem envia notas.'};}
 export async function resumeBatch() { window.workflowUiTest.calls++; return { success: "Retomada sintética sem emissão." }; }
 export async function saveReport(form: FormData) {

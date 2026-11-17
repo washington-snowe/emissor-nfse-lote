@@ -1,5 +1,13 @@
 # Diagnóstico de acesso com A1
 
+## Operação de R$5 autorizada em homologação
+
+Após a versão `c7b13c1`, o usuário enviou a tela da mesma operação de R$5 com **Autorizada em homologação** e o link **Baixar XML de homologação**. É a primeira confirmação visual do resultado dessa operação na aplicação, depois da reconciliação. Não exige mais diagnóstico ou nova emissão para essa nota. O método exato de canonicalização não foi informado; não presumir uma variante específica. Isso não comprova emissão de lote completo, entrega por e-mail, download realizado ou liberação de produção. As operações anteriores permanecem preservadas.
+
+A tela também manteve o erro de uma ação anterior: “A operação mudou ou não permite essa ação”. `FiscalControls` guardava o resultado local mesmo após a atualização do estado fiscal. Os controles agora são recriados quando mudam operação, estado ou contagem de transmissão. O resultado antigo, inclusive uma resposta tardia, não acompanha o novo estado; erros do estado ainda atual permanecem visíveis. Uma recusa/falha de ação também atualiza o histórico para reler o estado do servidor, sem repetir automaticamente a ação. Nenhum guard, RPC fiscal, estado persistido, certificado, documento ou contador é alterado por essa correção de apresentação. Não há SQL novo.
+
+Validação da apresentação: suíte de interface aprovada em 1440/1024/820/768/390/320px com os componentes reais e ações sintéticas. Cobre erro ainda relevante, mudança para autorização, resposta recusada tardia, download disponível e ausência de repetição automática; sem erros de execução ou overflow. Lint, TypeScript e build aprovados. Núcleo fiscal e SQL não mudaram; unitários fiscais e banco não foram reexecutados nesta etapa. Nenhuma nota ou mensagem foi enviada pelos testes.
+
 ## Canonicalização da assinatura da NFS-e
 
 O relatório seguinte `nfse-receipt-v1 (f045579)` da mesma operação de R$5 confirmou chave, emitente, cStat107, identidade e conteúdo autenticado da DPS original. A assinatura informa RSA-SHA256 e digest SHA256; a canonicalização apareceu como desconhecida na lista antiga, e a política interrompeu a conferência antes da verificação criptográfica. O URI exato do retorno ainda não foi observado: não concluir que uma variante específica foi usada nem declarar a nota confirmada.
