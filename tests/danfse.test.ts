@@ -14,11 +14,32 @@ test('DANFS-e só lê chave fixa no host e ambiente oficiais; não aceita POST o
  for(const env of ['homologation','production'] as const){assert.ok(allowedDanfseUrl(env,DANFSE_BASES[env]+'/'+key));for(const url of [DANFSE_BASES[env]+'/../outside',DANFSE_BASES[env]+'/'+key+'?url=evil',DANFSE_BASES[env]+'/'+key+'#x','http://adn.nfse.gov.br/danfse/'+key,'https://user@adn.nfse.gov.br/danfse/'+key,'https://example.invalid/danfse/'+key,DANFSE_BASES[env==='production'?'homologation':'production']+'/'+key])assert.equal(allowedDanfseUrl(env,url),null);}
  await assert.rejects(nfseRequest('production','POST',DANFSE_BASES.production+'/'+key,credentials,Buffer.from('{}')),/Invalid fiscal destination/);
 });
-test('captura DANFS-e segue apenas documentação referenciada, sem fallback ou JS executável',async()=>{
+test('captura DANFS-e segue referências oficiais ou JSON fixo, sem executar JS ou seguir terceiros',async()=>{
  const base=DANFSE_BASES.production,calls:string[]=[];
  const captured=await discoverOfficialContract('production',credentials,Date.now()+30_000,async(env,url)=>{calls.push(url);assert.equal(env,'production');if(url===base+'/docs/index.html')return {status:200,contentType:'text/html',body:Buffer.from('<script src="index.js"></script>')};if(url===base+'/docs/index.js')return {status:200,contentType:'text/javascript',body:Buffer.from('openApi: "../swagger/v1/swagger.json"; globalThis.doNotExecuteDanfse = true;')};assert.equal(url,base+'/swagger/v1/swagger.json');return {status:200,contentType:'application/json',body:Buffer.from(JSON.stringify(document))};},undefined,'danfse');
  assert.ok(captured&&supportedDanfseContract(captured.contract));assert.equal(calls.length,3);assert.equal('doNotExecuteDanfse' in globalThis,false);
- const missing:string[]=[];assert.equal(await discoverOfficialContract('production',credentials,Date.now()+30_000,async(_env,url)=>{missing.push(url);return {status:200,contentType:'text/html',body:Buffer.from('url: "https://example.invalid/swagger.json"')};},undefined,'danfse'),null);assert.deepEqual(missing,[base+'/docs/index.html']);
+ const missing:string[]=[];assert.equal(await discoverOfficialContract('production',credentials,Date.now()+30_000,async(_env,url)=>{missing.push(url);return {status:200,contentType:'text/html',body:Buffer.from('url: "https://example.invalid/swagger.json"')};},undefined,'danfse'),null);assert.deepEqual(missing,[base+'/docs/index.html',base+'/swagger/v1/swagger.json']);
+});
+test('DANFS-e com UI503 pode capturar JSON200 oficial ao vivo; ambos indisponíveis continuam sem contrato',async()=>{
+ for(const environment of ['production','homologation'] as const){
+  const base=DANFSE_BASES[environment],body=Buffer.from(JSON.stringify(document)),calls:string[]=[],steps:unknown[]=[];
+  const captured=await discoverOfficialContract(environment,credentials,Date.now()+30_000,async(env,url,passed)=>{
+   calls.push(url);assert.equal(env,environment);assert.equal(passed,credentials);
+   if(url===base+'/docs/index.html')return {status:503,contentType:'text/html',body:Buffer.from('Synthetic unavailable UI')};
+   assert.equal(url,base+'/swagger/v1/swagger.json');return {status:200,contentType:'application/json',body};
+  },step=>steps.push(step),'danfse');
+  assert.equal(captured?.url,base+'/swagger/v1/swagger.json');assert.equal(captured?.sha256,createHash('sha256').update(body).digest('hex'));
+  assert.ok(supportedDanfseContract(captured?.contract));assert.equal(calls.length,2);assert.equal(steps.length,3);
+ }
+ for(const status of [401,403,429,500]){const calls:string[]=[];assert.equal(await discoverOfficialContract('production',credentials,Date.now()+30_000,async(_env,url)=>{calls.push(url);return {status,contentType:'text/plain',body:Buffer.from('Synthetic unavailable')};},undefined,'danfse'),null);assert.equal(calls.length,1);}
+ const calls:string[]=[];assert.equal(await discoverOfficialContract('production',credentials,Date.now()+30_000,async(_env,url)=>{calls.push(url);return {status:503,contentType:'text/plain',body:Buffer.from('Synthetic unavailable')};},undefined,'danfse'),null);assert.deepEqual(calls,[DANFSE_BASES.production+'/docs/index.html',DANFSE_BASES.production+'/swagger/v1/swagger.json']);
+});
+test('fallback DANFS-e não aceita contrato com servidor alheio e não repete sufixo .html',async()=>{
+ for(const servers of [[{url:'https://example.invalid/danfse'}],[{url:DANFSE_BASES.homologation}]]){
+  const calls:string[]=[];assert.equal(await discoverOfficialContract('production',credentials,Date.now()+30_000,async(_env,url)=>{calls.push(url);return url.endsWith('/docs/index.html')?{status:404,contentType:'text/html',body:Buffer.from('missing')}:{status:200,contentType:'application/json',body:Buffer.from(JSON.stringify({...document,servers}))};},undefined,'danfse'),null);
+  assert.deepEqual(calls,[DANFSE_BASES.production+'/docs/index.html',DANFSE_BASES.production+'/swagger/v1/swagger.json']);
+ }
+ assert.equal(await discoverOfficialContract('production',credentials,Date.now(),async()=>{throw new Error('Must not query after deadline');},undefined,'danfse'),null);
 });
 test('PDF oficial exige HTTP 200, conteúdo binário, assinatura PDF, limite e fim íntegro',async()=>{
  assert.ok(validDanfsePdf(pdf));

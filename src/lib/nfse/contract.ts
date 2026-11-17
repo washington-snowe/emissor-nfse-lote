@@ -133,13 +133,17 @@ export async function discoverOfficialContract(environment: NfseEnvironment, cre
     let indexUrl: string = initial;
     let html = await get(indexUrl, stage);
     if (!html) return null;
-    if ([401, 403, 429].includes(html.status) || html.status >= 500) return null;
-    if ([301, 302, 307, 308, 404].includes(html.status)) {
+    if ([401, 403, 429].includes(html.status)) return null;
+    // A failed UI need not mean its JSON document is unavailable. Only DANFSe 503
+    // may use the single pinned JSON fallback below, within this same deadline.
+    if (html.status >= 500) { if(service==='danfse'&&html.status===503)break;return null; }
+    if ([301, 302, 307, 308, 404].includes(html.status)&&!indexUrl.endsWith('.html')) {
       indexUrl += ".html";
       html = await get(indexUrl, stage);
     }
     if (!html) return null;
-    if ([401, 403, 429].includes(html.status) || html.status >= 500) return null;
+    if ([401, 403, 429].includes(html.status)) return null;
+    if (html.status >= 500) { if(service==='danfse'&&html.status===503)break;return null; }
     if (html.status !== 200) continue;
     let references = swaggerDocumentReferences(html.body.toString("utf8"));
     if (!references.length) {
@@ -147,6 +151,7 @@ export async function discoverOfficialContract(environment: NfseEnvironment, cre
       const url = initializer ? officialReference(environment, initializer[1], indexUrl,service) : null;
       if (url) {
         const loaded = await get(url, "initializer");
+        if(service==='danfse'&&loaded&&[401,403,429].includes(loaded.status))return null;
         if (loaded?.status === 200) references = swaggerDocumentReferences(loaded.body.toString("utf8"));
       }
     }
@@ -156,12 +161,13 @@ export async function discoverOfficialContract(environment: NfseEnvironment, cre
       if (visited.has(url)) continue;
       visited.add(url);
       const response = await get(url, "schema");
+      if(service==='danfse'&&response&&[401,403,429].includes(response.status))return null;
       if (response?.status === 200) { const result = captured(url, response, "schema"); if (result) return result; }
     }
   }
-  // Known SEFIN document URL from the integration references; fetched live, never import a mirror as evidence.
-  if(service==='danfse')return null;
-  const direct = base + "/swagger/docs/v1";
+  // Researched documentation candidates, never imported contracts. Accept only a live
+  // HTTPS 200 structural capture on the pinned official service and environment.
+  const direct = base + (service==='danfse'?'/swagger/v1/swagger.json':"/swagger/docs/v1");
   if (!visited.has(direct)) {
     const response = await get(direct, "schema_direct");
     if (response?.status === 200) return captured(direct, response, "schema_direct");

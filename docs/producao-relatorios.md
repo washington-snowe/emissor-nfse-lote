@@ -39,3 +39,13 @@ Integrações locais executam as ações, workers, preparação de documentos e 
 5. Antes de Stripe/UIUX/abertura comercial, conferir a autorização no portal de produção, baixar o XML e o DANFS-e oficiais e confirmar a entrega correta dos documentos. Testes simples de e-mail anteriores e autorização em homologação não substituem esta etapa. Restauração de backup e revisão de segurança/operação continuam no roteiro de lançamento.
 
 Desligar `NFSE_PRODUCTION_ENABLED` suspende novas preparações e e-mails de produção. Consultas de reconciliação de operações já transmitidas continuam permitidas, assim como o acesso aos documentos autorizados. Não apagar filas, provas ou originais para desfazer uma configuração.
+
+## Documentação DANFS-e com HTTP503
+
+O usuário confirmou a migração21 sem erros. Seu relatório `nfse-production-v1` confirmou A1 aberto e contrato SEFIN de produção capturado/reconhecido, mas a interface de documentação DANFS-e retornou503. O diagnóstico anterior parava ali, antes do GET da DPS própria; portanto, isso ainda não provava acesso fiscal à produção. Não atribuir essa resposta ao CSV, ao certificado ou à falta de credenciamento sem evidência.
+
+A descoberta passa a consultar uma única alternativa JSON fixa, `/danfse/swagger/v1/swagger.json`, no mesmo host oficial e ambiente. O caminho foi identificado em uma referência pública de integração; essa referência não fornece o contrato nem autoriza seu uso por si. Só uma captura HTTPS200 real, com contrato e base/servidor reconhecidos, pode ser registrada. HTML/503, espelhos e esquemas embutidos continuam recusados.401/403/429 encerram a descoberta, o prazo/limite de tamanho são compartilhados e não há sufixo `.html.html`, execução de scripts, nova tentativa da mesma URL ou envio de A1 a terceiros.
+
+`nfse-production-v2` inclui versão da publicação e faz primeiro o GET SEFIN próprio, apresentando seu ambiente, códigos e compatibilidade separados da documentação DANFS-e. Também identifica falha de transporte por categoria fixa. Persistir readiness ainda exige ambas as verificações: uma consulta SEFIN compatível não substitui o contrato do PDF. Se UI e JSON do DANFS-e falharem, a mensagem explica a etapa pendente e a emissão continua bloqueada. Não há nova migração, mudança de flags, numeração ou envio de notas por esta correção.
+
+Os testes locais simulam UI503/JSON200, indisponibilidade de ambas as fontes, servidores alheios, dois ambientes, deadline,401/403/429, GET SEFIN mesmo durante falha do DANFS-e, ausência de readiness e sanitização/limpeza do A1. A captura autenticada e o download PDF reais ainda precisam ser observados no aplicativo. Fontes e limites em `integrations/nfse/danfse-documentation-availability.provenance.json`.

@@ -1,0 +1,42 @@
+{
+  "kind": "user_reported_documentation_failure_with_bounded_official_json_discovery",
+  "reviewed_on": "2026-11-17",
+  "reported_diagnostic": {
+    "version": "nfse-production-v1",
+    "a1_locally_opened": true,
+    "production_sefin_index_http": 200,
+    "production_sefin_schema_http": 200,
+    "production_sefin_contract_recognized": true,
+    "production_danfse_index_http": 503,
+    "own_production_dps_lookup": "not reached by v1 before the DANFSe failure",
+    "invoices_sent_by_check": false
+  },
+  "official_portal": {
+    "url": "https://www.gov.br/nfse/pt-br/biblioteca/documentacao-tecnica/apis-prod-restrita-e-producao",
+    "sha256": "5ea78b6eb67a8f2b874bb451e4b4ebc43f3c446a30f0d22309b7a3851e73de89",
+    "evidence": "The current portal still links /danfse/docs/index.html on each environment's ADN host. No change of fiscal or PDF host is inferred."
+  },
+  "json_document_candidate": {
+    "production": "https://adn.nfse.gov.br/danfse/swagger/v1/swagger.json",
+    "homologation": "https://adn.producaorestrita.nfse.gov.br/danfse/swagger/v1/swagger.json",
+    "secondary_discovery_reference": "https://raw.githubusercontent.com/rafael-negrao/nfse-nacional-service/c228c008f3092b017280f6ca70cab63de9bc7592/nfse-nacional-service/src/test/java/br/com/adelfo/nfse/nacional/service/BaixarSwaggerIT.java",
+    "secondary_reference_sha256": "76260319508b9156aadfde4ecdc7bf662156e25f7eb2c920b09f3db8a4d89f56",
+    "scope": "The public integration example identifies the ADN /danfse/swagger/v1/swagger.json candidate. It supplies no official contract or fiscal authorization. Runtime must obtain the actual JSON through verified mTLS from the pinned official environment and validate its structure, base/server, required key parameter and GET200 response before storing the source URL and raw hash."
+  },
+  "executor_read_only_observation": {
+    "official_portal_http": 200,
+    "unauthenticated_danfse_indexes_http": 503,
+    "unauthenticated_production_json_candidate_http": 503,
+    "limitation": "The executor has no private A1. Its proxy reported an upstream connection termination. This does not establish an origin outage, taxpayer eligibility, or the response of the application's authenticated JSON request."
+  },
+  "policy": [
+    "Only one fixed JSON candidate is fetched after the official UI is unavailable or fails to supply a usable reference. A DANFSe UI503 may reach this read-only fallback; SEFIN 5xx behavior remains unchanged.",
+    "401, 403 or 429 stops DANFSe discovery. Requests share a deadline and size limit, do not execute scripts, do not follow redirects or contact third-party hosts, and do not retry a visited JSON URL.",
+    "No mirror, embedded schema, HTML error or 503 response is persisted as an official contract. A missing/unsupported contract continues to block production readiness and email attachment preparation.",
+    "The v2 production diagnostic performs its own SEFIN GET before checking DANFSe, and reports the two results separately. No number, batch or transmission is created; environment0 never becomes production evidence.",
+    "The certificate buffer is cleared on every path. Diagnostics expose only fixed categories/status/codes and a sanitized deployment hash, without identities, XML, keys, certificate material or provider bodies."
+  ],
+  "live_authenticated_json_capture_validated_by_executor": false,
+  "live_pdf_validated_by_executor": false,
+  "live_production_invoice_sent_by_executor": false
+}
