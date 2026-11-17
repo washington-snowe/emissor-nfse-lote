@@ -2,6 +2,10 @@
 
 Autorização atual: o usuário solicitou implementar o sistema completo, incluindo emissão, mantendo Vercel e Supabase; VPS só será considerada futuramente. A autorização cobre desenvolvimento, testes e evolução do código. Credenciais reais, ativação de cobranças e emissão de documentos reais continuam exigindo configuração e confirmação da operação correspondente, sem valores ou parâmetros fiscais presumidos.
 
+## Situação atual e preparação para lançamento
+
+A operação de teste de R$5 apareceu autorizada em homologação, com download de XML disponível. O usuário também confirmou que os testes simples dos três provedores de e-mail funcionaram; a capacidade da migração20 está confirmada pelo funcionamento, sem necessidade de repetir sua aplicação. O executor não acessou os registros privados dos provedores. Produção fiscal, entrega comercial de documentos, PDF oficial e validação Stripe com a conta do provedor continuam pendentes. O [roteiro proposto para lançamento](preparacao-lancamento.md) consolida as próximas etapas; os registros datados abaixo são históricos.
+
 ## Entrega transacional de e-mails — 13/11/2026
 
 Implementada integração Brevo → SendPulse → Mailjet com fila própria, cotas compartilhadas 300/400/200 em 24h, intervalo mínimo persistido de 75s no SendPulse e controle global de envio sequencial. Fallback apenas por cota ou rejeição 429/402; incerteza bloqueia reenvio. Roteamento por sourceClaims/linhas e e-mail do vendedor, separado do tomador fiscal; destinatários misturados ficam pendentes. Popup permite revisar os destinos, e a página de notas acompanha aceitação/pendência e correção de e-mail ausente sem reemitir a NFS-e. Migração 17 e configuração de cron separada preparadas. Ver [configuração de e-mail](configurar-email.md).
@@ -54,11 +58,11 @@ Verificação: 61 unitários aprovados, 6 opt-in ignorados; 246 asserções Post
 
 ## Dependências externas atuais
 
-- A1: usuário confirmou armazenamento protegido na aplicação. A consulta de homologação falhou com mensagem genérica; aguarda novo diagnóstico. Não enviar certificado/senha pelo chat.
+- A1: usuário confirmou armazenamento protegido e depois a operação de R$5 autorizada em homologação. Não pedir novo A1/diagnóstico para comprovar esse mesmo resultado. Produção continua pendente.
 - Acesso SQL administrativo não disponível ao executor; migrações remotas terão de ser aplicadas pelo SQL Editor após os testes locais.
 - Neste executor há somente URL, chave pública Supabase e origem do site, sem acesso administrativo. O usuário confirmou armazenamento protegido na Vercel/Supabase; o executor não recebeu o A1 nem verificou seu material privado. Configuração do Cron e operação real continuam dependendo de evidência própria.
 - Não existem amostras de TikTok Shop/Mercado Livre ou de outros layouts Shopee. Esses adaptadores dependem de evidência real.
-- Provedor de e-mail, remetente, provedor de pagamentos e planos comerciais ainda não definidos.
+- Brevo/SendPulse/Mailjet e remetente `notas@rexnotas.com.br` foram definidos, e o usuário confirmou os três testes simples. Stripe e preços também foram definidos; a validação dos pagamentos com a conta externa ainda está pendente.
 
 ## Evidência técnica consultada em 11/11/2026
 
