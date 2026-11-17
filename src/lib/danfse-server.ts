@@ -28,7 +28,7 @@ export async function loadOfficialDanfse(context:DanfseContext,deadline=Date.now
 /** Same owner-bound retrieval as the download, with no queue, readiness or PDF-cache mutation. */
 export async function inspectOfficialDanfse(context:DanfseContext){
  const sha=process.env.VERCEL_GIT_COMMIT_SHA??'',build=/^[a-f0-9]{7,40}$/i.test(sha)?sha.slice(0,7):'local';
- const lines=[`Diagnóstico: nfse-danfse-v1 (${build})`];let available=false;
+ const lines=[`Diagnóstico: nfse-danfse-v2 (${build})`];let available=false;
  try{await readOfficialDanfse(context,Date.now()+40_000,line=>lines.push(line),true);available=true;}
  catch(error){lines.push(error instanceof NfseTransportError?`Download automático: não confirmado · transporte ${fiscalTransportError(error).reason}.`:'Download automático: não confirmado.');}
  lines.push(`PDF oficial obtido pelo servidor: ${available?'sim':'não'}.`,'Esta conferência não libera produção, não altera a operação e não envia notas ou e-mails.');
@@ -55,7 +55,7 @@ async function readOfficialDanfse(context:DanfseContext,deadline:number,report?:
   report?.('A1 protegido: titular conferido.');
   let captured:Awaited<ReturnType<typeof ensureDanfseContract>>|undefined,pdf:Awaited<ReturnType<typeof fetchOfficialDanfse>>|undefined;
   try{
-   captured=await ensureDanfseContract(admin,data.environment,material,deadline-18_000,step=>report?.(`Documentação DANFS-e: ${step.stage} · HTTP ${step.status} · ${step.outcome}.`));
+   captured=await ensureDanfseContract(admin,data.environment,material,deadline-25_000,step=>report?.(`Documentação DANFS-e: ${step.stage} · HTTP ${step.status} · ${step.outcome}.`));
    if(deadline-Date.now()<8000)throw new Error('DANFSe deadline');
    pdf=await fetchOfficialDanfse(data.environment,data.accessKey,captured.contract,material);
   }catch{report?.('API DANFS-e: PDF não obtido. Consultando a alternativa no portal oficial.');}
@@ -68,7 +68,9 @@ async function readOfficialDanfse(context:DanfseContext,deadline:number,report?:
    return {bytes:pdf.bytes,accessKey:data.accessKey,environment:data.environment as NfseEnvironment};
   }
   const portal=await fetchPortalDanfse(data.environment,data.accessKey,material,deadline,step=>{
-   report?.(`${step.stage==='portal_login'?'Sessão A1 do portal':'PDF do portal'}: HTTP ${step.status} · ${step.outcome==='accepted'?'conferido':step.outcome==='refused'?'recusado':'recebido'}${step.reason?' · '+step.reason:''}.`);
+   const stage=step.stage==='portal_login'?'Sessão A1 do portal':step.stage==='portal_dashboard'?'Página inicial do portal':'PDF do portal';
+   report?.(`${stage}: HTTP ${step.status}${step.format?' · '+step.format.toUpperCase():''} · ${step.outcome==='accepted'?'conferido':step.outcome==='refused'?'recusado':'recebido'}${step.reason?' · '+step.reason:''}${step.iis403!==undefined?' · IIS 403.'+step.iis403:''}.`);
+   if(step.cookies)report?.(`Cookies da etapa: ${step.cookies.received} recebidos · ${step.cookies.accepted} aceitos pelo escopo. Valores omitidos.`);
   });
   // The web portal has no captured API contract. Never register a fabricated one
   // or associate these bytes with the ADN contract hash required by migration21.

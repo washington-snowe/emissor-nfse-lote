@@ -1,5 +1,5 @@
 {
-  "kind": "bounded_official_web_pdf_alternative_pending_authenticated_validation",
+  "kind": "bounded_official_web_session_completion_pending_pdf_validation",
   "reviewed_on": "2026-11-17",
   "user_observation": {
     "production_diagnostic": "nfse-production-v3 (97b50f2)",
@@ -7,7 +7,13 @@
     "production_head_contract_compatible": true,
     "production_adn_documentation_index_and_json_http": 503,
     "same_authorized_homologation_invoice_pdf_downloaded_in_official_browser_session": true,
-    "browser_download_does_not_prove_server_download_or_production_pdf_availability": true
+    "browser_download_does_not_prove_server_download_or_production_pdf_availability": true,
+    "pdf_diagnostic": "nfse-danfse-v1 (361acf9)",
+    "homologation_adn_documentation_index_and_json_http": 404,
+    "homologation_certificate_login_redirect_http": 302,
+    "homologation_server_pdf_http": 403,
+    "homologation_pdf_prefix_confirmed_by_user": "https://www.producaorestrita.nfse.gov.br/EmissorNacional/Notas/Download/DANFSe/",
+    "limitation": "The diagnostic confirms the certificate redirect and eligible cookie scope, not a completed www session or a PDF. No response headers, cookie values, private A1 or error page were supplied to the executor. The 403 cause remains unproven."
   },
   "official_login_pages_read_without_private_certificate": [
     {
@@ -37,15 +43,23 @@
         "sha256": "c6c1c8996f5b08550c42c44d0818dc0b535cd65213f44e4e5658a0d56e7f5d36"
       }
     ],
-    "scope": "These references identify a candidate download route. They supply neither an official API contract nor runtime proof. Their implementations are not executed or copied; insecure TLS, cookie files and arbitrary URLs are not adopted. Only an actual verified HTTPS200 PDF from the pinned official environment can be returned."
+    "scope": "The user confirmed the exact restricted portal PDF prefix from the successful browser download. The public references also identify the path, but supply neither an official API contract nor proof of automatic retrieval. Their implementations are not executed or copied; insecure TLS, cookie files and arbitrary URLs are not adopted. Only an actual verified HTTPS200 PDF from the pinned official environment can be returned."
+  },
+  "http_session_reference": {
+    "url": "https://www.rfc-editor.org/rfc/rfc6265.txt",
+    "http": 200,
+    "sha256": "dc4177094813e85a44a7897b892b76bc09160b3a03aea44f0f511f3a98f91933",
+    "sections": ["5.1.3 domain matching", "5.1.4 default path and path matching", "5.2 Set-Cookie", "5.3 storage", "5.4 Cookie header"],
+    "finding": "The previous flow skipped the validated Dashboard navigation and discarded cookies without a Secure attribute. Browser session completion can receive www host-only session/affinity cookies and replace an older cookie. These are reproducible implementation differences, not proof of the real 403 cause."
   },
   "policy": [
     "Use only the existing owner-bound authorized document and its server-stored 50-digit key; never accept a URL, certificate, cookies, key or PDF from the client.",
-    "Use the protected A1 of the issuer, verified TLS and GET only. Validate the fixed dashboard redirect without following it, then send only scoped Secure cookie pairs to the fixed same-environment PDF route. Never follow login, third-party or cross-environment redirects.",
+    "Use the protected A1, verified TLS and GET only. Validate the exact same-environment Dashboard redirect, perform one GET to that fixed Dashboard, merge its scoped cookies and then request the fixed PDF. Never follow login, arbitrary, third-party or cross-environment redirects.",
+    "Cookie selection checks source/domain, host-only scope, default/explicit path, expiry and replacement; no Set-Cookie attribute is forwarded. An upstream cookie without Secure can be retained because every request is pinned HTTPS with TLS verification. Host-only certificate cookies never cross to www. Requests remain bounded and a refused Dashboard stops before the PDF.",
     "Cookies remain local to one invocation and are never logged, stored, returned to the browser or shared across documents or tenants. Bodies, locations, identities and keys are excluded from the diagnostic.",
     "Require HTTP200, binary PDF MIME, bounded size, PDF header and terminal EOF. The PDF is not proof of fiscal authorization; the original authorized XML and its ownership remain prerequisites.",
     "Do not register a fabricated ADN contract or associate a portal PDF with an ADN contract hash. Existing valid API cache remains immutable; portal fallback is uncached pending a distinct provenance schema.",
-    "The explicit nfse-danfse-v1 inspection changes no fiscal operation, production readiness, numbering, email queue or PDF cache. Production remains blocked by the existing DANFSe contract prerequisite. No new migration or A1 upload is required for this check."
+    "The explicit nfse-danfse-v2 inspection exposes only stage/status, MIME categories, bounded cookie counts and an optional recognized numeric IIS403 substatus. It changes no fiscal operation, production readiness, numbering, email queue or PDF cache. Production remains blocked by the existing DANFSe contract prerequisite. No new migration or A1 upload is required for this check."
   ],
   "authenticated_server_pdf_validated_by_executor": false,
   "production_pdf_validated_by_executor": false,
