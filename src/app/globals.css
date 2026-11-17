@@ -700,6 +700,9 @@ strong {
 .quick-review-dialog .quick-review-confirm { flex-shrink: 0; margin: 0; padding: 20px 28px; border-top: 1px solid var(--line); background: #f8faf5; }
 .quick-review-dialog .quick-review-confirm .fiscal-checkbox { margin: 0; }
 .quick-review-dialog .quick-review-confirm .btn { margin-top: 16px; width: 100%; }
+.quick-review-feedback:not(:empty) { margin-bottom: 12px; }
+.quick-review-feedback .field-hint, .quick-review-feedback .form-error { margin: 0; font-size: 14px; }
+.quick-review-remedy { display: inline-block; margin-top: 4px; padding: 0; border: 0; background: none; font: inherit; font-size: 14px; text-align: left; cursor: pointer; }
 @media(max-width:600px) {
   .quick-review-launch { flex-direction: column; align-items: stretch; gap: 12px; }
   .quick-review-dialog { width: calc(100vw - 16px); max-height: calc(100dvh - 16px); border-radius: 12px; }

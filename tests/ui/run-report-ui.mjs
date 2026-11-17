@@ -173,6 +173,48 @@ try {
   assert.ok(await productionCard.getByRole('link',{name:'Baixar DANFS-e oficial'}).getAttribute('href').then(href=>href.endsWith('/danfse')));
   console.log('Production UI: explicit real issuance/email consent, automatic read-only access check without issuing, private XML/DANFSe links and no overflow at 3 widths.');
 
+  for(const width of [1440,390,320]){
+    await page.setViewportSize({width,height:width<640?640:900});
+    await page.goto(`${origin}/?screen=quick&production=1`);
+    const modal=page.getByRole('dialog'),footer=modal.locator('.quick-review-confirm'),body=modal.locator('.quick-review-dialog-body');
+    const consent=footer.getByRole('checkbox',{name:/Revisei os valores/}),emit=footer.getByRole('button',{name:'Revisei, confirmar e emitir em produção',exact:true});
+    await modal.getByText('Alterar dados',{exact:true}).click();
+    await modal.locator('[name="competenceDate"]').fill('2026-11-01');await consent.check();
+    await body.evaluate(element=>{element.scrollTop=element.scrollHeight;});
+    await footer.getByRole('status').filter({hasText:'Os dados foram alterados'}).waitFor();assert.ok(await emit.isDisabled());
+    const feedback=await footer.locator('#quick-review-hint').boundingBox(),emitBox=await emit.boundingBox();
+    assert.ok(feedback.y>=0&&emitBox.y+emitBox.height<=(width<640?640:900),'pending reason and emission button must remain on screen');
+    assert.equal(await page.evaluate(()=>window.workflowUiTest.calls),0);
+    await footer.getByRole('button',{name:'Conferir prévia',exact:true}).click();
+    assert.ok(!await consent.isChecked());assert.ok(await emit.isDisabled());
+    await page.waitForFunction(()=>document.querySelector('.quick-review .report-totals')?.textContent.includes('01/11/2026'));
+    assert.ok(!await consent.isChecked(),'refresh must require consent to the new summary');await consent.check();assert.ok(await emit.isEnabled());
+    assert.equal(await page.evaluate(()=>window.workflowUiTest.calls),0,'footer refresh must not emit or enroll a batch');
+    await page.screenshot({path:path.join(root,`shots/reports/review-footer-${width}.png`),fullPage:true});
+
+    await page.goto(`${origin}/?screen=quick&production=1&production-check=1&production-failure=1`);
+    const blockedFooter=page.locator('.quick-review-confirm'),blockedBody=page.locator('.quick-review-dialog-body');
+    await page.getByText('A verificação de produção sintética não foi concluída. Confira o diagnóstico.',{exact:true}).waitFor();
+    await blockedFooter.getByRole('checkbox',{name:/Revisei os valores/}).check();await blockedBody.evaluate(element=>{element.scrollTop=element.scrollHeight;});
+    assert.ok(await blockedFooter.getByRole('button',{name:'Revisei, confirmar e emitir em produção',exact:true}).isDisabled());
+    await blockedFooter.getByRole('status').filter({hasText:'O acesso à produção ainda precisa ser confirmado'}).waitFor();
+    const blockedHint=await blockedFooter.locator('#quick-review-hint').boundingBox();assert.ok(blockedHint.y>=0);
+    await blockedFooter.getByRole('button',{name:'Ver pendência de produção',exact:true}).click();
+    assert.ok(await page.getByRole('button',{name:'Copiar diagnóstico de produção',exact:true}).isVisible());
+    assert.equal(await page.evaluate(()=>window.workflowUiTest.productionChecks),1,'viewing the existing diagnostic must not recheck access');
+    assert.equal(await page.evaluate(()=>window.workflowUiTest.calls),0,'a checkbox cannot bypass missing production access');
+    assert.ok(await modal.evaluate(element=>element.scrollWidth<=element.clientWidth));
+    await page.screenshot({path:path.join(root,`shots/reports/production-pending-footer-${width}.png`),fullPage:true});
+  }
+  await page.goto(`${origin}/?screen=quick&production=1&preview-error=1`);
+  await page.getByText('Alterar dados',{exact:true}).click();await page.locator('[name="competenceDate"]').fill('2026-11-01');
+  await page.locator('.quick-review-confirm').getByRole('button',{name:'Conferir prévia',exact:true}).click();
+  await page.locator('.quick-review-confirm').getByRole('alert').filter({hasText:'Não foi possível atualizar a prévia'}).waitFor();
+  await page.getByRole('checkbox',{name:/Revisei os valores/}).check();assert.ok(await page.getByRole('button',{name:'Revisei, confirmar e emitir em produção',exact:true}).isDisabled());
+  assert.equal(await page.locator('[name="competenceDate"]').inputValue(),'2026-11-01');assert.equal(await page.evaluate(()=>window.workflowUiTest.calls),0);
+  const failedButton=await page.getByRole('button',{name:'Revisei, confirmar e emitir em produção',exact:true}).boundingBox();assert.ok(failedButton.y+failedButton.height<=await page.evaluate(()=>innerHeight),'failed refresh must keep its error and confirmation on screen');
+  console.log('Review footer: pending reason stays next to confirmation at 3 widths; refresh reads edited fields and requires fresh consent; failed production check reveals its diagnostic without bypassing guards or issuing.');
+
   await page.goto(`${origin}/?screen=quick&transmission-off=1`);
   await page.getByText(/Você pode marcar a revisão e preparar o lote/).waitFor();
   await page.getByRole("checkbox",{name:/Revisei os valores/}).check();
