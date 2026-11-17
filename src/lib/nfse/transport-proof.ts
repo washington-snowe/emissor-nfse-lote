@@ -1,19 +1,20 @@
 import { validCnpj } from "../companies.ts";
-import { NFSE_BASES, nfseGet, type NfseCredentials,type NfseEnvironment } from "./http.ts";
-import { supportedNfseContract, verifiedSefinLookup,readFiscalJson } from "./api-contract.ts";
+import { NFSE_BASES, nfseGet,nfseHead, type NfseCredentials,type NfseEnvironment } from "./http.ts";
+import { supportedNfseContract, verifiedSefinLookup,supportedDpsHeadPath } from "./api-contract.ts";
 
-/** Conservative candidate check, distinct from general mTLS transport evidence. */
-export function productionDpsAvailability(status:number,body:Buffer,id:string,rawContract:unknown):'used'|'unused'|'unverified'{
-  if(status===200)return 'used';
-  if(status!==404||!verifiedSefinLookup(status,body,id,rawContract,'production'))return 'unverified';
-  const data=readFiscalJson(body)!;
-  if(['idDps','idDPS'].some(field=>data[field]!=null&&data[field]!==id)||data.chaveAcesso!=null||data.nfseXmlGZipB64!=null)return 'unverified';
-  const entries=Object.entries(data).filter(([field])=>/^erros?$/i.test(field));
-  if(entries.length!==1)return 'unverified';
-  const errors=Array.isArray(entries[0][1])?entries[0][1]:[entries[0][1]];
-  if(errors.length!==1||!errors[0]||typeof errors[0]!=='object'||Array.isArray(errors[0]))return 'unverified';
-  const codes=Object.entries(errors[0]).filter(([field])=>/^codigo$/i.test(field));
-  return codes.length===1&&codes[0][1]==='E2404'?'unused':'unverified';
+/** An empty, documented HEAD200/404 is existence evidence on the pinned SEFIN host. */
+export function documentedDpsHeadResult(status:number,body:Buffer,contentType:string,rawContract:unknown):'used'|'unused'|'unverified'{
+  const mime=contentType.split(';',1)[0].trim().toLowerCase();
+  if(!supportedDpsHeadPath(rawContract)||body.length!==0||!['','application/json','application/problem+json'].includes(mime))return 'unverified';
+  return status===200?'used':status===404?'unused':'unverified';
+}
+
+export async function inspectOwnProductionSefinTransport(input:{municipality:string;cnpj:string;holderCnpj:string;series:string},credentials:NfseCredentials,rawContract:unknown,request=nfseHead){
+  if(input.cnpj!==input.holderCnpj)return {verified:false,http:0};
+  const path=supportedDpsHeadPath(rawContract);if(!path)return {verified:false,http:0};
+  const id=ownSefinLookupId(input.municipality,input.cnpj,input.series);
+  const response=await request('production',NFSE_BASES.production+path.replace(/\{[^}]+\}/,id),credentials,5000);
+  return {verified:documentedDpsHeadResult(response.status,response.body,response.contentType,rawContract)!=='unverified',http:response.status};
 }
 
 export function ownSefinLookupId(municipality: string, cnpj: string, series: string) {

@@ -82,12 +82,17 @@ export function nfseGet(environment: NfseEnvironment, url: string, credentials: 
   return nfseRequest(environment, "GET", url, credentials, undefined, timeoutMs);
 }
 
-export function nfseRequest(environment: NfseEnvironment, method: "GET" | "POST", url: string, credentials: NfseCredentials, body?: Buffer, timeoutMs = 5000): Promise<{ status: number; body: Buffer; contentType: string }> {
+export function nfseHead(environment:NfseEnvironment,url:string,credentials:NfseCredentials,timeoutMs=5000){
+  return nfseRequest(environment,'HEAD',url,credentials,undefined,timeoutMs);
+}
+
+export function nfseRequest(environment: NfseEnvironment, method: "GET" | "HEAD" | "POST", url: string, credentials: NfseCredentials, body?: Buffer, timeoutMs = 5000): Promise<{ status: number; body: Buffer; contentType: string }> {
   const target = method === "GET" ? allowedNfseReadUrl(environment,url) : allowedNfseUrl(environment,url);
-  if (!target || !["GET", "POST"].includes(method) || method === "POST" && (target.href !== NFSE_BASES[environment] + "/nfse" || !body || body.length > 512_000)) return Promise.reject(new NfseTransportError("invalid_destination"));
+  const headPath=target?.pathname.slice(new URL(NFSE_BASES[environment]).pathname.length);
+  if (!target || !["GET", "HEAD", "POST"].includes(method) || method === "POST" && (target.href !== NFSE_BASES[environment] + "/nfse" || !body || body.length > 512_000)||method==='HEAD'&&(body!==undefined||target.search||!/^\/dps\/DPS\d{42}$/.test(headPath??''))) return Promise.reject(new NfseTransportError("invalid_destination"));
   return new Promise((resolve,reject) => {
     let request: ReturnType<typeof https.request> | undefined;
-    const limit = Number.isFinite(timeoutMs) ? Math.max(1, Math.min(timeoutMs, method === "GET" ? 15000 : 20000)) : 5000;
+    const limit = Number.isFinite(timeoutMs) ? Math.max(1, Math.min(timeoutMs, method === "POST" ? 20000 : 15000)) : 5000;
     const timer = setTimeout(() => request?.destroy(new NfseTransportError("timeout")), limit);
     const fail = (error: unknown) => { clearTimeout(timer); reject(fiscalTransportError(error)); };
     try { request = https.request(target, {

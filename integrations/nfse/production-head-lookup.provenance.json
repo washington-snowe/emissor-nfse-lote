@@ -1,0 +1,44 @@
+{
+  "kind": "official_documented_head_lookup_without_get_environment_coercion",
+  "reviewed_on": "2026-11-17",
+  "reported_observation": {
+    "diagnostic": "nfse-production-v2",
+    "deployment": "5da40e9",
+    "a1_opened_locally": true,
+    "production_sefin_contract_recognized": true,
+    "own_get_http": 404,
+    "get_environment": 0,
+    "get_codes": [
+      "E2404"
+    ],
+    "get_contract_compatible": false,
+    "danfse_index_http": 503,
+    "danfse_json_http": 503
+  },
+  "official_source": {
+    "url": "https://www.gov.br/nfse/pt-br/biblioteca/documentacao-tecnica/documentacao-atual/manual-contribuintes-emissor-publico-api-sistema-nacional-nfs-e-v1-2-out2025.pdf",
+    "sha256": "ac2f36e34ff565cc36d67c5d67415c33cc09f27b2dea006e8da9bcd2ddce5581",
+    "pdf_page": 4,
+    "section": "1.4.2(b), HEAD /dps/{id}",
+    "evidence": "HEAD queries whether an NFS-e was generated from the DPS identifier, without returning the access key. The manual requires a valid digital certificate. GET has a distinct actor-restricted key retrieval purpose.",
+    "artifact_evidence": "Previously downloaded official artifact, rehashed locally against the existing provenance manifest. A new download attempt did not complete successfully; the actual captured production contract is still required at runtime.",
+    "current_portal_still_links_same_url": true,
+    "new_download_attempt_http": 403
+  },
+  "runtime_contract_requirement": {
+    "source": "actual captured production SEFIN contract from the protected application registry",
+    "required": "HEAD on the same recognized /dps/{id} path, required string path identifier, no additional mandatory parameter or request body, and declared200/404 responses",
+    "reference_only": "The existing authenticated homologation capture also declares this method, but does not enable production; each production request is checked against its own captured contract."
+  },
+  "policy": [
+    "GET environment0 remains incompatible with production and is never converted to1 or used to establish production access or candidate absence.",
+    "Production preflight uses the documented HEAD on the pinned production SEFIN host with protected own A1 and locally matched issuer CNPJ. Only an empty HEAD200/404 with absent/JSON content type is recognized; HTML, bodies, redirects, other statuses or unsupported contracts block.",
+    "HEAD transport accepts only the exact DPS identifier path with42 decimal digits after DPS. Query strings, bodies, unrelated paths, other hosts, credentials in URLs, weak TLS and redirects remain rejected.",
+    "The worker renews own mTLS transport before reserving a number, then HEAD-checks the exact reserved identifier before its single POST. HEAD200 blocks occupied identity; a documented empty HEAD404 permits preparing the original production XML. No automatic counter skipping or retransmission.",
+    "HEAD is transport/existence evidence, not fiscal eligibility or authorization. Production XML, POST response environment, complete original DPS binding, fiscal status, XSD and cryptographic document proof remain mandatory.",
+    "The unavailable DANFSe contract remains a separate blocker. No readiness, real invoice or email is enabled merely by changing the lookup method. Existing operations, signed originals, source reservations and counters are not reset."
+  ],
+  "live_authenticated_head_verified_by_executor": false,
+  "live_danfse_verified_by_executor": false,
+  "real_documents_sent_by_executor": false
+}

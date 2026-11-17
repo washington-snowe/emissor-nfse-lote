@@ -1,10 +1,10 @@
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { loadCertificateMaterial } from "@/lib/certificate-material";
-import { supportedNfseContract } from "@/lib/nfse/api-contract";
+import { supportedNfseContract,supportedDpsHeadPath } from "@/lib/nfse/api-contract";
 import { executeFiscalJob, type FiscalJob } from "@/lib/nfse/execute";
-import { nfseRequest,NFSE_BASES,type NfseEnvironment } from "@/lib/nfse/http";
-import { inspectOwnSefinTransport,productionDpsAvailability } from "@/lib/nfse/transport-proof";
+import { nfseRequest,nfseHead,NFSE_BASES,type NfseEnvironment } from "@/lib/nfse/http";
+import { inspectOwnSefinTransport,inspectOwnProductionSefinTransport,documentedDpsHeadResult } from "@/lib/nfse/transport-proof";
 import {selectedFiscalEnvironment,fiscalEnvironmentEnabled} from '@/lib/nfse/environment';
 import { signDps } from "@/lib/nfse/signature";
 import { validateFiscalSchema } from "@/lib/nfse/schema";
@@ -66,7 +66,8 @@ export async function processFiscalJobs(tenantId?: string, deadline = Date.now()
           // A self-declared subject in a PKCS#12 is insufficient for the shared legal namespace.
           // Require the documented official mTLS service to respond before reserving an issuer number.
           // ADN parameter access alone must never unlock the shared SEFIN numbering namespace.
-          const sefinAccess = await inspectOwnSefinTransport({municipality, cnpj: job.issuer_cnpj, holderCnpj: material.metadata.subject_cnpj, series}, material, contractResult.data,undefined,environment);
+          const lookup={municipality,cnpj:job.issuer_cnpj,holderCnpj:material.metadata.subject_cnpj,series};
+          const sefinAccess = environment==='production'?await inspectOwnProductionSefinTransport(lookup,material,contractResult.data):await inspectOwnSefinTransport(lookup,material,contractResult.data);
           if (!sefinAccess.verified) throw new Error();
           const recorded = await rpc(productionSchemaReady?'record_fiscal_environment_transport':"record_fiscal_transport", { p_operation: job.id, p_token: job.lease_token, p_certificate: certificateId,...(productionSchemaReady?{p_http:sefinAccess.http}:{}) });
           if (recorded !== true) throw new Error();
@@ -77,8 +78,9 @@ export async function processFiscalJobs(tenantId?: string, deadline = Date.now()
     begin: (material, xml) => rpc("begin_fiscal_send_traced", { p_operation: job.id, p_token: job.lease_token,
       p_certificate: material.certificateId, p_signed_xml: xml, p_certificate_pem: material.certificatePem }),
     productionIdentity:async(id,material)=>{
-      const response=await nfseRequest(environment,'GET',NFSE_BASES[environment]+contract.dpsPath.replace(/\{[^}]+\}/,id),material,undefined,5000);
-      return productionDpsAvailability(response.status,response.body,id,contractResult.data);
+      const path=supportedDpsHeadPath(contractResult.data);if(!path)return 'unverified';
+      const response=await nfseHead('production',NFSE_BASES.production+path.replace(/\{[^}]+\}/,id),material,5000);
+      return documentedDpsHeadResult(response.status,response.body,response.contentType,contractResult.data);
     },
     release: reason => rpc("release_fiscal_preparation", { p_operation: job.id, p_token: job.lease_token, p_reason: reason }),
     request: (method, url, material, body) => {

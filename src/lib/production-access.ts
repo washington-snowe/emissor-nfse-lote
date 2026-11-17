@@ -2,17 +2,16 @@ import 'server-only';
 import {createAdminClient} from '@/lib/supabase/admin';
 import {loadCertificateMaterial} from '@/lib/certificate-material';
 import {discoverOfficialContract} from '@/lib/nfse/contract';
-import {supportedNfseContract,verifiedSefinLookup,readFiscalJson} from '@/lib/nfse/api-contract';
-import {ownSefinLookupId} from '@/lib/nfse/transport-proof';
-import {NFSE_BASES,nfseGet} from '@/lib/nfse/http';
-import {fiscalResponseObservation} from '@/lib/nfse/transport-observation';
+import {supportedNfseContract,supportedDpsHeadPath} from '@/lib/nfse/api-contract';
+import {ownSefinLookupId,documentedDpsHeadResult} from '@/lib/nfse/transport-proof';
+import {NFSE_BASES,nfseHead} from '@/lib/nfse/http';
 import {ensureDanfseContract} from '@/lib/danfse-server';
 import {fiscalTransportError} from '@/lib/nfse/transport-error';
 
 export async function checkProductionAccess(actorId:string,companyId:string){
  const sha=process.env.VERCEL_GIT_COMMIT_SHA??'';
  const build=/^[a-f0-9]{7,40}$/i.test(sha)?sha.slice(0,7):'local';
- const lines=[`Diagnóstico: nfse-production-v2 (${build})`],admin=createAdminClient();
+ const lines=[`Diagnóstico: nfse-production-v3 (${build})`],admin=createAdminClient();
  const report=(verified:boolean,message:string)=>({verified,message,details:[...lines,'Nenhuma nota foi enviada por esta verificação.'].join('\n')});
  if(!admin)return report(false,'O processamento protegido não está disponível.');
  const reserved=await admin.rpc('reserve_production_check',{p_actor:actorId,p_company:companyId});
@@ -35,18 +34,19 @@ export async function checkProductionAccess(actorId:string,companyId:string){
    if(saved.error)throw new Error('Registry unavailable');
    contract={contract:captured.contract,sha256:captured.sha256};
   }
-  const supported=supportedNfseContract(contract.contract)!;
   lines.push('Contrato SEFIN de produção: reconhecido.');
-  // Query fiscal transport first; PDF documentation must not hide its result.
+  // API DPS manual 1.4.2(b) documents HEAD existence queries without a JSON envelope.
+  // Do not convert GET environment0 into production evidence.
   if(deadline-Date.now()<6000)throw new Error('Deadline');
+  const path=supportedDpsHeadPath(contract.contract);
+  if(!path){lines.push('Contrato HEAD da DPS: não reconhecido.');return report(false,'O contrato de produção ainda não confirmou a consulta HEAD da DPS. O envio permanece bloqueado.');}
+  lines.push('Contrato HEAD da DPS: reconhecido.');
   const id=ownSefinLookupId(context.profile.issuerMunicipality,context.cnpj,context.profile.series);
   lookupStarted=true;
-  const response=await nfseGet('production',NFSE_BASES.production+supported.dpsPath.replace(/\{[^}]+\}/,id),material,5000);
+  const response=await nfseHead('production',NFSE_BASES.production+path.replace(/\{[^}]+\}/,id),material,5000);
   lookupCompleted=true;
-  const observation=fiscalResponseObservation(response.status,response.body,id),data=readFiscalJson(response.body);
-  lines.push(`Consulta da DPS própria: HTTP ${observation.http}.`,`Ambiente informado: ${data?.tipoAmbiente===1?'produção':data?.tipoAmbiente===2?'homologação':data?.tipoAmbiente===0?'número 0':'não reconhecido'}.`,`Códigos fiscais: ${observation.codes.length?observation.codes.join(', '):'não identificados'}.`);
-  const sefinReady=verifiedSefinLookup(response.status,response.body,id,contract.contract,'production');
-  lines.push(`Consulta SEFIN compatível com produção: ${sefinReady?'sim':'não'}.`);
+  const sefinReady=documentedDpsHeadResult(response.status,response.body,response.contentType,contract.contract)!=='unverified';
+  lines.push(`Consulta HEAD da DPS própria: HTTP ${response.status}.`,`Corpo da resposta HEAD: ${response.body.length===0?'ausente, conforme o método':'inesperado'}.`,'Destino da consulta: SEFIN oficial de produção.','Campo de ambiente no JSON: não se aplica ao método HEAD.',`Consulta HEAD conforme o contrato: ${sefinReady?'sim':'não'}.`);
   let danfseReady=false,danfseHttp:number|undefined;
   try{
    await ensureDanfseContract(admin,'production',material,deadline-5000,step=>{
@@ -55,7 +55,7 @@ export async function checkProductionAccess(actorId:string,companyId:string){
    });
    danfseReady=true;lines.push('Contrato DANFS-e de produção: reconhecido.');
   }catch{lines.push('Contrato DANFS-e de produção: não confirmado.');}
-  if(!sefinReady)return report(false,'A consulta à SEFIN ainda não confirmou o acesso conforme o contrato de produção. Confira o diagnóstico; o envio continua bloqueado.');
+  if(!sefinReady)return report(false,'A consulta HEAD à SEFIN ainda não confirmou o acesso conforme o contrato de produção. Confira o diagnóstico; o envio continua bloqueado.');
   if(!danfseReady)return report(false,danfseHttp===503
    ?'A consulta à SEFIN de produção foi conferida, mas a documentação oficial do DANFS-e retornou HTTP 503. A preparação dos documentos continua pendente; o lote não foi enviado.'
    :'A consulta à SEFIN de produção foi conferida. Falta obter e validar o contrato oficial do DANFS-e para preparar os documentos; o lote não foi enviado.');
@@ -64,7 +64,7 @@ export async function checkProductionAccess(actorId:string,companyId:string){
   lines.push('Acesso de produção: verificado. A emissão depende da revisão e confirmação de cada lote.');
   return report(true,'Acesso à produção e contratos conferidos. Revise o lote para autorizar a emissão.');
  }catch(error){
-  if(lookupStarted&&!lookupCompleted)lines.push(`Consulta da DPS própria: sem resposta HTTP · transporte ${fiscalTransportError(error).reason}.`);
+  if(lookupStarted&&!lookupCompleted)lines.push(`Consulta HEAD da DPS própria: sem resposta HTTP · transporte ${fiscalTransportError(error).reason}.`);
   return report(false,'Não foi possível concluir a verificação da produção. Confira o diagnóstico e tente novamente; o envio permanece bloqueado.');
  }
  finally{material?.pfx.fill(0);}

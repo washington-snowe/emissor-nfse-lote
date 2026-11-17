@@ -4,7 +4,7 @@ import {readFileSync} from 'node:fs';
 import {gzipSync} from 'node:zlib';
 import {executeFiscalJob,type FiscalJob} from '../src/lib/nfse/execute.ts';
 import {supportedNfseContract,verifiedSefinLookup} from '../src/lib/nfse/api-contract.ts';
-import {inspectOwnSefinTransport,ownSefinLookupId,productionDpsAvailability} from '../src/lib/nfse/transport-proof.ts';
+import {inspectOwnSefinTransport,ownSefinLookupId} from '../src/lib/nfse/transport-proof.ts';
 import {validateFiscalSchema} from '../src/lib/nfse/schema.ts';
 import {signDps} from '../src/lib/nfse/signature.ts';
 import {verifyOfficialNfseContents} from '../src/lib/nfse/receipt.ts';
@@ -51,16 +51,14 @@ test('produção reconcilia somente com GET mesmo com emissão desativada; não 
 test('POST de produção com rejeição de outro ambiente fica incerto sem repetir envio',async()=>{
  for(const environment of [0,2,undefined]){const s=scenario();s.deps.request=async()=>{s.events.push('POST');return {status:400,body:Buffer.from(JSON.stringify({tipoAmbiente:environment,idDPS:signed.id,erros:[{codigo:'E0008'}]}))};};await executeFiscalJob(s.job,s.deps);assert.equal(s.events.filter(x=>x==='POST').length,1);assert.ok(s.events.includes('finish:uncertain'));}
 });
-test('prova SEFIN produção exige ambiente 1; exceção zero/E2404 permanece exclusiva da homologação',async()=>{
+test('GET SEFIN produção exige ambiente 1; exceção zero/E2404 permanece exclusiva da homologação',async()=>{
  const id=ownSefinLookupId(fiscalProfile.issuerMunicipality,'11222333000181','1');
  for(const environment of [0,2,undefined,'1'])assert.equal(verifiedSefinLookup(404,Buffer.from(JSON.stringify({tipoAmbiente:environment,erro:{codigo:'E2404'}})),id,raw,'production'),false);
  assert.equal(verifiedSefinLookup(404,Buffer.from('{"tipoAmbiente":0,"erro":{"codigo":"E2404"}}'),id,raw),true);
  assert.equal(verifiedSefinLookup(404,Buffer.from('{"tipoAmbiente":1,"erro":{"codigo":"E2404"}}'),id,raw,'production'),true);
  const result=await inspectOwnSefinTransport({municipality:fiscalProfile.issuerMunicipality,cnpj:'11222333000181',holderCnpj:'11222333000181',series:'1'},{pfx:Buffer.from('synthetic'),password:'synthetic'},raw,async(env,url)=>{assert.equal(env,'production');assert.equal(url,'https://sefin.nfse.gov.br/SefinNacional/dps/'+id);return {status:404,contentType:'application/json',body:Buffer.from('{"tipoAmbiente":1,"erro":{"codigo":"E2404"}}')};},'production');
  assert.deepEqual(result,{verified:true,http:404});
- assert.equal(productionDpsAvailability(404,Buffer.from('{"tipoAmbiente":1,"erro":{"codigo":"E2404"}}'),id,raw),'unused');
- assert.equal(productionDpsAvailability(200,Buffer.from('{}'),id,raw),'used');
- for(const value of [{tipoAmbiente:1,erro:{codigo:'E0002'}},{tipoAmbiente:0,erro:{codigo:'E2404'}},{tipoAmbiente:1,erro:{codigo:'E2404'},idDPS:'FOREIGN'},{tipoAmbiente:1,erro:{codigo:'E2404'},chaveAcesso:key}])assert.equal(productionDpsAvailability(404,Buffer.from(JSON.stringify(value)),id,raw),'unverified');
+
 });
 test('recibo assinado e estruturalmente válido de produção não autoriza ambiente diferente',async()=>{
  const xml=nfseFixture(signed.xml,service,key),expected={accessKey:key,signedDps:signed.xml,holderCert:holder.certificatePem,dpsId:signed.id,issuerCnpj:'11222333000181'};

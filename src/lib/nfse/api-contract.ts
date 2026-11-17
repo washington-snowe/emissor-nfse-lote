@@ -67,6 +67,17 @@ export function supportedNfseContract(value: unknown): SupportedNfseContract | n
   } catch { return null; }
 }
 
+/** Manual API DPS 1.4.2(b): documented existence lookup, no JSON environment field. */
+export function supportedDpsHeadPath(value:unknown):string|null{
+  const supported=supportedNfseContract(value);if(!supported)return null;
+  const operation=object(object(object(object(value).paths)[supported.dpsPath]).head);
+  const responses=object(operation.responses),name=/\{([^}]+)\}/.exec(supported.dpsPath)?.[1];
+  if(!Object.hasOwn(responses,'200')||!Object.hasOwn(responses,'404')||!Array.isArray(operation.parameters)||operation.requestBody)return null;
+  const parameters=operation.parameters.map(object);
+  if(!parameters.some(p=>p.in==='path'&&p.name===name&&p.required===true&&(p.type==='string'||object(p.schema).type==='string'))||parameters.some(p=>p.required===true&&!(p.in==='path'&&p.name===name)))return null;
+  return supported.dpsPath;
+}
+
 export function dpsTransportBody(xml: string): Buffer {
   if (Buffer.byteLength(xml) > MAX_FISCAL_XML_BYTES) throw new Error("Fiscal payload limit");
   return Buffer.from(JSON.stringify({ dpsXmlGZipB64: gzipSync(Buffer.from(xml), { level: 6 }).toString("base64") }));
