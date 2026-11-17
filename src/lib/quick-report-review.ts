@@ -11,6 +11,7 @@ import {canExtendProfileValidity} from "@/lib/nfse/profile-validity";
 import {todayInBrazil} from "@/lib/nfse/standalone";
 import {sellerEmailRoute} from "@/lib/email/routing";
 import {emailConfig} from "@/lib/email/config";
+import {selectedFiscalEnvironment,fiscalEnvironmentEnabled} from '@/lib/nfse/environment';
 
 export async function loadQuickReportReview(importId:string,input?:QuickReviewInput,repairValidity=true) {
   const {client,context}=await requireWorkspace();
@@ -35,7 +36,8 @@ export async function loadQuickReportReview(importId:string,input?:QuickReviewIn
   }
   const profile=parseFiscalProfile(current.configuration,company.data.cnpj,company.data.tax_regime);
   if(!profile)return null;
-  const binding={companyId:company.data.id,issuerCnpj:company.data.cnpj,importId,profileId:current.id,profileSha256:current.configuration_sha256,profileVersion:current.version,profile};
+  const environment=selectedFiscalEnvironment(process.env);
+  const binding={environment,companyId:company.data.id,issuerCnpj:company.data.cnpj,importId,profileId:current.id,profileSha256:current.configuration_sha256,profileVersion:current.version,profile};
   const generated=previewFiscalReview(report,fields,binding);
   const dateBlocked=Boolean(generated.snapshot&&generated.snapshot.competenceDate<current.valid_from);
   const displayDate=(value:string)=>value.split("-").reverse().join("/");
@@ -46,9 +48,15 @@ export async function loadQuickReportReview(importId:string,input?:QuickReviewIn
     const override=fields.recipients.find(row=>row.row===candidate.row);
     return {...candidate,person:override?.person??candidate.person,foreignAmount:override?.foreignAmount??candidate.foreignAmount};
   });
-  const data:QuickReviewData={importId,companyId:company.data.id,input:fields,candidates,preview:generated.snapshot,digest:!error&&generated.snapshot?quickReviewDigest(generated.snapshot):undefined,
-    version:review.data?.version??0,error,issues:generated.issues,foreignForAll:Boolean(profile.serviceCountry)||profile.issTaxation==="3",currency:profile.foreignTrade?.currency,needsIntermediary:profile.issWithholding==="3",transmissionEnabled:process.env.NFSE_HOMOLOGATION_ENABLED==="true",
-    validityAdjustment:dateBlocked&&generated.snapshot&&canExtendProfileValidity(company.data,current,fields.competenceDate,todayInBrazil())?{profileId:current.id,profileVersion:current.version,profileHash:current.configuration_sha256,currentFrom:current.valid_from,targetFrom:fields.competenceDate,previewDigest:quickReviewDigest(generated.snapshot)}:undefined};
-  data.emailDelivery={enabled:emailConfig(process.env).enabled,testOnly:true,routes:generated.snapshot?.groups.map(group=>sellerEmailRoute(report,group))??[]};
+  const email=emailConfig(process.env);
+  const routes=generated.snapshot?.groups.map(group=>sellerEmailRoute(report,group))??[];
+  const production=environment==='production'?await client.rpc('production_report_status',{p_company:company.data.id}):null;
+  const productionReady=!production?.error&&production?.data?.ready===true;
+  const deliveryError=environment==='production'&&(!email.enabled||routes.some(route=>!route.email))?'Confira a configuração de e-mail e o endereço de cada vendedor antes da emissão real.':undefined;
+  const data:QuickReviewData={importId,companyId:company.data.id,input:fields,candidates,preview:generated.snapshot,digest:!error&&!deliveryError&&generated.snapshot&&(environment==='homologation'||productionReady)?quickReviewDigest(generated.snapshot,environment):undefined,
+    environment,production:environment==='production'?{ready:productionReady}:undefined,
+    version:review.data?.version??0,error:error??deliveryError,issues:generated.issues,foreignForAll:Boolean(profile.serviceCountry)||profile.issTaxation==="3",currency:profile.foreignTrade?.currency,needsIntermediary:profile.issWithholding==="3",transmissionEnabled:fiscalEnvironmentEnabled(environment,process.env),
+    validityAdjustment:dateBlocked&&generated.snapshot&&canExtendProfileValidity(company.data,current,fields.competenceDate,todayInBrazil())?{profileId:current.id,profileVersion:current.version,profileHash:current.configuration_sha256,currentFrom:current.valid_from,targetFrom:fields.competenceDate,previewDigest:quickReviewDigest(generated.snapshot,environment)}:undefined};
+  data.emailDelivery={enabled:email.enabled,testOnly:environment==='homologation',routes};
   return {data,report,binding,previous:review.data,current,company:company.data};
 }

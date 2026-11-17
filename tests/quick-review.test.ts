@@ -46,3 +46,10 @@ test("a automação não descarta negativos, moeda incompatível ou origem repet
   for(const mode of ["negative","currency","duplicate"]){const report=await fixture();if(mode==="negative")report.review.rows[0].amount="-1.10";if(mode==="currency")report.review.rows[0].currency="USD";if(mode==="duplicate")report.reportedSellers[1].storeId=report.reportedSellers[0].storeId;
     assert.equal(previewFiscalReview(report,quickReviewDefaults(report,recipient),binding).snapshot,undefined);}
 });
+test('ambiente integra snapshot, XML e digest; consentimento de homologação não migra para produção',async()=>{
+ const report=await fixture(),input={...quickReviewDefaults(report,recipient),confirmRecipientRole:true};
+ const homologation=prepareFiscalReview(report,input,binding).snapshot!,production=prepareFiscalReview(report,input,{...binding,environment:'production'}).snapshot!;
+ assert.equal(production.environment,'production');assert.ok(readReviewSnapshot(production,binding.importId,report.review.source.fileSha256));
+ assert.notEqual(quickReviewDigest({...homologation,recipientRoleConfirmed:false}),quickReviewDigest({...production,recipientRoleConfirmed:false},'production'));
+ for(const environment of [null,undefined,0,{},['production'],'PRODUCTION'])assert.equal(readReviewSnapshot({...production,environment},binding.importId,report.review.source.fileSha256),null);
+});

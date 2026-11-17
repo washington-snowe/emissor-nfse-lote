@@ -14,7 +14,7 @@ export async function enableBatchEmails(batchId:string,_state:EmailActionState,_
  const result=await admin.rpc('enable_invoice_email',{p_actor:context.user.id,p_batch:batchId});
  if(result.error||result.data!==true)return {error:'Não foi possível preparar os e-mails deste lote.'};
  after(async()=>{try{await processInvoiceEmails(context.tenantId);}catch{/* Durable recovery. */}});revalidatePath('/painel/notas','layout');
- return {success:'Entrega preparada. Em homologação, somente o endereço de teste configurado receberá documentos.'};
+ return {success:'Entrega preparada para os documentos autorizados deste lote.'};
 }
 export async function retryInvoiceEmail(id:string,_state:EmailActionState,_form:FormData):Promise<EmailActionState>{
  void _state;void _form;

@@ -1,10 +1,12 @@
 export const fiscalStatusLabels: Record<string, string> = {
   queued: "Na fila", blocked: "Aguardando configuração", preparing: "Preparando XML", sending: "Transmissão iniciada",
-  uncertain: "Resultado incerto · somente consulta", reconciling: "Consultando resultado", authorized: "Autorizada em homologação",
+  uncertain: "Resultado incerto · somente consulta", reconciling: "Consultando resultado", authorized: "Autorizada",
   rejected: "Rejeitada", intervention: "Precisa de atenção", cancelled: "Preparação cancelada",
 };
 export const fiscalReasonLabels: Record<string, string> = {
-  transmission_disabled: "A transmissão em homologação ainda está desativada.", contract_missing: "O contrato oficial da API ainda precisa ser verificado.",
+  transmission_disabled: "A transmissão está desativada para o ambiente desta operação.", contract_missing: "O contrato oficial da API ainda precisa ser verificado.",
+  production_not_ready:'O acesso à produção ainda precisa ser conferido. A operação permanece sem envio.',
+  identity_in_use:'A DPS reservada já existe no serviço oficial. Confira a série e a numeração antes de preparar outro lote; esta operação não foi enviada.',
   certificate_missing: "Cadastre um certificado A1 válido para esta empresa.", certificate_unavailable: "Não foi possível validar o A1 ou confirmar o acesso à SEFIN para esta operação. Confira o diagnóstico na página de certificados.",
   configuration_changed: "A revisão ou o perfil mudou. Cancele esta preparação e confira uma nova versão.",
   worker_interrupted: "O processamento foi interrompido. A fila preservou o estado para recuperação.",

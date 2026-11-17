@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { useState, useTransition } from "react";
-import { Building2, ChevronDown, ChevronsUpDown, CreditCard, FilePlus2, FileText, House, KeyRound, Layers, LogOut, Menu, ReceiptText, Settings2, Share2, ShieldCheck, UploadCloud, UserRound } from "lucide-react";
+import { Building2, ChevronDown, ChevronsUpDown, CreditCard, FileText, House, KeyRound, Layers, LogOut, Menu, ReceiptText, Settings2, Share2, ShieldCheck, UploadCloud, UserRound } from "lucide-react";
 import { signOut } from "@/app/auth/actions";
 import { selectWorkspaceCompany } from "@/app/painel/navigation-actions";
 import { chooseCompany, formatCompanyDocument, workspaceDestination, type NavigationCompany, type WorkspaceArea } from "@/lib/workspace-navigation";
@@ -23,7 +23,7 @@ export function WorkspaceShell({ email, name, active = "overview", companies = [
   const navigation = <nav aria-label="Navegação principal" className="workspace-navigation">
     {link("overview", "Início", House)}{link("invoices", "Notas", FileText)}
     <details className="workspace-nav-group" open><summary><UploadCloud size={19} aria-hidden="true" /><span>Emitir</span><ChevronDown size={16} aria-hidden="true" /></summary><div className="workspace-subnav">
-      {link("imports", "Notas em lote", Layers)}{link("standalone", "Nota avulsa", FilePlus2)}
+      {link("imports", "Notas em lote", Layers)}
     </div></details><span className="workspace-nav-heading">Ajustes</span>
     <details className="workspace-nav-group" open><summary><Building2 size={19} aria-hidden="true" /><span>Empresa</span><ChevronDown size={16} aria-hidden="true" /></summary><div className="workspace-subnav">
       {link("companies", "Cadastro", ReceiptText)}{link("service", "Serviço", FileText)}{link("advanced", "Avançado", Settings2)}{link("certificates", "Certificado", ShieldCheck)}

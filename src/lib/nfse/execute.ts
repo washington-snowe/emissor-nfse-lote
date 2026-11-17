@@ -13,11 +13,13 @@ export type FiscalJob = {
 export type FiscalMaterial = { pfx: Buffer; password: string; privateKeyPem: string; certificatePem: string; certificateId: string };
 type Outcome = "authorized" | "rejected" | "uncertain" | "not_found" | "intervention";
 type Dependencies = {
+  productionEnabled?:boolean;
   contract: SupportedNfseContract; loadMaterial(): Promise<FiscalMaterial>; remainingMs(): number;
   identity(material: FiscalMaterial): Promise<{ id: string; number: string } | { blocked: "source_duplicate" } | null>;
   sign(xml: string, id: string, key: string, cert: string): string;
   validate(xml: string): Promise<boolean>;
   begin(material: FiscalMaterial, xml: string): Promise<boolean>;
+  productionIdentity?(id:string,material:FiscalMaterial):Promise<'unused'|'used'|'unverified'>;
   release(reason: string): Promise<unknown>;
   request(method: "GET" | "POST", url: string, material: FiscalMaterial, body?: Buffer): Promise<{ status: number; body: Buffer }>;
   receipt(xml: string, key: string, signedDps: string, holderCert: string, dpsId: string): Promise<{ xml: string; accessKey: string } | null>;
@@ -28,14 +30,15 @@ type Dependencies = {
 export async function executeFiscalJob(job: FiscalJob, deps: Dependencies) {
   let material: FiscalMaterial | undefined, dispatched = job.mode === "reconcile";
   try {
-    if (job.environment !== "homologation") throw new Error("Unsupported fiscal environment");
+    if (!['homologation','production'].includes(job.environment)) throw new Error("Unsupported fiscal environment");
+    if(job.environment==='production'&&job.mode==='prepare'&&(!deps.productionEnabled||!deps.productionIdentity)){await deps.release('transmission_disabled');return;}
     try { material = await deps.loadMaterial(); }
     catch (error) {
       if (dispatched) await deps.finish("intervention", "certificate_unavailable");
       else await deps.release(error instanceof Error && error.message === "certificate_missing" ? "certificate_missing" : "certificate_unavailable");
       return;
     }
-    const base = NFSE_BASES.homologation;
+    const base = NFSE_BASES[job.environment];
     let result: { status: number; body: Buffer }, signedDps: string, holderCert: string, lookupKey: string | undefined;
     let dpsId = job.dps_id;
     if (job.mode === "prepare") {
@@ -49,7 +52,11 @@ export async function executeFiscalJob(job: FiscalJob, deps: Dependencies) {
       if (!identity) { await deps.release("configuration_changed"); return; }
       if ("blocked" in identity) { await deps.release(identity.blocked); return; }
       dpsId = identity.id;
-      const built = buildDps({ environment: "homologation", issuerCnpj: job.issuer_cnpj, profile, dpsNumber: identity.number,
+      if(job.environment==='production'){
+        const availability=await deps.productionIdentity!(dpsId,material);
+        if(availability!=='unused'){await deps.release(availability==='used'?'identity_in_use':'production_not_ready');return;}
+      }
+      const built = buildDps({ environment: job.environment, issuerCnpj: job.issuer_cnpj, profile, dpsNumber: identity.number,
         competenceDate: job.competence_date, emissionTime: fiscalEmissionTime(), amount: job.amount,
         recipient: job.recipient, intermediary: job.intermediary ?? undefined, foreignAmount: job.foreign_amount ?? undefined });
       if (built.id !== dpsId) { await deps.release("invalid_xml"); return; }
@@ -67,12 +74,15 @@ export async function executeFiscalJob(job: FiscalJob, deps: Dependencies) {
       signedDps = job.signed_dps_xml; holderCert = job.holder_certificate_pem;
       const lookup = await deps.request("GET", base + deps.contract.dpsPath.replace(/\{[^}]+\}/, encodeURIComponent(dpsId)), material);
       if (lookup.status === 404) { await deps.finish("not_found", "not_found"); return; }
-      const key = readFiscalJson(lookup.body)?.chaveAcesso;
+      const lookupData=readFiscalJson(lookup.body);
+      if(job.environment==='production'&&(!lookupData||lookupData.tipoAmbiente!==1||['idDps','idDPS'].some(field=>Object.hasOwn(lookupData,field)&&lookupData[field]!==dpsId))){await deps.finish('uncertain','response_invalid');return;}
+      const key = lookupData?.chaveAcesso;
       if (lookup.status !== 200 || typeof key !== "string" || !/^\d{50}$/.test(key)) { await deps.finish("uncertain", "response_invalid"); return; }
       lookupKey = key;
       result = await deps.request("GET", base + deps.contract.nfsePath.replace(/\{[^}]+\}/, key), material);
     }
     const json = readFiscalJson(result.body);
+    if(job.environment==='production'&&(!json||json.tipoAmbiente!==1||['idDps','idDPS'].some(field=>json[field]!=null&&json[field]!==dpsId))){await deps.finish('uncertain','response_invalid');return;}
     if (job.mode === "prepare" && definitiveRejection(result.status, json, deps.contract,dpsId!)) {
       await deps.finish("rejected", "provider_rejection"); return;
     }

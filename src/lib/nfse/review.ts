@@ -11,7 +11,7 @@ export type ReviewGroup = {
   foreignAmount?: string; intermediary?: FiscalPerson;
 };
 export type ReviewSnapshot = {
-  contractVersion: 1; environment: "homologation"; companyId: string; issuerCnpj: string;
+  contractVersion: 1; environment: "homologation"|'production'; companyId: string; issuerCnpj: string;
   importId: string; fileSha256: string; profileId: string; profileSha256: string; profileVersion: number;
   competenceDate: string; commissionType: string; evidenceReference: string;
   recipientRoleConfirmed: true;
@@ -61,6 +61,7 @@ const cents = (value: string) => BigInt(fiscalDecimal(value, "review.amount", tr
 const amount = (value: bigint) => `${value / 100n}.${(value % 100n).toString().padStart(2, "0")}`;
 
 export type ReviewBinding = {
+  environment?:'homologation'|'production';
   companyId: string; issuerCnpj: string; importId: string; profileId: string; profileSha256: string; profileVersion: number; profile: FiscalProfile;
 };
 function buildFiscalReview(report: ParsedShopeeReport, raw: unknown, binding: ReviewBinding, confirmed:boolean): { snapshot?: ReviewSnapshot | ReviewPreview; issues: ReviewIssue[] } {
@@ -95,7 +96,7 @@ function buildFiscalReview(report: ParsedShopeeReport, raw: unknown, binding: Re
     const person = cleanFiscalPerson(input.recipientChoice === "single_recipient" ? input.commonRecipient : override?.person ?? candidates[index].person);
     const intermediary = input.intermediary ? cleanFiscalPerson(input.intermediary) : undefined;
     const foreignAmount = optional(override?.foreignAmount);
-    const fiscalInput: DpsInput = { issuerCnpj: binding.issuerCnpj, environment: "homologation", dpsNumber: "1",
+    const fiscalInput: DpsInput = { issuerCnpj: binding.issuerCnpj, environment: binding.environment??"homologation", dpsNumber: "1",
       emissionTime: `${competence}T12:00:00+00:00`, competenceDate: competence, amount: amount(monetary),
       profile: binding.profile, recipient: person, intermediary, foreignAmount };
     try { buildDps(fiscalInput); } catch { issues.push({ code: "invalid_fiscal_row", row }); continue; }
@@ -119,7 +120,7 @@ function buildFiscalReview(report: ParsedShopeeReport, raw: unknown, binding: Re
   }
   if (issues.length) return { issues };
   const snapshot: ReviewSnapshot | ReviewPreview = {
-    contractVersion: 1, environment: "homologation", companyId: binding.companyId, issuerCnpj: binding.issuerCnpj,
+    contractVersion: 1, environment: binding.environment??"homologation", companyId: binding.companyId, issuerCnpj: binding.issuerCnpj,
     importId: binding.importId, fileSha256: report.review.source.fileSha256, profileId: binding.profileId,
     profileSha256: binding.profileSha256, profileVersion: binding.profileVersion,
     competenceDate: competence, commissionType, evidenceReference: evidence, recipientRoleConfirmed: confirmed,
@@ -142,7 +143,7 @@ export function previewFiscalReview(report:ParsedShopeeReport,raw:unknown,bindin
 export function readReviewSnapshot(value: unknown, importId: string, fileHash: string): ReviewSnapshot | null {
   try {
     const raw = object(value);
-    if (raw.contractVersion !== 1 || raw.environment !== "homologation" || raw.importId !== importId || raw.fileSha256 !== fileHash ||
+    if (raw.contractVersion !== 1 || (raw.environment!=='homologation'&&raw.environment!=='production') || raw.importId !== importId || raw.fileSha256 !== fileHash ||
       raw.recipientRoleConfirmed !== true || !validFiscalDate(raw.competenceDate) || !Array.isArray(raw.groups) || raw.groups.length < 1 || raw.groups.length > MAX_FISCAL_REVIEW_ROWS ||
       typeof raw.total !== "string" || !/^(0|[1-9]\d{0,17})\.\d{2}$/.test(raw.total) ||
       typeof raw.commissionType !== "string" || typeof raw.evidenceReference !== "string" || typeof raw.profileVersion !== "number") return null;

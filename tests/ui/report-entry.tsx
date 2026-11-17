@@ -43,7 +43,8 @@ const meiSetup = <MeiFiscalSetup companyId="test-company" municipality="São Pau
   }} />;
 const automaticSetup = <AutomaticAffiliateSummary companyId="test-company" regime={parameters.has("simples") ? "simples" : "mei"} municipality="São Paulo / SP"
   initial={parameters.has("simples") ? undefined : {valid_from:"2025-06-10",configuration:{issuerMunicipality:"3550308",series:"1",simplesOption:"2",specialRegime:"0",serviceMunicipality:"3550308",nationalTaxCode:"170601",description:"Promoção de vendas como afiliado",issTaxation:"1",issWithholding:"1",totals:{mode:"not_informed"}}}} reason={parameters.has("simples") ? "simples_data_required" : "configured"}/>;
-const quickData=quickUiData();
+const quickData=quickUiData(undefined,parameters.has("production"));
+if(parameters.has("production-check")){quickData.production={ready:false};quickData.digest=undefined;}
 if(parameters.has("many-notes")&&quickData.preview){
   const first=quickData.preview.groups[0];
   quickData.preview.groups=Array.from({length:38},(_,i)=>({...first,sourceRows:[i+2],sourceClaims:[i.toString(16).padStart(64,"0")],allocations:[{row:i+2,amount:"1.10"}]}));
@@ -76,7 +77,7 @@ function OperationsFixture(){
  const [operations,setOperations]=useState<OperationDisplay[]>([
   { id: "test-queued", batch_id: "test-batch", status: "queued", reason: null, amount: "999999999999999.99", recipient: { legalName: "Tomador sintético A" }, dps_id: "DPS" + "1".repeat(42), transmit_count: 0, competence_date: "2026-10-31" },
   { id: "test-uncertain", batch_id: "test-batch", status: "uncertain", reason: "not_found", amount: "2.20", recipient: { legalName: "Tomador sintético B" }, dps_id: "DPS" + "2".repeat(42), transmit_count: 1, competence_date: "2026-10-31" },
-  { id: "test-authorized", batch_id: "test-batch", status: "authorized", reason: null, amount: "3.30", recipient: { legalName: "Tomador sintético C" }, dps_id: "DPS" + "3".repeat(42), transmit_count: 1, competence_date: "2026-10-31", document: { id: "test-document", access_key: "1".repeat(50) } },
+  { id: "test-authorized", batch_id: "test-batch", status: "authorized", reason: null, amount: "3.30", recipient: { legalName: "Tomador sintético C" }, dps_id: "DPS" + "3".repeat(42), transmit_count: 1, competence_date: "2026-10-31", environment:parameters.has("production")?"production":"homologation",document: { id: "test-document", access_key: "1".repeat(50) } },
  ]);
  useEffect(()=>{
   window.workflowUiTest.updateOperation=status=>setOperations(current=>current.map(operation=>operation.id==='test-uncertain'?{

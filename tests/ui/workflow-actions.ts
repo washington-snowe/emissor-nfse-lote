@@ -1,7 +1,7 @@
 // UI boundary fixtures only: no Auth, Vault, key, credential or database access.
 import {quickUiData} from "./quick-fixture";
 declare global {
-  interface Window { workflowUiTest: { calls: number; companyId: string; fileSize: number; passwordLength: number; reviewJson?: string; requestIds?: string[]; standaloneJson?: string; templateVersion?: string; path?: string; clipboard?: string;refreshes?:number;validityAdjustments?:number;validityInput?:string;emailOptIn?:FormDataEntryValue|null;emailCorrection?:FormDataEntryValue|null;manageError?:boolean;holdManage?:boolean;finishManage?:()=>void;updateOperation?:(status:string)=>void;providerTestDestination?:FormDataEntryValue|null } }
+  interface Window { workflowUiTest: { calls: number; companyId: string; fileSize: number; passwordLength: number; reviewJson?: string; requestIds?: string[]; standaloneJson?: string; templateVersion?: string; path?: string; clipboard?: string;refreshes?:number;validityAdjustments?:number;validityInput?:string;emailOptIn?:FormDataEntryValue|null;emailCorrection?:FormDataEntryValue|null;manageError?:boolean;holdManage?:boolean;finishManage?:()=>void;updateOperation?:(status:string)=>void;productionChecks?:number;productionVerified?:boolean;submittedEnvironment?:FormDataEntryValue|null;providerTestDestination?:FormDataEntryValue|null } }
 }
 export async function uploadCertificate(_state: unknown, form: FormData) {
   window.workflowUiTest.calls++;
@@ -28,9 +28,9 @@ export async function saveReport(form: FormData) {
   window.workflowUiTest.fileSize = (form.get("file") as File).size;
   return { id: "00000000-0000-4000-8000-000000000088", duplicate: false };
 }
-export async function refreshQuickReview(_id:string,payload:string){await new Promise(resolve=>setTimeout(resolve,250));return {data:quickUiData(JSON.parse(payload))};}
+export async function refreshQuickReview(_id:string,payload:string){await new Promise(resolve=>setTimeout(resolve,250));return {data:quickUiData(JSON.parse(payload),new URLSearchParams(location.search).has("production"))};}
 export async function adjustQuickReviewValidity(_id:string,form:FormData){if(form.get("sameConfiguration")!=="on")return {error:"Confirmação sintética ausente."};window.workflowUiTest.validityAdjustments=(window.workflowUiTest.validityAdjustments??0)+1;window.workflowUiTest.validityInput=String(form.get("input"));await new Promise(resolve=>setTimeout(resolve,150));const data=quickUiData(JSON.parse(String(form.get("input"))));data.preview!.profileVersion=2;data.digest="c".repeat(64);return {data};}
-export async function confirmAndQueueQuickReview(_id:string,form:FormData){window.workflowUiTest.emailOptIn=form.get("emailReviewed");window.workflowUiTest.calls++;window.workflowUiTest.reviewJson=String(form.get("input"));(window.workflowUiTest.requestIds??=[]).push(String(form.get("request")));await new Promise(resolve=>setTimeout(resolve,120));return window.workflowUiTest.calls===1?{error:"Falha sintética preserva a confirmação."}:{id:"test-quick-batch",duplicate:true};}
+export async function confirmAndQueueQuickReview(_id:string,form:FormData){window.workflowUiTest.submittedEnvironment=form.get("environment");window.workflowUiTest.emailOptIn=form.get("emailReviewed");window.workflowUiTest.calls++;window.workflowUiTest.reviewJson=String(form.get("input"));(window.workflowUiTest.requestIds??=[]).push(String(form.get("request")));await new Promise(resolve=>setTimeout(resolve,120));return window.workflowUiTest.calls===1?{error:"Falha sintética preserva a confirmação."}:{id:"test-quick-batch",duplicate:true};}
 
 export async function selectWorkspaceCompany(id: string, area: string) { window.workflowUiTest.companyId = id; window.workflowUiTest.path = area; return {}; }
 export async function saveAccountProfile(_state: unknown, form: FormData) { window.workflowUiTest.calls++; return window.workflowUiTest.calls===1 ? {error:"Falha sintética de perfil."} : { success: "Perfil sintético salvo.", version: Number(form.get("version"))+1 }; }
@@ -44,3 +44,5 @@ export async function retryInvoiceEmail(_id:string,_state:unknown,form:FormData)
 
 export async function getFiscalReceiptDiagnostic(){return {verified:false,details:"Diagnóstico: nfse-receipt-v1 (local)\nConsulta da DPS original: HTTP 200.\nXSD da NFS-e: estrutura aceita.\nConteúdo autenticado da DPS preservado: não validado.\nEstado da operação preservado. Nenhuma nota foi enviada."};}
 export async function requestProviderTests(_state:unknown,form:FormData){window.workflowUiTest.calls++;window.workflowUiTest.providerTestDestination=form.get('destination');return {success:'Três testes sintéticos preparados, sem envio real.'};}
+
+export async function verifyProduction(){window.workflowUiTest.productionChecks=(window.workflowUiTest.productionChecks??0)+1;await new Promise(resolve=>setTimeout(resolve,200));window.workflowUiTest.productionVerified=true;return {verified:true,message:"Acesso de produção sintético conferido, sem emissão.",details:"Diagnóstico sintético GET de produção. Nenhuma nota enviada."};}

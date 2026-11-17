@@ -98,6 +98,11 @@ try:
         assert matched and int(matched[1]) >= minimum, "Account/billing assertions did not complete"
         print(f"{marker}: {matched[1]} assertions passed (provider/Auth boundaries synthetic)")
 
+    production = sql('begin;\n' + (ROOT / 'tests/database/production-fixture.sql').read_text() + '\n' + (ROOT / 'tests/database/production-reports.sql').read_text() + '\nrollback;')
+    production_count = re.search(r'^PRODUCTION_ASSERTIONS=(\d+)$', production, re.M)
+    assert production_count and int(production_count[1]) >= 40, 'Production/report/DANFSe assertions did not complete'
+    print(f'Production/report/DANFSe: {production_count[1]} assertions passed (synthetic state only; no fiscal request)')
+
     # Only in the disposable test database: slow concurrent INSERTs to expose uniqueness races.
     sql("""
       create function public.test_slow_insert() returns trigger language plpgsql as $$
@@ -443,6 +448,52 @@ try:
         provider_finishes = list(pool.map(finish_provider_test, range(8)))
     assert provider_finishes.count('t') == 1 and provider_finishes.count('f') == 7
     print("Provider test concurrency: 8 requests -> 3 jobs; 8 starts -> 1 shared quota/dispatch; 8 finishes -> 1 commit (no email sent)")
+
+    # Production concurrency uses only synthetic SQL state and never contacts SEFIN or email providers.
+    sql((ROOT / 'tests/database/production-fixture.sql').read_text())
+    # Each psql call has its own session: query persisted fixture identities instead of reusing GUCs.
+    production_context = json.loads(sql("""
+      select jsonb_build_object('actor',t.owner_user_id,'tenant',c.tenant_id,'company',c.id,'review',r.id,'hash',r.snapshot_sha256,
+      'certificate',(select id from public.company_certificates where company_id=c.id and status='active' limit 1))
+      from public.report_reviews r join public.companies c on c.id=r.company_id join public.tenants t on t.id=c.tenant_id
+      where r.snapshot->>'environment'='production' order by r.created_at desc limit 1;
+    """).strip())
+    pc = production_context
+    production_request = str(uuid.uuid4())
+    def production_enqueue(_):
+        return json.loads(sql(f"set role service_role; select public.enqueue_report_fiscal_production('{pc['actor']}','{pc['review']}','{pc['hash']}','{production_request}',true);").strip())['id']
+    with ThreadPoolExecutor(max_workers=8) as pool:
+        production_batches = list(pool.map(production_enqueue, range(8)))
+    assert len(set(production_batches)) == 1, 'Concurrent production clicks duplicated the batch'
+    production_batch = production_batches[0]
+    production_operation = sql(f"select id from public.fiscal_operations where batch_id='{production_batch}' order by id limit 1;").strip()
+    sql(f"update public.fiscal_operations set next_run_at=now()+interval '1 day' where batch_id='{production_batch}' and id<>'{production_operation}';")
+    def production_claim(_):
+        data = sql(f"set role service_role; select j from public.claim_fiscal_jobs_for_environment('production','{pc['tenant']}',1,false) j;").strip()
+        return json.loads(data) if data else None
+    with ThreadPoolExecutor(max_workers=8) as pool:
+        production_claims = [v for v in pool.map(production_claim, range(8)) if v]
+    assert len(production_claims) == 1, 'Concurrent production workers shared an active lease'
+    production_token = production_claims[0]['lease_token']
+    sql(f"set role service_role;select public.record_fiscal_environment_transport('{production_operation}','{production_token}','{pc['certificate']}',404);")
+    def production_reserve(_):
+        return json.loads(sql(f"set role service_role;select public.reserve_fiscal_identity('{production_operation}','{production_token}','{pc['certificate']}');").strip())
+    with ThreadPoolExecutor(max_workers=8) as pool:
+        production_identities = list(pool.map(production_reserve, range(8)))
+    assert len({v['id'] for v in production_identities}) == 1
+    assert sql("select next_number from private.dps_counters where environment='production';").strip() == '2', 'Concurrent reservation consumed multiple real numbers'
+    production_dps = production_identities[0]['id']
+    def production_begin(_):
+        return sql(f"set role service_role;select public.begin_fiscal_send_traced('{production_operation}','{production_token}','{pc['certificate']}','SYNTHETIC ONLY {production_dps}','BEGIN CERTIFICATE synthetic only');").strip()
+    with ThreadPoolExecutor(max_workers=8) as pool:
+        production_intents = list(pool.map(production_begin, range(8)))
+    assert production_intents.count('t') == 1 and production_intents.count('f') == 7, 'Concurrent production dispatch started twice'
+    sql(f"update private.fiscal_execution set lease_until=now()-interval '1 second' where operation_id='{production_operation}';")
+    recovery = production_claim(0)
+    assert recovery['mode'] == 'reconcile', 'Expired production intent became a new preparation'
+    assert sql(f"select transmit_count from public.fiscal_operations where id='{production_operation}';").strip() == '1'
+    assert sql(f"set role service_role;select public.begin_fiscal_send_traced('{production_operation}','{recovery['lease_token']}','{pc['certificate']}','SYNTHETIC ONLY {production_dps}','BEGIN CERTIFICATE synthetic only');").strip() == 'f'
+    print('Production concurrency: 8 confirmations -> 1 batch; 8 workers -> 1 lease; 8 reservations -> 1 number; 8 starts -> 1 intent; interrupted send -> GET-only reconciliation (no HTTP)')
 
     cron_setup = (ROOT / "supabase/cron/invoice-email-worker.sql").read_text().replace("\nbegin;", "", 1).replace("\ncommit;", "", 1)
     cron_output = sql("begin;\n" + (ROOT / "tests/database/invoice-email-cron.sql").read_text() + "\n" + cron_setup + "\n" + (ROOT / "tests/database/invoice-email-cron-checks.sql").read_text() + "\nrollback;")

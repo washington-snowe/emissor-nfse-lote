@@ -13,6 +13,7 @@ const previous=Object.fromEntries(Object.keys(env).map(k=>[k,process.env[k]])),o
 function reset(){
  const h={context:{user:{id:'session-owner',email:'owner@example.com',email_confirmed_at:'2026-11-01'},tenantId:'session-tenant'},after:[],calls:[],http:[],jobs:[],active:0,peak:0,ready:true,intent:true,finish:true,created:false};
  h.admin={async rpc(name,args){h.calls.push({name,args});
+  if(name==='fiscal_production_schema_ready')return {data:false};
   if(name==='request_email_provider_tests'){
    assert.equal(args.p_actor,h.context.user.id);
    if(!h.created){h.jobs=['brevo','sendpulse','mailjet'].map(provider=>({id:provider,token:'synthetic-token',provider,destination:args.p_destination}));h.created=true;}
@@ -43,7 +44,7 @@ try{
  const files={};
  for(const [name,entry] of Object.entries({action:'src/app/painel/notas/email-teste/actions.ts',worker:'src/lib/email/jobs.ts'})){
   const built=await build({entryPoints:[path.join(root,entry)],bundle:true,platform:'node',format:'esm',write:false,tsconfig:path.join(root,'tsconfig.json'),plugins:[{name:'test-boundaries',setup(b){
-   const virtual={'server-only':'','@/lib/supabase/admin':'export function createAdminClient(){return globalThis.providerTestHarness.admin;}','@/lib/tenancy-server':'export async function requireWorkspace(){return {context:globalThis.providerTestHarness.context};}','next/server':'export function after(fn){globalThis.providerTestHarness.after.push(fn);}','next/cache':'export function revalidatePath(){}'};
+   const virtual={'server-only':'','@/lib/danfse-server':'export async function loadOfficialDanfse(){throw new Error("Unexpected document test");}','@/lib/supabase/admin':'export function createAdminClient(){return globalThis.providerTestHarness.admin;}','@/lib/tenancy-server':'export async function requireWorkspace(){return {context:globalThis.providerTestHarness.context};}','next/server':'export function after(fn){globalThis.providerTestHarness.after.push(fn);}','next/cache':'export function revalidatePath(){}'};
    b.onResolve({filter:/.*/},a=>Object.hasOwn(virtual,a.path)?{path:a.path,namespace:'boundary'}:undefined);
    b.onLoad({filter:/.*/,namespace:'boundary'},a=>({contents:virtual[a.path],loader:'js'}));
   }}]});files[name]=path.join(temporary,name+'.mjs');await writeFile(files[name],built.outputFiles[0].text);

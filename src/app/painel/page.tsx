@@ -31,8 +31,8 @@ export default async function Dashboard({
       <div className="dashboard-content">
         <span className="eyebrow">Seu espaço de trabalho</span>
         <h1>Suas emissões, em um só lugar.</h1>
-        <p>Prepare uma nota avulsa ou acompanhe a revisão e o processamento dos relatórios.</p>
-        {!totals.error && <dl className="report-totals"><div><dt>Empresas cadastradas</dt><dd>{count}</dd></div><div><dt>Operações na fila</dt><dd>{["queued", "blocked", "preparing", "sending", "uncertain", "reconciling"].reduce((sum, key) => sum + (totals.data?.[key] ?? 0), 0)}</dd></div><div><dt>Autorizadas em homologação</dt><dd>{totals.data?.authorized ?? 0}</dd></div></dl>}
+        <p>Importe seu relatório e acompanhe a revisão e o processamento das notas.</p>
+        {!totals.error && <dl className="report-totals"><div><dt>Empresas cadastradas</dt><dd>{count}</dd></div><div><dt>Operações na fila</dt><dd>{["queued", "blocked", "preparing", "sending", "uncertain", "reconciling"].reduce((sum, key) => sum + (totals.data?.[key] ?? 0), 0)}</dd></div><div><dt>Notas autorizadas</dt><dd>{totals.data?.authorized ?? 0}</dd></div></dl>}
         {status === "logout-error" && (
           <p className="field-error" role="alert">
             Não foi possível encerrar a sessão. Tente sair novamente.
@@ -54,9 +54,9 @@ export default async function Dashboard({
           </p>
           <Link
             className="btn btn--primary"
-            href={selected ? `/painel/notas/nova?empresa=${selected.id}` : "/painel/empresas/nova"}
+            href={selected ? `/painel/importacoes?empresa=${selected.id}` : "/painel/empresas/nova"}
           >
-            {count ? "Preparar nota avulsa" : "Cadastrar minha empresa"}{" "}
+            {count ? "Importar relatório" : "Cadastrar minha empresa"}{" "}
             <ArrowUpRight size={17} aria-hidden="true" />
           </Link>
         </section>
@@ -73,7 +73,7 @@ export default async function Dashboard({
             <ShieldCheck size={24} aria-hidden="true" />
             <h2>Emissão fiscal</h2>
             <p>
-              Acompanhe preparações, pendências e consultas. A produção continua dependente de homologação validada.
+              Acompanhe os resultados e baixe os documentos de cada nota.
             </p>
             <Link href={selected ? `/painel/notas?empresa=${selected.id}` : "/painel/notas"} className="text-link">Acompanhar emissões <ArrowUpRight size={16} aria-hidden="true" /></Link>
           </div>

@@ -6,6 +6,7 @@ import type {ParsedShopeeReport} from "../shopee-seller-csv.ts";
 export type QuickReviewInput={competenceDate:string;commissionType:string;evidenceReference:string;recipientChoice:string;grouping:string;
   commonRecipient?:FiscalPerson;intermediary?:FiscalPerson;recipients:{row:number;person?:FiscalPerson;foreignAmount?:string}[]};
 export type QuickReviewData={importId:string;companyId:string;input:QuickReviewInput;candidates:ReviewCandidate[];preview?:ReviewPreview;digest?:string;
+  environment?:'homologation'|'production';production?:{ready:boolean};
   version:number;error?:string;issues?:ReviewIssue[];foreignForAll:boolean;currency?:string;needsIntermediary:boolean;transmissionEnabled:boolean;
   validityAdjustment?:{profileId:string;profileVersion:number;profileHash:string;currentFrom:string;targetFrom:string;previewDigest:string};
   emailDelivery?:{enabled:boolean;testOnly:boolean;routes:{email?:string;name?:string;reason?:string}[]};};
@@ -34,4 +35,4 @@ export function cleanQuickReviewInput(value:unknown):QuickReviewInput|null {
     recipients.push({row:value.row,person:value.person?cleanFiscalPerson(value.person):undefined,foreignAmount:value.foreignAmount});}
   return {competenceDate,commissionType,evidenceReference,recipientChoice,grouping,commonRecipient:raw.commonRecipient?cleanFiscalPerson(raw.commonRecipient):undefined,intermediary:raw.intermediary?cleanFiscalPerson(raw.intermediary):undefined,recipients};
 }
-export function quickReviewDigest(preview:ReviewPreview) {return createHash("sha256").update(canonicalReviewJson(preview)).digest("hex");}
+export function quickReviewDigest(preview:ReviewPreview,environment:'homologation'|'production'='homologation') {return createHash("sha256").update(canonicalReviewJson(environment==='production'?{environment,preview}:preview)).digest("hex");}

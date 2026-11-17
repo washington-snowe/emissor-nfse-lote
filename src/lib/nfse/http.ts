@@ -23,6 +23,16 @@ export const NFSE_BASES = {
   homologation: "https://sefin.producaorestrita.nfse.gov.br/SefinNacional",
   production: "https://sefin.nfse.gov.br/SefinNacional",
 } as const;
+export const DANFSE_BASES={
+  homologation:'https://adn.producaorestrita.nfse.gov.br/danfse',
+  production:'https://adn.nfse.gov.br/danfse',
+} as const;
+export function allowedDanfseUrl(environment:NfseEnvironment,url:string):URL|null{
+  try{
+    const base=new URL(DANFSE_BASES[environment]),target=new URL(url);
+    return target.protocol==='https:'&&!target.username&&!target.password&&!target.hash&&!target.search&&target.origin===base.origin&&target.pathname.startsWith(base.pathname+'/')?target:null;
+  }catch{return null;}
+}
 
 // Official portal lists ADN Parametrização separately from SEFIN emission.
 export const NFSE_PARAMETER_BASES = {
@@ -43,6 +53,8 @@ export function municipalParametersUrl(environment: NfseEnvironment, municipalit
 }
 
 export function allowedNfseReadUrl(environment: NfseEnvironment, url: string): URL | null {
+  const danfse=allowedDanfseUrl(environment,url);
+  if(danfse)return danfse;
   const sefin = allowedNfseUrl(environment, url);
   if (sefin) return sefin;
   try {
@@ -81,13 +93,13 @@ export function nfseRequest(environment: NfseEnvironment, method: "GET" | "POST"
     try { request = https.request(target, {
       method, ...nfseTlsCredentials(credentials),
       rejectUnauthorized: true, minVersion: "TLSv1.2", agent: false,
-      headers: { Accept: "application/json,text/html", "User-Agent": "EmissorNfse/0.1", ...(body ? { "Content-Type": "application/json", "Content-Length": String(body.length) } : {}) },
+      headers: { Accept: allowedDanfseUrl(environment,url)&&/\/\d{50}$/.test(target.pathname)?"application/pdf":"application/json,text/html", "User-Agent": "EmissorNfse/0.1", ...(body ? { "Content-Type": "application/json", "Content-Length": String(body.length) } : {}) },
     }, response => {
       const chunks: Buffer[] = [];
       let size = 0;
       response.on("data", chunk => {
         size += chunk.length;
-        if (size > 1_000_000) { request?.destroy(new NfseTransportError("response_limit")); return; }
+        if (size > (allowedDanfseUrl(environment,url)&&/\/\d{50}$/.test(target.pathname)?2_000_000:1_000_000)) { request?.destroy(new NfseTransportError("response_limit")); return; }
         chunks.push(chunk);
       });
       response.on("end", () => { clearTimeout(timer); resolve({ status: response.statusCode ?? 0, body: Buffer.concat(chunks), contentType: response.headers["content-type"] ?? "" }); });

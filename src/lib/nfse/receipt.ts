@@ -8,7 +8,7 @@ import { inspectFiscalDocuments } from "./schema.ts";
 import type {Element} from '@xmldom/xmldom';
 import {allowsNfseCanonicalization,allowsNfseReferenceTransforms,nfseCanonicalizationLabel,nfseReferenceTransformLabels} from './receipt-signature-policy.ts';
 
-export type ExpectedNfse={ dpsId: string; signedDps: string; holderCert: string; issuerCnpj: string; accessKey: string };
+export type ExpectedNfse={ dpsId: string; signedDps: string; holderCert: string; issuerCnpj: string; accessKey: string;environment?:'homologation'|'production' };
 type ReceiptObserver=(line:string)=>void;
 const algorithms:Record<string,string>={
  'http://www.w3.org/2001/04/xmldsig-more#rsa-sha256':'RSA-SHA256',
@@ -49,6 +49,7 @@ export async function verifyOfficialNfseContents(xml: string, expected:ExpectedN
     if(!check('Assinatura da DPS original',!!requestReference))return null;
     // Choose historical compatibility from the pinned original, never from the incoming NFSe.
     const original=dpsRoot(expected.signedDps,expected.dpsId,true);
+    if(expected.environment&&!check('Ambiente da DPS original',singleElement(original.info,NFSE_NAMESPACE,'tpAmb').textContent===(expected.environment==='production'?'1':'2')))return null;
     const revision=directElements(original.info,NFSE_NAMESPACE,'finNFSe').length?'homologation-20261020':'production-20260209';
     if (!check('Formato da chave da consulta',/^\d{50}$/.test(expected.accessKey)))return null;
     stage='estrutura e XSD da NFS-e';

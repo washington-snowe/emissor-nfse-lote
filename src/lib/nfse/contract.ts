@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { allowedNfseReadUrl, NFSE_BASES, NFSE_DOCUMENT_INDEXES, nfseGet, type NfseEnvironment, type NfseCredentials } from "./http.ts";
+import { allowedNfseReadUrl,allowedDanfseUrl,DANFSE_BASES, NFSE_BASES, NFSE_DOCUMENT_INDEXES, nfseGet, type NfseEnvironment, type NfseCredentials } from "./http.ts";
 import { fiscalTransportError } from "./transport-error.ts";
 
 // Only structural documentation is exposed: no examples, arbitrary descriptions, headers or defaults.
@@ -21,17 +21,17 @@ function shape(value: unknown, depth = 0): unknown {
   return typeof value==="string" || typeof value==="number" || typeof value==="boolean" || value===null ? value : null;
 }
 
-export function structuralContract(input: unknown) {
+export function structuralContract(input: unknown,service:'sefin'|'danfse'='sefin') {
   if (!input || typeof input!=="object") return null;
   const doc=input as Record<string,unknown>;
   const paths=doc.paths as Record<string,unknown> | undefined;
-  if ((!doc.openapi && !doc.swagger) || !paths || !paths["/nfse"] || JSON.stringify(input).length>1_000_000) return null;
+  if ((!doc.openapi && !doc.swagger) || !paths || !paths[service==='sefin'?'/nfse':'/{chaveAcesso}'] || JSON.stringify(input).length>1_000_000) return null;
   const definitions=doc.definitions as Record<string,unknown> | undefined;
   const components=doc.components as { schemas?: Record<string,unknown> } | undefined;
   const models=definitions ?? components?.schemas ?? {};
   return {
     dialect: String(doc.openapi ?? doc.swagger).slice(0,20),
-    paths: Object.fromEntries(Object.entries(paths).filter(([path])=>path.startsWith("/nfse") || path.startsWith("/dps") || path.startsWith("/parametros_municipais")).map(([path,method])=>[path,shape(method)])),
+    paths: Object.fromEntries(Object.entries(paths).filter(([path])=>service==='danfse'?path==='/{chaveAcesso}':path.startsWith("/nfse") || path.startsWith("/dps") || path.startsWith("/parametros_municipais")).map(([path,method])=>[path,shape(method)])),
     models: Object.fromEntries(Object.entries(models).map(([name,model])=>[name,shape(model)])),
   };
 }
@@ -81,11 +81,12 @@ export function swaggerDocumentReferences(script: string): string[] {
   return [...new Set(urls)].slice(0, 10);
 }
 
-function officialReference(environment: NfseEnvironment, reference: string, from: string): string | null {
+function officialReference(environment: NfseEnvironment, reference: string, from: string,service:'sefin'|'danfse'='sefin'): string | null {
   try {
     if (reference.includes("\\") || /[\s\u0000-\u001f]/.test(reference)) return null;
     const url = new URL(reference, from).href;
-    return allowedNfseReadUrl(environment, url) && new URL(url).origin === new URL(NFSE_BASES[environment]).origin ? url : null;
+    const allowed=service==='danfse'?allowedDanfseUrl(environment,url):allowedNfseReadUrl(environment,url);
+    return allowed && new URL(url).origin === new URL((service==='danfse'?DANFSE_BASES:NFSE_BASES)[environment]).origin ? url : null;
   } catch { return null; }
 }
 
@@ -95,8 +96,8 @@ export type ContractDiscoveryStep = {
   outcome: "received" | "no_reference" | "invalid_contract" | "base_mismatch" | "captured" | "timeout" | "connection" | "tls";
 };
 
-export async function discoverOfficialContract(environment: NfseEnvironment, credentials: NfseCredentials, deadline: number, request = nfseGet, report: (step: ContractDiscoveryStep) => void = () => {}) {
-  const base = NFSE_BASES[environment];
+export async function discoverOfficialContract(environment: NfseEnvironment, credentials: NfseCredentials, deadline: number, request = nfseGet, report: (step: ContractDiscoveryStep) => void = () => {},service:'sefin'|'danfse'='sefin') {
+  const base = (service==='danfse'?DANFSE_BASES:NFSE_BASES)[environment];
   const get = async (url: string, stage: ContractDiscoveryStep["stage"]) => {
     if (Date.now() + 1000 >= deadline) return null;
     try {
@@ -114,10 +115,11 @@ export async function discoverOfficialContract(environment: NfseEnvironment, cre
   const captured = (url: string, response: Awaited<ReturnType<typeof nfseGet>>, stage: "schema" | "schema_direct") => {
     try {
       const raw = JSON.parse(response.body.toString("utf8"));
-      if (raw.basePath !== undefined && raw.basePath !== new URL(base).pathname) {
+      if (raw.basePath !== undefined && (typeof raw.basePath!=='string'||raw.basePath.replace(/\/$/,'') !== new URL(base).pathname)) {
         report({stage, status: response.status, format: "json", outcome: "base_mismatch"}); return null;
       }
-      const parsed = structuralContract(raw);
+      if(raw.servers!==undefined&&(!Array.isArray(raw.servers)||!raw.servers.length||!raw.servers.every((server:{url?:unknown})=>typeof server?.url==='string'&&new URL(server.url,base).href.replace(/\/$/,'')===base)))return null;
+      const parsed = structuralContract(raw,service);
       if (parsed) {
         report({stage, status: response.status, format: "json", outcome: "captured"});
         return { url, sha256: createHash("sha256").update(response.body).digest("hex"), contract: parsed };
@@ -126,7 +128,7 @@ export async function discoverOfficialContract(environment: NfseEnvironment, cre
     report({stage, status: response.status, format: "other", outcome: "invalid_contract"}); return null;
   };
   const visited = new Set<string>();
-  for (const initial of NFSE_DOCUMENT_INDEXES[environment]) {
+  for (const initial of service==='danfse'?[base+'/docs/index.html']:NFSE_DOCUMENT_INDEXES[environment]) {
     const stage = initial.includes("/API/") ? "portal_index" : "canonical_index";
     let indexUrl: string = initial;
     let html = await get(indexUrl, stage);
@@ -142,14 +144,14 @@ export async function discoverOfficialContract(environment: NfseEnvironment, cre
     let references = swaggerDocumentReferences(html.body.toString("utf8"));
     if (!references.length) {
       const initializer = /src=["']([^"']*\b(?:swagger-initializer|index)\.js)["']/.exec(html.body.toString("utf8"));
-      const url = initializer ? officialReference(environment, initializer[1], indexUrl) : null;
+      const url = initializer ? officialReference(environment, initializer[1], indexUrl,service) : null;
       if (url) {
         const loaded = await get(url, "initializer");
         if (loaded?.status === 200) references = swaggerDocumentReferences(loaded.body.toString("utf8"));
       }
     }
     if (!references.length) report({stage, status: 200, format: "html", outcome: "no_reference"});
-    const urls = [...new Set(references.map(reference => officialReference(environment, reference, indexUrl)).filter((url): url is string => url !== null))];
+    const urls = [...new Set(references.map(reference => officialReference(environment, reference, indexUrl,service)).filter((url): url is string => url !== null))];
     for (const url of urls.slice(0, 3)) {
       if (visited.has(url)) continue;
       visited.add(url);
@@ -158,6 +160,7 @@ export async function discoverOfficialContract(environment: NfseEnvironment, cre
     }
   }
   // Known SEFIN document URL from the integration references; fetched live, never import a mirror as evidence.
+  if(service==='danfse')return null;
   const direct = base + "/swagger/docs/v1";
   if (!visited.has(direct)) {
     const response = await get(direct, "schema_direct");

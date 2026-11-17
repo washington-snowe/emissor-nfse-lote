@@ -7,7 +7,7 @@ import {inspectStoredDps} from '@/lib/nfse/stored-dps-diagnostic';
 export async function getFiscalOperationDiagnostic(id:string):Promise<{error?:string;details?:string;receiptAvailable?:boolean}>{
  const {client,context}=await requireWorkspace();
  if(!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id))return {error:'Operação indisponível.'};
- const operation=await client.from('fiscal_operations').select('id,status,reason,transmit_count,reconcile_attempts,created_at,updated_at').eq('id',id).eq('tenant_id',context.tenantId).maybeSingle();
+ const operation=await client.from('fiscal_operations').select('id,status,reason,transmit_count,reconcile_attempts,created_at,updated_at,environment').eq('id',id).eq('tenant_id',context.tenantId).maybeSingle();
  if(operation.error||!operation.data)return {error:'Operação não encontrada no seu espaço.'};
  const events=await client.from('audit_events').select('event,created_at').eq('tenant_id',context.tenantId).eq('resource_id',operation.data.id)
   .in('event',['fiscal.dispatch_started','fiscal.uncertain','fiscal.not_found','fiscal.authorized','fiscal.rejected','fiscal.intervention','fiscal.resume']).order('created_at',{ascending:true}).limit(50);
@@ -25,9 +25,9 @@ export async function getFiscalOperationDiagnostic(id:string):Promise<{error?:st
     const dispatch=(events.data??[]).find(event=>event.event==='fiscal.dispatch_started')?.created_at;
     details+='\n'+(await inspectStoredDps(snapshot.data,dispatch)).join('\n');
    }
-   const contract=await admin.rpc('fiscal_contract',{p_environment:'homologation'});
+   const contract=await admin.rpc('fiscal_contract',{p_environment:operation.data.environment==='production'?'production':'homologation'});
    details+='\n'+(contract.error?['Contrato SEFIN atual: leitura indisponível.']:storedContractReport(contract.data)).join('\n');
   }
  }
- return {details,receiptAvailable:hasStoredCreatedResponse(traces.data)&&operation.data.transmit_count===1&&['uncertain','intervention','reconciling'].includes(operation.data.status)};
+ return {details,receiptAvailable:operation.data.environment!=='production'&&hasStoredCreatedResponse(traces.data)&&operation.data.transmit_count===1&&['uncertain','intervention','reconciling'].includes(operation.data.status)};
 }

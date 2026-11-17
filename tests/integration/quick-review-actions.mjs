@@ -17,11 +17,11 @@ const ids={tenant:"00000000-0000-4000-8000-000000000010",actor:"00000000-0000-40
 const parsed=await parseShopeeSellerCsv(await readFile(path.join(root,"tests/fixtures/shopee-seller-monthly-v1.csv")));assert.ok(parsed.data);
 const configuration={issuerMunicipality:"3550308",series:"1",simplesOption:"2",specialRegime:"0",serviceMunicipality:"3550308",nationalTaxCode:"170601",description:"Teste sintético",issTaxation:"1",issWithholding:"1",totals:{mode:"not_informed"}};
 function reset(){
-  const h={tenant:ids.tenant,authenticated:true,failEnqueue:false,failConfirm:false,schemaValid:true,afters:[],processed:[],calls:[],reads:[],batches:[],rows:{
+  const h={tenant:ids.tenant,authenticated:true,productionReady:true,failEnqueue:false,failConfirm:false,schemaValid:true,afters:[],processed:[],calls:[],reads:[],batches:[],rows:{
     companies:[{id:ids.company,tenant_id:ids.tenant,cnpj:"11222333000181",tax_regime:"mei",address:{municipality_code:"3550308"},opened_on:"2020-01-01"}],
     report_imports:[{id:ids.report,tenant_id:ids.tenant,company_id:ids.company,status:"parsed",file_sha256:parsed.data.review.source.fileSha256,parsed_payload:structuredClone(parsed.data)}],
     company_fiscal_profiles:[{id:ids.profile,tenant_id:ids.tenant,company_id:ids.company,configuration,configuration_sha256:"a".repeat(64),valid_from:"2026-01-01",version:1,evidence_reference:"Orientação sintética",created_at:"2026-11-12T12:00:00Z"}],report_reviews:[],fiscal_operations:[]}};
-  h.client={from(table){const filters=[];return {select(){return this;},eq(key,value){filters.push([key,value]);return this;},order(){return this;},limit(){return this;},async maybeSingle(){h.reads.push({table,filters});const rows=h.rows[table].filter(row=>filters.every(([key,value])=>row[key]===value));return {data:rows.at(-1)??null,error:null};}};}};
+  h.client={async rpc(name){assert.equal(name,'production_report_status');return {data:{ready:h.productionReady}};},from(table){const filters=[];return {select(){return this;},eq(key,value){filters.push([key,value]);return this;},order(){return this;},limit(){return this;},async maybeSingle(){h.reads.push({table,filters});const rows=h.rows[table].filter(row=>filters.every(([key,value])=>row[key]===value));return {data:rows.at(-1)??null,error:null};}};}};
   h.admin={async rpc(name,args){h.calls.push({name,args});assert.equal(args.p_actor,ids.actor,"actor must come from the server session");
     if(name==="reserve_company_operation")return {data:true};
     if(name==="enable_invoice_email"){assert.ok(h.batches.some(b=>b.id===args.p_batch));return {data:true};}
@@ -37,7 +37,8 @@ function reset(){
       const row={id:ids.review,tenant_id:ids.tenant,import_id:ids.report,company_id:ids.company,profile_id:args.p_profile,version:(h.rows.report_reviews.at(-1)?.version??0)+1,snapshot:args.p_snapshot,snapshot_sha256:createHash("sha256").update(JSON.stringify(args.p_snapshot)).digest("hex")};h.rows.report_reviews.push(row);return {data:{id:row.id,version:row.version,sha256:row.snapshot_sha256}};
     }
     if(name==="confirm_report_review"){if(h.failConfirm)return {error:{code:"40001"}};return {data:"synthetic-confirmation"};}
-    if(name==="enqueue_report_fiscal"){
+    if(name==="enqueue_report_fiscal"||name==="enqueue_report_fiscal_production"){
+      if(name.endsWith("_production")){assert.equal(args.p_delivery_confirmed,true);assert.equal(h.rows.report_reviews.at(-1).snapshot.environment,"production");}
       let batch=h.batches.find(x=>x.review===args.p_review||x.request===args.p_request);const duplicate=Boolean(batch);
       if(!batch){batch={id:"synthetic-batch",review:args.p_review,request:args.p_request};h.batches.push(batch);}
       if(h.failEnqueue){h.failEnqueue=false;throw new Error("SYNTHETIC LOST ACKNOWLEDGEMENT");}
@@ -59,7 +60,7 @@ try{
     b.onLoad({filter:/.*/,namespace:"boundary"},a=>({contents:virtual[a.path],loader:"js"}));
   }}]});
   const modulePath=path.join(temporary,"actions.mjs");await writeFile(modulePath,result.outputFiles[0].text);const actions=await import(modulePath);
-  async function formFor(){const loaded=await actions.loadQuickReportReview(ids.report);assert.ok(loaded?.data.digest);const form=new FormData();form.set("reviewed","on");form.set("input",JSON.stringify(loaded.data.input));form.set("digest",loaded.data.digest);form.set("version",String(loaded.data.version));form.set("request",ids.request);return {loaded,form};}
+  async function formFor(){const loaded=await actions.loadQuickReportReview(ids.report);assert.ok(loaded?.data.digest);const form=new FormData();form.set("reviewed","on");form.set("environment",loaded.data.environment??"homologation");form.set("input",JSON.stringify(loaded.data.input));form.set("digest",loaded.data.digest);form.set("version",String(loaded.data.version));form.set("request",ids.request);return {loaded,form};}
   let h=reset(),{form,loaded}=await formFor();
   assert.equal(loaded.data.preview.recipientRoleConfirmed,false);assert.equal(h.rows.report_reviews.length,0);assert.equal(h.calls.length,0,"opening preview must not confirm or enqueue");
   form.delete("reviewed");assert.ok((await actions.confirmAndQueueQuickReview(ids.report,form)).error);assert.equal(h.calls.length,0);
@@ -86,13 +87,16 @@ try{
   adjustment.set("sameConfiguration","on");const adjusted=await actions.adjustQuickReviewValidity(ids.report,adjustment);assert.ok(adjusted.data.digest);assert.equal(adjusted.data.input.competenceDate,"2026-10-31");assert.equal(h.rows.company_fiscal_profiles.at(-1).valid_from,"2026-10-31");assert.equal(h.rows.company_fiscal_profiles[0].valid_from,"2026-11-12");assert.equal(h.batches.length,0);
   await actions.adjustQuickReviewValidity(ids.report,adjustment);assert.equal(h.rows.company_fiscal_profiles.length,2,"retry after successful date adjustment never appends another profile");
   h=reset();h.rows.company_fiscal_profiles[0].valid_from="2026-11-12";const beforeOther=await actions.loadQuickReportReview(ids.report);adjustment.set("previewDigest",beforeOther.data.validityAdjustment.previewDigest);h.tenant="00000000-0000-4000-8000-000000000099";assert.ok((await actions.adjustQuickReviewValidity(ids.report,adjustment)).error);assert.equal(h.calls.length,0,"foreign account cannot adjust known profile validity");
-  const emailEnvNames=['NFSE_EMAIL_ENABLED','NFSE_EMAIL_FROM','BREVO_API_KEY'];const emailEnv=emailEnvNames.map(name=>process.env[name]);
+  const emailEnvNames=['NFSE_EMAIL_ENABLED','NFSE_EMAIL_FROM','BREVO_API_KEY','NFSE_PRODUCTION_ENABLED'];const emailEnv=emailEnvNames.map(name=>process.env[name]);
   try{
     process.env.NFSE_EMAIL_ENABLED='true';process.env.NFSE_EMAIL_FROM='nfse@example.com';process.env.BREVO_API_KEY='synthetic';
     h=reset();let emailForm=await formFor();
     assert.ok((await actions.confirmAndQueueQuickReview(ids.report,emailForm.form)).error);assert.equal(h.calls.length,0,'no email enrollment without explicit current consent');
     emailForm.form.set('emailReviewed','on');assert.ok((await actions.confirmAndQueueQuickReview(ids.report,emailForm.form)).id);
     assert.equal(h.calls.filter(c=>c.name==='enable_invoice_email').length,1);assert.equal(h.batches.length,1);
+    process.env.NFSE_PRODUCTION_ENABLED='true';h=reset();h.productionReady=false;const noAccess=await actions.loadQuickReportReview(ids.report);assert.equal(noAccess.data.digest,undefined);assert.equal(noAccess.data.environment,'production');assert.equal(h.batches.length,0);
+    h=reset();let productionForm=await formFor();assert.equal(productionForm.loaded.data.preview.environment,'production');productionForm.form.set('environment','homologation');productionForm.form.set('emailReviewed','on');assert.ok((await actions.confirmAndQueueQuickReview(ids.report,productionForm.form)).error);assert.equal(h.calls.length,0,'homologation consent cannot submit production');
+    h=reset();productionForm=await formFor();assert.ok((await actions.confirmAndQueueQuickReview(ids.report,productionForm.form)).error);assert.equal(h.calls.length,0,'real delivery also needs consent');productionForm.form.set('emailReviewed','on');assert.ok((await actions.confirmAndQueueQuickReview(ids.report,productionForm.form)).id);assert.equal(h.calls.filter(c=>c.name==='enqueue_report_fiscal_production').length,1);assert.equal(h.rows.report_reviews.at(-1).snapshot.environment,'production');
   }finally{emailEnvNames.forEach((name,index)=>{if(emailEnv[index]===undefined)delete process.env[name];else process.env[name]=emailEnv[index];});}
   console.log("Quick review server actions: consent/digest/profile/session/tenant guards; lost-acknowledgement replay; legacy MEI validity repair; custom-profile acknowledgement and date-only replay preserve competence/history with no invoice queued. Auth/DB/Next adapters are synthetic.");
 }finally{delete globalThis.quickHarness;await rm(temporary,{recursive:true,force:true});}

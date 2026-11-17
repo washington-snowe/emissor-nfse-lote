@@ -25,6 +25,7 @@ try {
     "@/app/painel/conta/assinatura/actions": path.join(root, "tests/ui/workflow-actions.ts"),
     "@/app/painel/certificados/actions": path.join(root, "tests/ui/workflow-actions.ts"),
     "@/app/painel/importacoes/review-actions": path.join(root, "tests/ui/workflow-actions.ts"),
+    "@/app/painel/importacoes/production-actions": path.join(root, "tests/ui/workflow-actions.ts"),
     "@/app/painel/importacoes/quick-actions": path.join(root, "tests/ui/workflow-actions.ts"),
     "@/app/painel/notas/email-actions": path.join(root, "tests/ui/workflow-actions.ts"),
     "@/app/painel/notas/email-teste/actions": path.join(root, "tests/ui/workflow-actions.ts"),
@@ -147,6 +148,31 @@ try {
   await page.getByLabel("Relatório mensal da Shopee",{exact:true}).setInputFiles({name:"wrong.csv",mimeType:"text/csv",buffer:Buffer.from("not,the,expected,layout\n1,2,3,4")});
   await page.getByRole("alert").filter({hasText:"não corresponde"}).waitFor();
   assert.equal(await page.evaluate(()=>window.workflowUiTest.calls),0,"automatic import must not upload an unsupported layout");
+  for(const width of [1440,768,390]){
+    await page.setViewportSize({width,height:844});await page.goto(`${origin}/?screen=quick&production=1`);
+    const consent=page.getByRole('checkbox',{name:/Revisei os valores/}),submit=page.getByRole('button',{name:'Revisei, confirmar e emitir em produção'});
+    assert.ok(await submit.isDisabled());assert.ok((await consent.locator('..').innerText()).includes('emissão real deste lote em produção'));
+    assert.ok((await consent.locator('..').innerText()).includes('DANFS-e aos vendedores'));
+    assert.ok(await page.getByText('Envio ao vendedor: seller-2@example.com',{exact:true}).isVisible());
+    assert.equal(await page.getByRole('link',{name:'Emitir avulsa',exact:true}).count(),0);
+    await consent.check();await submit.click();await page.getByRole('alert').filter({hasText:'Falha sintética'}).waitFor();
+    assert.equal(await page.evaluate(()=>window.workflowUiTest.submittedEnvironment),'production');assert.equal(await page.evaluate(()=>window.workflowUiTest.emailOptIn),'on');
+    assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
+    await page.screenshot({path:path.join(root,`shots/reports/production-${width}.png`),fullPage:true});
+  }
+  await page.goto(`${origin}/?screen=quick&production=1&production-check=1`);
+  await page.getByRole('button',{name:'Revisei, confirmar e emitir em produção'}).waitFor();
+  await page.waitForFunction(()=>window.workflowUiTest.productionChecks===1&&window.workflowUiTest.productionVerified);
+  await page.waitForFunction(()=>!document.querySelector('.quick-review-dialog-body')?.textContent.includes('Acesso à produção'));
+  assert.equal(await page.evaluate(()=>window.workflowUiTest.calls),0,'automatic preflight must not confirm or issue');
+  assert.ok(!await page.getByRole('checkbox',{name:/Revisei os valores/}).isChecked());
+  await page.getByRole('checkbox',{name:/Revisei os valores/}).check();assert.ok(await page.getByRole('button',{name:'Revisei, confirmar e emitir em produção'}).isEnabled());
+  await page.goto(`${origin}/?screen=operations&production=1`);
+  const productionCard=page.locator('article').filter({hasText:'Tomador sintético C'});
+  await productionCard.getByText('Autorizada em produção',{exact:true}).waitFor();
+  assert.ok(await productionCard.getByRole('link',{name:'Baixar DANFS-e oficial'}).getAttribute('href').then(href=>href.endsWith('/danfse')));
+  console.log('Production UI: explicit real issuance/email consent, automatic read-only access check without issuing, private XML/DANFSe links and no overflow at 3 widths.');
+
   await page.goto(`${origin}/?screen=quick&transmission-off=1`);
   await page.getByText(/Você pode marcar a revisão e preparar o lote/).waitFor();
   await page.getByRole("checkbox",{name:/Revisei os valores/}).check();

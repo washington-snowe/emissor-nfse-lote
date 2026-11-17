@@ -4,7 +4,7 @@ export const COMPANY_COOKIE = "emissor_company";
 export function workspaceDestination(area: string, companyId?: string) {
   const company = companyId && /^[0-9a-f-]{36}$/i.test(companyId) ? companyId : undefined;
   const paths: Record<WorkspaceArea, string> = {
-    overview: "/painel", invoices: "/painel/notas", imports: "/painel/importacoes", standalone: "/painel/notas/nova",
+    overview: "/painel", invoices: "/painel/notas", imports: "/painel/importacoes", standalone: "/painel/importacoes",
     companies: company ? `/painel/empresas/${company}` : "/painel/empresas",
     service: company ? `/painel/empresas/${company}/fiscal?secao=servico` : "/painel/empresas",
     advanced: company ? `/painel/empresas/${company}/fiscal?secao=avancado` : "/painel/empresas",

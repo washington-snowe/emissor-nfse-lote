@@ -1,0 +1,44 @@
+{
+  "kind": "official_source_review_with_pending_authenticated_capture",
+  "reviewed_on": "2026-11-16",
+  "sources": [
+    {
+      "url": "https://www.gov.br/nfse/pt-br/biblioteca/documentacao-tecnica/apis-prod-restrita-e-producao",
+      "sha256": "5ea78b6eb67a8f2b874bb451e4b4ebc43f3c446a30f0d22309b7a3851e73de89",
+      "evidence": "Official portal links the SEFIN production index and DANFSe documentation on the environment-specific ADN hosts."
+    },
+    {
+      "url": "https://www.gov.br/nfse/pt-br/biblioteca/documentacao-tecnica/documentacao-atual",
+      "sha256": "865deaaddb9df5c56566757fc0aecf17093bff84b1bf6e6f200631b000349515",
+      "evidence": "Current production package remains 09/02/2026. The downloaded production ZIP SHA256 matches the existing pinned manifest: e7935cbd9470527c6cc32984c1b2263e614183bf0139ce2733eaaed2de9a8072. Preserve upstream schema bytes and the separate 20/10/2026 restricted layout."
+    }
+  ],
+  "authenticated_capture_required": {
+    "production_sefin_index": "https://sefin.nfse.gov.br/SefinNacional/docs/index",
+    "production_danfse_index": "https://adn.nfse.gov.br/danfse/docs/index.html",
+    "homologation_danfse_index": "https://adn.producaorestrita.nfse.gov.br/danfse/docs/index.html",
+    "executor_unauthenticated_status": 503,
+    "meaning": "No private A1 was available to this executor. This response does not prove service outage or taxpayer eligibility. The application must capture the actual contract through its protected mTLS connection before use."
+  },
+  "secondary_research_only": [
+    {
+      "url": "https://raw.githubusercontent.com/nfse-nacional/nfse-php/24a85301ddf915321178c6491a14b108fc2660e5/references/api-specs/production/prod-API-NFS-e-ADN-DANFSe-(v1).json",
+      "sha256": "41c62d7168e8ed704d24949b36b13abcf11d51e0e038a4ec39fbee3994ac89f7",
+      "evidence": "Mirror describes GET /{chaveAcesso} with required string path parameter and status200. It does not specify a PDF response schema. Never register this mirror as an authenticated official capture. Runtime requires MIME, bounded binary PDF header and EOF checks."
+    },
+    {
+      "local_research_name": "prod-API-NFS-e-SEFIN-NACIONAL-(v1).json",
+      "repository_commit": "nfse-nacional/nfse-php@24a85301ddf915321178c6491a14b108fc2660e5",
+      "sha256": "19883793a8d5f1e59c4aff52aff41fe484a048a987dbe0993dd4025a38c5b592",
+      "evidence": "Mirror uses basePath /SefinNacional/; a single trailing slash is structurally equivalent to the pinned application prefix. External servers, other origins or prefixes remain rejected."
+    }
+  ],
+  "authorization_policy": [
+    "Production requires the private server flag, current own active A1, MEI profile, captured production contracts and explicit report plus delivery confirmation bound to the production snapshot digest.",
+    "Before dispatch, check the exact reserved DPS identity against the production SEFIN. Existing/unknown identity blocks; never skip counters or infer permission from homologation or numeric environment0.",
+    "At most one persisted POST intent per operation. Ambiguous acceptance permits only official reconciliation; never repair or retransmit historical signed originals.",
+    "A PDF is obtained only for an already authorized own fiscal document. It does not authorize or change that document.",
+    "Production email attaches original authorized XML and official DANFSe to the reviewed CSV seller destination. Homologation remains test-address-only. Shared global quotas and sequential provider pacing remain unchanged."
+  ],
+  "not_proven": ["Live production authorization", "Live official DANFSe retrieval", "Production batch delivery", "Stripe live payments", "Backup restoration and SaaS launch readiness"]
+}

@@ -15,8 +15,8 @@ export function identity() {
 export const fiscalProfile: FiscalProfile = { issuerMunicipality: "3550308", series: "1", simplesOption: "2", specialRegime: "0",
   serviceMunicipality: "3550308", nationalTaxCode: "010101", description: "Synthetic fiscal fixture", issTaxation: "1", issWithholding: "1", totals: { mode: "not_informed" } };
 export const recipient = { kind: "cnpj" as const, country: "BR", document: "11444777000161", legalName: "Synthetic recipient" };
-export function signedDps(holder: ReturnType<typeof identity>) {
-  const built = buildDps({ environment: "homologation", issuerCnpj: "11222333000181", dpsNumber: "1", competenceDate: "2026-10-31",
+export function signedDps(holder: ReturnType<typeof identity>,environment:'homologation'|'production'='homologation') {
+  const built = buildDps({ environment, issuerCnpj: "11222333000181", dpsNumber: "1", competenceDate: "2026-10-31",
     emissionTime: "2026-11-11T12:00:00+00:00", profile: fiscalProfile, amount: "11.01", recipient });
   return { id: built.id, xml: signDps(built.xml, built.id, holder.privateKeyPem, holder.certificatePem) };
 }

@@ -24,6 +24,12 @@ try {
     "@/app/painel/conta/assinatura/actions": path.join(root, "tests/ui/workflow-actions.ts"),
     "@/app/painel/certificados/actions": path.join(root, "tests/ui/workflow-actions.ts"),
     "@/app/painel/importacoes/review-actions": path.join(root, "tests/ui/workflow-actions.ts"),
+    "@/app/painel/importacoes/production-actions": path.join(root, "tests/ui/workflow-actions.ts"),
+    "@/app/painel/importacoes/quick-actions": path.join(root, "tests/ui/workflow-actions.ts"),
+    "@/app/painel/notas/email-actions": path.join(root, "tests/ui/workflow-actions.ts"),
+    "@/app/painel/notas/email-teste/actions": path.join(root, "tests/ui/workflow-actions.ts"),
+    "@/app/painel/notas/diagnostic-actions": path.join(root, "tests/ui/workflow-actions.ts"),
+    "@/app/painel/notas/receipt-diagnostic-actions": path.join(root, "tests/ui/workflow-actions.ts"),
     "@/app/painel/notas/actions": path.join(root, "tests/ui/workflow-actions.ts"),
     "next/navigation": path.join(root, "tests/ui/navigation.ts"),
     "next/link": path.join(root, "tests/ui/link.tsx"),
@@ -55,8 +61,9 @@ try {
     await page.goto(`${origin}/?screen=plans`);
     const nav=width>900 ? page.locator('.workspace-sidebar') : page.locator('.workspace-mobile-navigation');
     if(width<=900) await nav.locator(':scope > summary').click();
-    for(const name of ['Início','Notas','Notas em lote','Nota avulsa','Cadastro','Serviço','Avançado','Certificado','Perfil','Login','Assinatura','Indicações']) await nav.getByRole('link',{name,exact:true}).waitFor();
+    for(const name of ['Início','Notas','Notas em lote','Cadastro','Serviço','Avançado','Certificado','Perfil','Login','Assinatura','Indicações']) await nav.getByRole('link',{name,exact:true}).waitFor();
     assert.equal(await nav.getByRole('link',{name:'API',exact:true}).count(),0);
+    assert.equal(await nav.getByRole('link',{name:'Nota avulsa',exact:true}).count(),0);
     await nav.getByLabel('Empresa em uso').selectOption('00000000-0000-4000-8000-000000000002');
     await page.waitForFunction(()=>window.workflowUiTest.companyId==='00000000-0000-4000-8000-000000000002');
     if(width<=900) await nav.locator(':scope > summary').click();
