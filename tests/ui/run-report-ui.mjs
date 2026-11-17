@@ -30,6 +30,7 @@ try {
     "@/app/painel/notas/email-actions": path.join(root, "tests/ui/workflow-actions.ts"),
     "@/app/painel/notas/email-teste/actions": path.join(root, "tests/ui/workflow-actions.ts"),
     "@/app/painel/notas/diagnostic-actions": path.join(root, "tests/ui/workflow-actions.ts"),
+    "@/app/painel/notas/danfse-diagnostic-actions": path.join(root, "tests/ui/workflow-actions.ts"),
     "@/app/painel/notas/receipt-diagnostic-actions": path.join(root, "tests/ui/workflow-actions.ts"),
     "@/app/painel/notas/actions": path.join(root, "tests/ui/workflow-actions.ts"),
     "next/navigation": path.join(root, "tests/ui/navigation.ts"),
@@ -171,6 +172,11 @@ try {
   const productionCard=page.locator('article').filter({hasText:'Tomador sintético C'});
   await productionCard.getByText('Autorizada em produção',{exact:true}).waitFor();
   assert.ok(await productionCard.getByRole('link',{name:'Baixar DANFS-e oficial'}).getAttribute('href').then(href=>href.endsWith('/danfse')));
+  const beforeDanfse=await page.evaluate(()=>window.workflowUiTest.calls);
+  await productionCard.getByRole('button',{name:'Conferir DANFS-e'}).click();
+  await productionCard.getByText('Diagnóstico do DANFS-e',{exact:true}).waitFor();
+  assert.ok((await productionCard.innerText()).includes('PDF oficial obtido pelo servidor: não.'));
+  assert.equal(await page.evaluate(()=>window.workflowUiTest.calls),beforeDanfse,'DANFSe inspection never queues or resumes invoices');
   console.log('Production UI: explicit real issuance/email consent, automatic read-only access check without issuing, private XML/DANFSe links and no overflow at 3 widths.');
 
   for(const width of [1440,390,320]){
@@ -581,7 +587,9 @@ try {
     assert.ok(await page.evaluate(()=>window.workflowUiTest.clipboard.includes('nfse-receipt-v1')));
     await uncertain.getByRole('button', { name: 'Consultar novamente' }).click();
     await uncertain.getByRole('status').filter({ hasText: 'Ação sintética resume' }).waitFor();
-    assert.equal(await page.locator('.fiscal-operation').nth(2).getByRole('button').count(), 0);
+    const authorized=page.locator('.fiscal-operation').nth(2);
+    assert.equal(await authorized.getByRole('button').count(),1,'authorized invoice only offers the read-only PDF diagnostic');
+    assert.equal(await authorized.getByRole('button',{name:'Conferir DANFS-e'}).count(),1);
     // A denied click can race the worker's authorization. Keep real current-state errors,
     // clear old-state results on refresh, and never replay the action automatically.
     await page.evaluate(()=>{window.workflowUiTest.manageError=true;});
@@ -596,7 +604,8 @@ try {
     await uncertain.getByRole('link',{name:'Baixar XML de homologação'}).waitFor();
     assert.equal(await uncertain.getByRole('alert').count(),0,'confirmed authorization clears prior action errors');
     assert.equal(await uncertain.getByRole('status').count(),0,'confirmed authorization clears prior action notices');
-    assert.equal(await uncertain.getByRole('button').count(),0);
+    assert.equal(await uncertain.getByRole('button').count(),1);
+    assert.equal(await uncertain.getByRole('button',{name:'Conferir DANFS-e'}).count(),1);
     assert.equal(await page.evaluate(()=>window.workflowUiTest.calls),callsAfterDenial,'status refresh must not run an action');
     assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), `Operations overflow ${width}`);
     await page.screenshot({ path: path.join(root, `shots/reports/operations-${width}.png`), fullPage: true });
@@ -611,7 +620,8 @@ try {
     await page.evaluate(()=>window.workflowUiTest.finishManage());
     await page.waitForFunction(()=>(window.workflowUiTest.refreshes??0)>0);
     assert.equal(await racing.getByRole('alert').count(),0,'late refusal from a previous state must not appear after authorization');
-    assert.equal(await racing.getByRole('button').count(),0);
+    assert.equal(await racing.getByRole('button').count(),1);
+    assert.equal(await racing.getByRole('button',{name:'Conferir DANFS-e'}).count(),1);
     assert.equal(await page.evaluate(()=>window.workflowUiTest.calls),1,'late response never retries or enqueues');
     console.log(`Invoices ${width}px: current errors remain visible; authorization removes stale notices, including late responses, without another action`);
   }

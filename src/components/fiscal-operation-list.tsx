@@ -3,6 +3,7 @@ import { FiscalControls } from "@/components/fiscal-controls";
 import { fiscalStatusLabels, fiscalReasonLabels, formatFiscalBrl } from "@/lib/nfse/status";
 import {InvoiceEmailControls} from "@/components/invoice-email-controls";
 import {FiscalOperationDiagnostic} from "@/components/fiscal-operation-diagnostic";
+import {DanfseDiagnostic} from '@/components/danfse-diagnostic';
 
 export type OperationDisplay = { id: string; batch_id: string; status: string; reason: string | null; amount: string;environment?:'homologation'|'production';
   recipient: { legalName: string }; dps_id: string | null; transmit_count: number; competence_date: string; document?: { id: string; access_key: string } | null;
@@ -16,6 +17,7 @@ export function FiscalOperationList({ operations }: { operations: OperationDispl
     {operation.reason && <p>{fiscalReasonLabels[operation.reason] ?? "Confira a operação antes de prosseguir."}</p>}
     <details className="company-details"><summary>Identificação da operação</summary><p className="mono fiscal-identifier">{operation.dps_id ?? "A DPS será reservada após conferir o A1."}</p><Link className="text-link" href={`/painel/notas/lotes/${operation.batch_id}`}>Abrir lote</Link></details>
     {operation.document && operation.status === "authorized" && <div className="standalone-actions"><Link className="btn btn--secondary" href={`/painel/notas/documentos/${operation.document.id}`}>{operation.environment==='production'?'Baixar XML':'Baixar XML de homologação'}</Link><Link className="btn btn--secondary" href={`/painel/notas/documentos/${operation.document.id}/danfse`}>Baixar DANFS-e oficial</Link></div>}
+    {operation.document&&operation.status==='authorized'&&<DanfseDiagnostic documentId={operation.document.id}/>}
     {operation.email&&<section className="invoice-email-status" aria-label="Entrega por e-mail"><strong>{emailLabels[operation.email.status]??"Entrega pendente"}</strong>{operation.email.test_mode&&<p>Teste de homologação · sem envio ao vendedor.</p>}{operation.email.destination&&<p className="field-hint">Destino previsto: {operation.email.destination}</p>}{operation.email.provider&&<p className="field-hint">Provedor: {operation.email.provider}</p>}{operation.email.status==="accepted"&&<p className="field-hint">Aceito para processamento; isso ainda não comprova chegada à caixa de entrada.</p>}{operation.email.reason&&<p>{emailReasons[operation.email.reason]??"Confira a entrega antes de prosseguir."}</p>}{["failed","blocked"].includes(operation.email.status)&&<InvoiceEmailControls deliveryId={operation.email.id} needsEmail={operation.email.reason==="invalid_email"}/>}</section>}
     <FiscalControls key={`${operation.id}:${operation.status}:${operation.transmit_count}`} operationId={operation.id} status={operation.status} transmitCount={operation.transmit_count} />
     {operation.transmit_count===1&&operation.status!=="authorized"&&<FiscalOperationDiagnostic id={operation.id}/>}

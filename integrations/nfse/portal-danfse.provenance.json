@@ -1,0 +1,53 @@
+{
+  "kind": "bounded_official_web_pdf_alternative_pending_authenticated_validation",
+  "reviewed_on": "2026-11-17",
+  "user_observation": {
+    "production_diagnostic": "nfse-production-v3 (97b50f2)",
+    "production_head_http": 404,
+    "production_head_contract_compatible": true,
+    "production_adn_documentation_index_and_json_http": 503,
+    "same_authorized_homologation_invoice_pdf_downloaded_in_official_browser_session": true,
+    "browser_download_does_not_prove_server_download_or_production_pdf_availability": true
+  },
+  "official_login_pages_read_without_private_certificate": [
+    {
+      "url": "https://www.producaorestrita.nfse.gov.br/EmissorNacional/Login",
+      "http": 200,
+      "sha256_of_observed_public_html": "f48052fc3b80ae96ba32888f4bba0eb76a94581cf23db699236da3371f3cb9f2",
+      "certificate_anchor": "https://certificado.producaorestrita.nfse.gov.br/EmissorNacional/Certificado"
+    },
+    {
+      "url": "https://www.nfse.gov.br/EmissorNacional/Login",
+      "http": 200,
+      "sha256_of_observed_public_html": "17a88a47fd5afafa572f5f1ebaf72e323734006095e15a16d23a39c2cb4c4783",
+      "certificate_anchor": "https://certificado.nfse.gov.br/EmissorNacional/Certificado"
+    }
+  ],
+  "pdf_route_candidate": {
+    "path": "/EmissorNacional/Notas/Download/DANFSe/{authorizedOwnKey}",
+    "production_origin": "https://www.nfse.gov.br",
+    "homologation_origin": "https://www.producaorestrita.nfse.gov.br",
+    "discovery_references_only_not_api_contracts": [
+      {
+        "url": "https://raw.githubusercontent.com/SamuelMoraesF/mcp-nfse-nacional/16fe555d0d8c6a27edd12948e11d2819f2628afb/src/nfse.ts",
+        "sha256": "c27b90649aaf2cfc8177f9384cd7b3728173a348900962c873abcfd287986d77"
+      },
+      {
+        "url": "https://raw.githubusercontent.com/Rainzart/nfse-nacional/ddf01b8fd79b995730dcc408b06883380894ff79/src/RestCurl.php",
+        "sha256": "c6c1c8996f5b08550c42c44d0818dc0b535cd65213f44e4e5658a0d56e7f5d36"
+      }
+    ],
+    "scope": "These references identify a candidate download route. They supply neither an official API contract nor runtime proof. Their implementations are not executed or copied; insecure TLS, cookie files and arbitrary URLs are not adopted. Only an actual verified HTTPS200 PDF from the pinned official environment can be returned."
+  },
+  "policy": [
+    "Use only the existing owner-bound authorized document and its server-stored 50-digit key; never accept a URL, certificate, cookies, key or PDF from the client.",
+    "Use the protected A1 of the issuer, verified TLS and GET only. Validate the fixed dashboard redirect without following it, then send only scoped Secure cookie pairs to the fixed same-environment PDF route. Never follow login, third-party or cross-environment redirects.",
+    "Cookies remain local to one invocation and are never logged, stored, returned to the browser or shared across documents or tenants. Bodies, locations, identities and keys are excluded from the diagnostic.",
+    "Require HTTP200, binary PDF MIME, bounded size, PDF header and terminal EOF. The PDF is not proof of fiscal authorization; the original authorized XML and its ownership remain prerequisites.",
+    "Do not register a fabricated ADN contract or associate a portal PDF with an ADN contract hash. Existing valid API cache remains immutable; portal fallback is uncached pending a distinct provenance schema.",
+    "The explicit nfse-danfse-v1 inspection changes no fiscal operation, production readiness, numbering, email queue or PDF cache. Production remains blocked by the existing DANFSe contract prerequisite. No new migration or A1 upload is required for this check."
+  ],
+  "authenticated_server_pdf_validated_by_executor": false,
+  "production_pdf_validated_by_executor": false,
+  "new_fiscal_submissions_or_email_tests_by_executor": false
+}
