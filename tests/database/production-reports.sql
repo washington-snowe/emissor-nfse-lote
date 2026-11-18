@@ -12,6 +12,7 @@ select pg_temp.prod_check((public.production_report_status(current_setting('test
 select set_config('request.jwt.claims','{"sub":"00000000-0000-4000-8000-000000000002"}',false);
 select pg_temp.prod_check(public.production_report_status(current_setting('test.prod.company')::uuid) is null,'foreign owner cannot inspect production access');
 do $$ begin
+ begin perform public.record_production_readiness_with_local_danfse(current_setting('test.prod.actor')::uuid,current_setting('test.prod.company')::uuid,current_setting('test.prod.certificate')::uuid,current_setting('test.prod.profile_hash'),repeat('c',64),404,repeat('f',64));raise exception 'Client local proof';exception when insufficient_privilege then perform pg_temp.prod_check(true,'client cannot record local generator proof');end;
  begin perform public.reserve_production_check(current_setting('test.prod.actor')::uuid,current_setting('test.prod.company')::uuid);raise exception 'Direct production probe';exception when insufficient_privilege then perform pg_temp.prod_check(true,'production probe is server only');end;
  begin perform public.store_fiscal_danfse(current_setting('test.prod.actor')::uuid,gen_random_uuid(),'production',repeat('1',50),'',repeat('d',64));raise exception 'Client PDF injection';exception when insufficient_privilege then perform pg_temp.prod_check(true,'client cannot upload DANFSe');end;
  begin perform * from private.fiscal_production_readiness;raise exception 'Private readiness exposed';exception when insufficient_privilege then perform pg_temp.prod_check(true,'private access proof hidden');end;
@@ -27,6 +28,16 @@ end $$;
 select pg_temp.prod_check(not public.record_production_readiness(current_setting('test.prod.actor')::uuid,current_setting('test.prod.company')::uuid,current_setting('test.prod.certificate')::uuid,current_setting('test.prod.profile_hash'),repeat('e',64),404),'contract hash bound to live capture');
 select pg_temp.prod_check(not public.record_production_readiness(current_setting('test.prod.actor')::uuid,current_setting('test.prod.company')::uuid,current_setting('test.prod.certificate')::uuid,current_setting('test.prod.profile_hash'),repeat('c',64),null),'missing HTTP cannot record readiness');
 select pg_temp.prod_check(public.record_production_readiness(current_setting('test.prod.actor')::uuid,current_setting('test.prod.company')::uuid,current_setting('test.prod.certificate')::uuid,current_setting('test.prod.profile_hash'),repeat('c',64),404),'production proof records actual HTTP');
+reset role;
+select pg_temp.prod_check(not private.production_company_ready(current_setting('test.prod.company')::uuid),'retired API-only proof does not release production');
+set role service_role;
+select pg_temp.prod_check(not public.record_production_readiness_with_local_danfse(current_setting('test.prod.actor')::uuid,current_setting('test.prod.company')::uuid,current_setting('test.prod.certificate')::uuid,current_setting('test.prod.profile_hash'),repeat('c',64),404,repeat('f',64)),'unknown local specification rejected');
+select pg_temp.prod_check(not public.record_production_readiness_with_local_danfse(current_setting('test.prod.actor')::uuid,current_setting('test.prod.company')::uuid,current_setting('test.prod.certificate')::uuid,current_setting('test.prod.profile_hash'),repeat('e',64),404,'1265f403aedcdc5f08b3049dcc18a15c2bc155f51afccf3d12690fef2f4fb0ff'),'local generation cannot bypass captured SEFIN contract');
+select pg_temp.prod_check(public.record_production_readiness_with_local_danfse(current_setting('test.prod.actor')::uuid,current_setting('test.prod.company')::uuid,current_setting('test.prod.certificate')::uuid,current_setting('test.prod.profile_hash'),repeat('c',64),404,'1265f403aedcdc5f08b3049dcc18a15c2bc155f51afccf3d12690fef2f4fb0ff'),'pinned local generator records bound production proof');
+reset role;
+select pg_temp.prod_check(private.production_company_ready(current_setting('test.prod.company')::uuid),'local proof and own fiscal guards release review');
+set role service_role;
+
 do $$ begin
  begin perform public.enqueue_report_fiscal_production(current_setting('test.prod.actor')::uuid,current_setting('test.prod.review')::uuid,current_setting('test.prod.review_hash'),gen_random_uuid(),false);raise exception 'No delivery consent';exception when object_not_in_prerequisite_state then perform pg_temp.prod_check(true,'real delivery consent required');end;
 end $$;
@@ -69,6 +80,21 @@ do $$ begin
  begin perform public.danfse_document_source('00000000-0000-4000-8000-000000000002',current_setting('test.prod.document')::uuid);raise exception 'Foreign DANFSe';exception when insufficient_privilege then perform pg_temp.prod_check(true,'known document id does not leak another tenant PDF');end;
  begin perform public.store_fiscal_danfse(current_setting('test.prod.actor')::uuid,current_setting('test.prod.document')::uuid,'homologation',repeat('2',50),current_setting('test.prod.pdf'),repeat('d',64));raise exception 'Cross environment PDF';exception when insufficient_privilege then perform pg_temp.prod_check(true,'PDF cannot bind across environment');end;
 end $$;
+select pg_temp.prod_check(public.danfse_document_source(current_setting('test.prod.actor')::uuid,current_setting('test.prod.document')::uuid)->>'generator'='nt008-1.02-rex-v1','uncached authorized document exposes local generator version');
+select pg_temp.prod_check(public.danfse_document_source(current_setting('test.prod.actor')::uuid,current_setting('test.prod.document')::uuid)->'original'->>'xml' like 'SYNTHETIC ORIGINAL ONLY %','original signed DPS snapshot returned only to server owner');
+reset role;
+select set_config('test.prod.original',signed_dps_xml,false) from private.fiscal_execution where operation_id=(current_setting('test.prod.claim')::jsonb->>'id')::uuid;
+update private.fiscal_execution set signed_dps_xml='TAMPERED SYNTHETIC' where operation_id=(current_setting('test.prod.claim')::jsonb->>'id')::uuid;
+set role service_role;
+select pg_temp.prod_check(public.danfse_document_source(current_setting('test.prod.actor')::uuid,current_setting('test.prod.document')::uuid) is null,'tampered original DPS fails closed before rendering');
+reset role;
+update private.fiscal_execution set signed_dps_xml=current_setting('test.prod.original') where operation_id=(current_setting('test.prod.claim')::jsonb->>'id')::uuid;
+update public.company_certificates set status='revoked' where id=current_setting('test.prod.certificate')::uuid;
+set role service_role;
+select pg_temp.prod_check(public.danfse_document_source(current_setting('test.prod.actor')::uuid,current_setting('test.prod.document')::uuid)->'original'->>'certificatePem'='BEGIN CERTIFICATE synthetic only','authorized PDF source does not require current private A1');
+reset role;
+update public.company_certificates set status='active' where id=current_setting('test.prod.certificate')::uuid;
+set role service_role;
 select pg_temp.prod_check(not public.store_fiscal_danfse(current_setting('test.prod.actor')::uuid,current_setting('test.prod.document')::uuid,'production',repeat('2',50),current_setting('test.prod.pdf'),repeat('e',64)),'PDF requires actual source contract hash');
 select pg_temp.prod_check(public.store_fiscal_danfse(current_setting('test.prod.actor')::uuid,current_setting('test.prod.document')::uuid,'production',repeat('2',50),current_setting('test.prod.pdf'),repeat('d',64)),'official-channel PDF cache persists bound authorized document');
 select pg_temp.prod_check(public.store_fiscal_danfse(current_setting('test.prod.actor')::uuid,current_setting('test.prod.document')::uuid,'production',repeat('2',50),current_setting('test.prod.pdf'),repeat('d',64)),'same PDF write is idempotent');

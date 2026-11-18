@@ -171,11 +171,11 @@ try {
   await page.goto(`${origin}/?screen=operations&production=1`);
   const productionCard=page.locator('article').filter({hasText:'Tomador sintético C'});
   await productionCard.getByText('Autorizada em produção',{exact:true}).waitFor();
-  assert.ok(await productionCard.getByRole('link',{name:'Baixar DANFS-e oficial'}).getAttribute('href').then(href=>href.endsWith('/danfse')));
+  assert.ok(await productionCard.getByRole('link',{name:'Baixar DANFS-e'}).getAttribute('href').then(href=>href.endsWith('/danfse')));
   const beforeDanfse=await page.evaluate(()=>window.workflowUiTest.calls);
   await productionCard.getByRole('button',{name:'Conferir DANFS-e'}).click();
   await productionCard.getByText('Diagnóstico do DANFS-e',{exact:true}).waitFor();
-  assert.ok((await productionCard.innerText()).includes('PDF oficial obtido pelo servidor: não.'));
+  assert.ok((await productionCard.innerText()).includes('DANFS-e disponível: não.'));
   assert.equal(await page.evaluate(()=>window.workflowUiTest.calls),beforeDanfse,'DANFSe inspection never queues or resumes invoices');
   console.log('Production UI: explicit real issuance/email consent, automatic read-only access check without issuing, private XML/DANFSe links and no overflow at 3 widths.');
 

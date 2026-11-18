@@ -44,7 +44,7 @@ try{
  const files={};
  for(const [name,entry] of Object.entries({action:'src/app/painel/notas/email-teste/actions.ts',worker:'src/lib/email/jobs.ts'})){
   const built=await build({entryPoints:[path.join(root,entry)],bundle:true,platform:'node',format:'esm',write:false,tsconfig:path.join(root,'tsconfig.json'),plugins:[{name:'test-boundaries',setup(b){
-   const virtual={'server-only':'','@/lib/danfse-server':'export async function loadOfficialDanfse(){throw new Error("Unexpected document test");}','@/lib/supabase/admin':'export function createAdminClient(){return globalThis.providerTestHarness.admin;}','@/lib/tenancy-server':'export async function requireWorkspace(){return {context:globalThis.providerTestHarness.context};}','next/server':'export function after(fn){globalThis.providerTestHarness.after.push(fn);}','next/cache':'export function revalidatePath(){}'};
+   const virtual={'server-only':'','@/lib/danfse-server':'export async function loadDanfse(){throw new Error("Unexpected document test");}','@/lib/supabase/admin':'export function createAdminClient(){return globalThis.providerTestHarness.admin;}','@/lib/tenancy-server':'export async function requireWorkspace(){return {context:globalThis.providerTestHarness.context};}','next/server':'export function after(fn){globalThis.providerTestHarness.after.push(fn);}','next/cache':'export function revalidatePath(){}'};
    b.onResolve({filter:/.*/},a=>Object.hasOwn(virtual,a.path)?{path:a.path,namespace:'boundary'}:undefined);
    b.onLoad({filter:/.*/,namespace:'boundary'},a=>({contents:virtual[a.path],loader:'js'}));
   }}]});files[name]=path.join(temporary,name+'.mjs');await writeFile(files[name],built.outputFiles[0].text);

@@ -14,7 +14,8 @@ export function validDanfsePdf(bytes:Buffer):boolean{
  if(bytes.length<100||bytes.length>MAX_DANFSE_BYTES||!/^%PDF-(?:1\.[0-9]|2\.0)[\r\n]/.test(bytes.subarray(0,12).toString('ascii')))return false;
  return /%%EOF[\t\r\n ]*$/.test(bytes.subarray(-1024).toString('latin1'));
 }
-/** Only for an already authorized own NFS-e. PDF never serves as proof of fiscal authorization. */
+/** Historical ADN adapter, retained for compatibility tests only. NT008/2026
+ * suspended generation; the application now uses the local authorized-XML renderer. */
 export async function fetchOfficialDanfse(environment:NfseEnvironment,key:string,contract:unknown,credentials:NfseCredentials,request=nfseGet){
  if(!['homologation','production'].includes(environment)||!/^\d{50}$/.test(key)||!supportedDanfseContract(contract))throw new Error('DANFSe contract unavailable');
  const result=await request(environment,DANFSE_BASES[environment]+'/'+key,credentials,7000);

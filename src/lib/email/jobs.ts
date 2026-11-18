@@ -8,7 +8,7 @@ import {validatePersistedReport} from '@/lib/persisted-report';
 import {parseFiscalXml,singleElement} from '@/lib/nfse/xml';
 import {NFSE_NAMESPACE} from '@/lib/nfse/dps';
 import {processProviderEmailTests} from './provider-tests';
-import {loadOfficialDanfse} from '@/lib/danfse-server';
+import {loadDanfse} from '@/lib/danfse-server';
 import {invoiceEmailText} from './invoice-message';
 
 export async function processInvoiceEmails(tenantId?:string,deadline=Date.now()+45_000){
@@ -57,7 +57,7 @@ export async function processInvoiceEmails(tenantId?:string,deadline=Date.now()+
   let pdf:Buffer|undefined;
   if(full){
    try{
-    const result=await loadOfficialDanfse({actorId:job.actorId,tenantId:job.tenantId,documentId:job.documentId},deadline-5000);
+    const result=await loadDanfse({actorId:job.actorId,tenantId:job.tenantId,documentId:job.documentId},deadline-5000);
     if(result.accessKey!==job.accessKey||result.environment!==job.environment)throw new Error('Document mismatch');
     pdf=result.bytes;
    }catch{await defer('danfse_unavailable');processed++;continue;}

@@ -23,6 +23,6 @@ set role service_role;
 select set_config('test.prod.review',public.save_report_review(current_setting('test.prod.actor')::uuid,current_setting('test.prod.import')::uuid,current_setting('test.prod.profile')::uuid,0,current_setting('test.prod.snapshot')::jsonb)->>'id',false);
 select public.store_official_nfse_contract('production','https://sefin.nfse.gov.br/SefinNacional/swagger/docs/v1',repeat('c',64),'{"paths":{"/nfse":{"post":{}}}}');
 select public.store_official_danfse_contract('production','https://adn.nfse.gov.br/danfse/swagger/v1/swagger.json',repeat('d',64),'{"paths":{"/{chaveAcesso}":{"get":{}}}}');
-select public.record_production_readiness(current_setting('test.prod.actor')::uuid,current_setting('test.prod.company')::uuid,current_setting('test.prod.certificate')::uuid,current_setting('test.prod.profile_hash'),repeat('c',64),404);
+select public.record_production_readiness_with_local_danfse(current_setting('test.prod.actor')::uuid,current_setting('test.prod.company')::uuid,current_setting('test.prod.certificate')::uuid,current_setting('test.prod.profile_hash'),repeat('c',64),404,'1265f403aedcdc5f08b3049dcc18a15c2bc155f51afccf3d12690fef2f4fb0ff');
 reset role;
 select set_config('test.prod.review_hash',snapshot_sha256,false) from public.report_reviews where id=current_setting('test.prod.review')::uuid;

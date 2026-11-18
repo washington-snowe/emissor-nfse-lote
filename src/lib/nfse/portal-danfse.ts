@@ -1,3 +1,4 @@
+// Historical portal transport; no longer used by PDF downloads, preflight or email.
 import https from 'node:https';
 import {createHash} from 'node:crypto';
 import {nfseTlsCredentials,type NfseCredentials,type NfseEnvironment} from './http.ts';

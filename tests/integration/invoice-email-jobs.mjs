@@ -22,7 +22,7 @@ function reset(){
 }
 try{
  const built=await build({entryPoints:[path.join(root,'src/lib/email/jobs.ts')],bundle:true,platform:'node',format:'esm',write:false,tsconfig:path.join(root,'tsconfig.json'),plugins:[{name:'synthetic-email-boundaries',setup(b){
- const virtual={'server-only':'','@/lib/danfse-server':'export async function loadOfficialDanfse(){const h=globalThis.emailHarness;h.pdfCalls++;if(h.pdfMissing)throw new Error("Synthetic unavailable PDF");return {bytes:Buffer.from("%PDF-SYNTHETIC ONLY"),accessKey:h.job.accessKey,environment:h.job.environment};}','@/lib/supabase/admin':'export function createAdminClient(){return globalThis.emailHarness.admin;}'};
+ const virtual={'server-only':'','@/lib/danfse-server':'export async function loadDanfse(){const h=globalThis.emailHarness;h.pdfCalls++;if(h.pdfMissing)throw new Error("Synthetic unavailable PDF");return {bytes:Buffer.from("%PDF-SYNTHETIC ONLY"),accessKey:h.job.accessKey,environment:h.job.environment};}','@/lib/supabase/admin':'export function createAdminClient(){return globalThis.emailHarness.admin;}'};
  b.onResolve({filter:/.*/},a=>Object.hasOwn(virtual,a.path)?{path:a.path,namespace:'boundary'}:undefined);
  b.onLoad({filter:/.*/,namespace:'boundary'},a=>({contents:virtual[a.path],loader:'js'}));
  }}]});const modulePath=path.join(temporary,'worker.mjs');await writeFile(modulePath,built.outputFiles[0].text);const {processInvoiceEmails}=await import(modulePath);
