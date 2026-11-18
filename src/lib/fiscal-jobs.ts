@@ -16,6 +16,8 @@ export async function processFiscalJobs(tenantId?: string, deadline = Date.now()
   if (!admin) return { processed: 0, available: false };
   const productionSchema=await admin.rpc('fiscal_production_schema_ready');
   const productionSchemaReady=!productionSchema.error&&productionSchema.data===true;
+  const localDanfse=productionSchemaReady?await admin.rpc('fiscal_local_danfse_ready'):null;
+  const localDanfseReady=!localDanfse?.error&&localDanfse?.data===true;
   const selected=selectedFiscalEnvironment(process.env);
   const environments:NfseEnvironment[]=productionSchemaReady?[selected,selected==='production'?'homologation':'production']:['homologation'];
   const rpc = async (name: string, args: Record<string, unknown>) => {
@@ -25,6 +27,9 @@ export async function processFiscalJobs(tenantId?: string, deadline = Date.now()
   };
   for(const environment of environments){
   const enabled=fiscalEnvironmentEnabled(environment,process.env);
+  // A schema21 proof must not start new production while the local PDF source is missing.
+  // Reconciliation of an existing transmission remains available.
+  const prepareEnabled=enabled&&(environment!=='production'||localDanfseReady);
   const contractResult = await admin.rpc("fiscal_contract", { p_environment: environment });
   if (contractResult.error) continue;
   const contract = supportedNfseContract(contractResult.data);
@@ -32,17 +37,17 @@ export async function processFiscalJobs(tenantId?: string, deadline = Date.now()
   const diagnosticsReady=!diagnostics.error&&diagnostics.data===true;
   const schemaDiagnostics=await admin.rpc("fiscal_schema_diagnostics_ready");
   const schemaDiagnosticsReady=!schemaDiagnostics.error&&schemaDiagnostics.data===true;
-  if (!enabled || !contract) await rpc(productionSchemaReady?'block_fiscal_environment_dependencies':"block_fiscal_dependencies", { ...(productionSchemaReady?{p_environment:environment}:{}),p_tenant: tenantId ?? null, p_company: null,
+  if (!prepareEnabled || !contract) await rpc(productionSchemaReady?'block_fiscal_environment_dependencies':"block_fiscal_dependencies", { ...(productionSchemaReady?{p_environment:environment}:{}),p_tenant: tenantId ?? null, p_company: null,
     p_reason: !enabled ? "transmission_disabled" : "contract_missing" });
   if (!contract) continue;
-  const claimed = await rpc(productionSchemaReady?'claim_fiscal_jobs_for_environment':"claim_fiscal_jobs", { ...(productionSchemaReady?{p_environment:environment}:{}),p_tenant: tenantId ?? null, p_limit: 1, p_reconcile_only: !enabled||!diagnosticsReady });
+  const claimed = await rpc(productionSchemaReady?'claim_fiscal_jobs_for_environment':"claim_fiscal_jobs", { ...(productionSchemaReady?{p_environment:environment}:{}),p_tenant: tenantId ?? null, p_limit: 1, p_reconcile_only: !prepareEnabled||!diagnosticsReady });
   const job = claimed?.[0] as FiscalJob | undefined;
   if (!job) continue;
   if(job.environment!==environment)throw new Error('Fiscal environment mismatch');
   let expectedDpsId=job.dps_id??undefined;
   const observations:{stage:unknown;data:Record<string,unknown>}[]=[];
   await executeFiscalJob(job, {
-    contract,productionEnabled:environment==='production'&&enabled&&productionSchemaReady, remainingMs: () => deadline - Date.now(), sign: signDps, validate: xml => validateFiscalSchema(xml, "DPS",environment==='production'?'production-20260209':'homologation-20261020'),
+    contract,productionEnabled:environment==='production'&&prepareEnabled&&productionSchemaReady, remainingMs: () => deadline - Date.now(), sign: signDps, validate: xml => validateFiscalSchema(xml, "DPS",environment==='production'?'production-20260209':'homologation-20261020'),
     identity: async material => {
       const result = await admin.rpc("reserve_fiscal_identity", { p_operation: job.id, p_token: job.lease_token, p_certificate: material.certificateId });
       if (result.error?.code === "23505") return { blocked: "source_duplicate" };

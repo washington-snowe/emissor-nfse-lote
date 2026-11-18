@@ -51,7 +51,7 @@ export async function loadQuickReportReview(importId:string,input?:QuickReviewIn
   const email=emailConfig(process.env);
   const routes=generated.snapshot?.groups.map(group=>sellerEmailRoute(report,group))??[];
   const production=environment==='production'?await client.rpc('production_report_status',{p_company:company.data.id}):null;
-  const productionReady=!production?.error&&production?.data?.ready===true;
+  const productionReady=!production?.error&&production?.data?.ready===true&&production?.data?.danfseSource==='local_nt008';
   const deliveryError=environment==='production'&&(!email.enabled||routes.some(route=>!route.email))?'Confira a configuração de e-mail e o endereço de cada vendedor antes da emissão real.':undefined;
   const data:QuickReviewData={importId,companyId:company.data.id,input:fields,candidates,preview:generated.snapshot,digest:!error&&!deliveryError&&generated.snapshot&&(environment==='homologation'||productionReady)?quickReviewDigest(generated.snapshot,environment):undefined,
     environment,production:environment==='production'?{ready:productionReady}:undefined,
