@@ -10,7 +10,7 @@ export {DANFSE_PORTALS} from './portal-session.ts';
 // portal, not an OpenAPI contract or a replacement for fiscal authorization.
 const prefix='/EmissorNacional';
 type PortalResponse={status:number;body:Buffer;contentType:string;location?:string;cookies?:string[]};
-export type PortalDanfseStep={stage:'portal_login'|'portal_dashboard'|'portal_pdf';status:number;outcome:'received'|'accepted'|'refused';format?:'html'|'json'|'pdf'|'other';cookies?:{received:number;accepted:number};iis403?:number;reason?:'login_status'|'login_redirect'|'session_scope'|'dashboard_status'|'dashboard_type'|'pdf_status'|'pdf_type'|'pdf_format'};
+export type PortalDanfseStep={stage:'portal_login'|'portal_dashboard'|'portal_pdf';status:number;outcome:'received'|'accepted'|'refused';format?:'html'|'json'|'pdf'|'text'|'binary'|'absent'|'other';body?:'empty'|'present';documentLink?:'matched'|'not_listed';cookies?:{received:number;accepted:number};iis403?:number;reason?:'login_status'|'login_redirect'|'session_scope'|'dashboard_status'|'dashboard_type'|'pdf_status'|'pdf_type'|'pdf_format'};
 type PortalRequest=(environment:NfseEnvironment,stage:PortalStage,key:string,credentials:NfseCredentials,cookie:string,timeout:number)=>Promise<PortalResponse>;
 
 /** No caller-supplied URL, redirects, general cookie jar or write methods. */
@@ -23,8 +23,10 @@ export const portalDanfseGet:PortalRequest=async(environment,stage,key,credentia
   const fail=(error:unknown)=>{clearTimeout(timer);reject(fiscalTransportError(error));};
   const timer=setTimeout(()=>request?.destroy(new NfseTransportError('timeout')),Math.max(1,Math.min(Number.isFinite(timeout)?timeout:7000,7000)));
   try{
-   request=https.request(url,{method:'GET',...nfseTlsCredentials(credentials),rejectUnauthorized:true,minVersion:'TLSv1.2',agent:false,
-    headers:{Accept:stage==='pdf'?'application/pdf':'text/html','User-Agent':'EmissorNfse/0.1',...(stage==='pdf'?{Referer:portal.origin+prefix+'/Dashboard'}:{}),...(cookie?{Cookie:cookie}:{})}},response=>{
+   // Only the dedicated certificate origin uses mTLS. www uses the authenticated
+   // cookie session over ordinary verified TLS, without presenting the A1 again.
+   request=https.request(url,{method:'GET',...(stage==='login'?nfseTlsCredentials(credentials):{}),rejectUnauthorized:true,minVersion:'TLSv1.2',agent:false,
+    headers:{Accept:stage==='pdf'?'application/pdf,application/octet-stream;q=0.9,*/*;q=0.8':'text/html','User-Agent':'EmissorNfse/0.1',...(stage==='pdf'?{Referer:portal.origin+prefix+'/Dashboard'}:{}),...(cookie?{Cookie:cookie}:{})}},response=>{
     const chunks:Buffer[]=[];let size=0;
     response.on('data',(chunk:Buffer)=>{size+=chunk.length;if(size>(stage==='pdf'?MAX_DANFSE_BYTES:stage==='dashboard'?512_000:128_000)){request?.destroy(new NfseTransportError('response_limit'));return;}chunks.push(chunk);});
     response.on('end',()=>{clearTimeout(timer);resolve({status:response.statusCode??0,body:Buffer.concat(chunks),contentType:response.headers['content-type']??'',location:response.headers.location,cookies:response.headers['set-cookie']});});
@@ -37,11 +39,21 @@ export const portalDanfseGet:PortalRequest=async(environment,stage,key,credentia
 
 function responseDetails(response:PortalResponse){
  const mime=response.contentType.split(';',1)[0].trim().toLowerCase();
- const format:NonNullable<PortalDanfseStep['format']>=mime==='text/html'?'html':mime==='application/json'||mime==='application/problem+json'?'json':mime==='application/pdf'?'pdf':'other';
+ const format:NonNullable<PortalDanfseStep['format']>=!mime?'absent':mime==='text/html'?'html':mime==='application/json'||mime==='application/problem+json'?'json':mime==='application/pdf'?'pdf':mime==='text/plain'?'text':mime==='application/octet-stream'?'binary':'other';
  // Export only a fixed numeric IIS substatus, never an error page/body or URL.
  const sub=response.status===403&&format==='html'?/\bHTTP\s+Error\s+403\.(\d{1,2})\b/i.exec(response.body.subarray(0,12_000).toString('utf8')):null;
  const iis403=sub?Number(sub[1]):undefined;
- return {format,...(iis403!==undefined&&iis403<=24?{iis403}:{})};
+ return {format,body:response.body.length?'present' as const:'empty' as const,...(iis403!==undefined&&iis403<=24?{iis403}:{})};
+}
+
+// Observation only: the recent-invoice list is not complete and absence cannot
+// invalidate an authorized note. Never fetch a discovered URL or export its key.
+function dashboardListsOwnPdf(environment:NfseEnvironment,key:string,html:Buffer){
+ const expected=portalStageUrl(environment,'pdf',key).href;
+ for(const match of html.toString('utf8').matchAll(/\bhref\s*=\s*["']([^"'<>\r\n]{1,1024})["']/gi)){
+  try{if(new URL(match[1].replace(/&amp;/g,'&'),DANFSE_PORTALS[environment].origin+prefix+'/Dashboard').href===expected)return true;}catch{/* Not a supported link. */}
+ }
+ return false;
 }
 
 /** Only an owner-bound, already authorized key may reach this read-only helper. */
@@ -65,7 +77,7 @@ export async function fetchPortalDanfse(environment:NfseEnvironment,key:string,c
   if(deadline-Date.now()<1000)throw new Error('DANFSe portal deadline');
   const dashboard=await request(environment,'dashboard',key,credentials,dashboardCookie,Math.min(7000,deadline-Date.now()));
   const details=responseDetails(dashboard),dashboardValid=dashboard.status===200&&details.format==='html';
-  report?.({stage:'portal_dashboard',status:dashboard.status,outcome:dashboardValid?'accepted':'refused',...details,...(!dashboardValid?{reason:dashboard.status!==200?'dashboard_status':'dashboard_type'} as const:{})});
+  report?.({stage:'portal_dashboard',status:dashboard.status,outcome:dashboardValid?'accepted':'refused',...details,...(dashboardValid?{documentLink:dashboardListsOwnPdf(environment,key,dashboard.body)?'matched':'not_listed'} as const:{reason:dashboard.status!==200?'dashboard_status':'dashboard_type'} as const)});
   if(!dashboardValid)throw new Error('DANFSe portal dashboard unavailable');
   let refreshed:{received:number;accepted:number},cookie:string;
   try{refreshed=session.receive('dashboard',dashboard.cookies??[]);cookie=session.header('pdf');}

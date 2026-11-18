@@ -54,13 +54,14 @@ test('reprodução da sessão: login302 precisa do Dashboard e dos cookies renov
   const result=await fetchPortalDanfse(environment,key,credentials,Date.now()+30_000,s=>steps.push(s),async(env,stage,passedKey,passed,cookies,timeout)=>{
    assert.equal(env,environment);assert.equal(passedKey,key);assert.equal(passed,credentials);assert.ok(timeout<=7000);calls.push(stage);
    if(stage==='login'){assert.equal(cookies,'');return login(env);}
-   if(stage==='dashboard'){assert.equal(cookies,'Session=synthetic-secret');return {...dashboard,cookies:['WebSession=web-secret; Path=/; HttpOnly','Affinity=affinity-secret; Path=/; Secure',cookie(env,'new-auth-secret')]};}
+   if(stage==='dashboard'){assert.equal(cookies,'Session=synthetic-secret');return {...dashboard,body:Buffer.from('<html><a href="/EmissorNacional/Notas/Download/DANFSe/'+key+'">PDF sintético</a></html>'),cookies:['WebSession=web-secret; Path=/; HttpOnly','Affinity=affinity-secret; Path=/; Secure',cookie(env,'new-auth-secret')]};}
    if(cookies!=='Session=new-auth-secret; WebSession=web-secret; Affinity=affinity-secret')return {status:403,body:Buffer.from('synthetic missing session'),contentType:'text/html'};
    assert.deepEqual(calls,['login','dashboard','pdf']);return {status:200,body:pdf,contentType:'application/pdf'};
   });
   assert.equal(result.bytes.compare(pdf),0);assert.match(result.sha256,/^[a-f0-9]{64}$/);
   for(const secret of [key,'synthetic-secret','web-secret','new-auth-secret','affinity-secret','Set-Cookie'])assert.ok(!JSON.stringify(steps).includes(secret));
   assert.ok(steps.some(s=>s.stage==='portal_dashboard'&&s.cookies?.accepted===3));
+  assert.ok(steps.some(s=>s.stage==='portal_dashboard'&&s.documentLink==='matched'));
  }
 });
 
@@ -73,6 +74,18 @@ test('login inesperado, redirect alheio, ambiente incompatível e sessão ausent
  await assert.rejects(fetchPortalDanfse('production',key,credentials,Date.now(),undefined,async()=>{throw new Error('Must not request');}));
 });
 
+test('links da página não mudam destino ou chave; lista recente incompleta não invalida a nota autorizada',async()=>{
+ const steps:PortalDanfseStep[]=[],calls:string[]=[];
+ const result=await fetchPortalDanfse('production',key,credentials,Date.now()+30_000,s=>steps.push(s),async(env,stage,passedKey)=>{
+  assert.equal(env,'production');assert.equal(passedKey,key);calls.push(stage);
+  if(stage==='login')return login(env);
+  if(stage==='dashboard')return {...dashboard,body:Buffer.from('<html><a href="https://example.invalid/EmissorNacional/Notas/Download/DANFSe/'+key+'">externo</a><a href="/EmissorNacional/Notas/Download/DANFSe/'+'3'.repeat(50)+'">outra nota</a></html>')};
+  return {status:200,body:pdf,contentType:'application/pdf'};
+ });
+ assert.equal(result.bytes.compare(pdf),0);assert.deepEqual(calls,['login','dashboard','pdf']);assert.ok(steps.some(s=>s.stage==='portal_dashboard'&&s.documentLink==='not_listed'));
+ assert.ok(!JSON.stringify(steps).includes(key));assert.ok(!JSON.stringify(steps).includes('example.invalid'));
+});
+
 test('Dashboard recusado, redirect ou formato alheio encerra a sessão sem tentar o PDF',async()=>{
  for(const response of [{...dashboard,status:403},{...dashboard,status:302,location:'/EmissorNacional/Login'},{...dashboard,contentType:'application/json'},{...dashboard,status:503}]){
   const calls:string[]=[];await assert.rejects(fetchPortalDanfse('production',key,credentials,Date.now()+30_000,undefined,async(_env,stage)=>{calls.push(stage);return stage==='login'?login('production'):response;}));assert.deepEqual(calls,['login','dashboard']);
@@ -81,11 +94,11 @@ test('Dashboard recusado, redirect ou formato alheio encerra a sessão sem tenta
 });
 
 test('resposta PDF exige HTTP200, MIME binário, limite e arquivo íntegro; IIS403 só exporta categoria',async()=>{
- const responses=[{status:302,body:pdf,contentType:'application/pdf'},{status:404,body:pdf,contentType:'application/pdf'},{status:200,body:pdf,contentType:'text/html'},{status:200,body:Buffer.from('<html>Login</html>'),contentType:'application/pdf'},{status:200,body:pdf.subarray(0,-8),contentType:'application/pdf'},{status:200,body:Buffer.alloc(2_000_001),contentType:'application/pdf'},{status:403,body:Buffer.from('<title>HTTP Error 403.7</title>PRIVATE '+key),contentType:'text/html'}];
+ const responses=[{status:302,body:pdf,contentType:'application/pdf'},{status:404,body:pdf,contentType:'application/pdf'},{status:200,body:pdf,contentType:'text/html'},{status:200,body:Buffer.from('<html>Login</html>'),contentType:'application/pdf'},{status:200,body:pdf.subarray(0,-8),contentType:'application/pdf'},{status:200,body:Buffer.alloc(2_000_001),contentType:'application/pdf'},{status:403,body:Buffer.from('<title>HTTP Error 403.7</title>PRIVATE '+key),contentType:'text/html'},{status:403,body:Buffer.alloc(0),contentType:''}];
  for(const response of responses){
   const steps:PortalDanfseStep[]=[];
   await assert.rejects(fetchPortalDanfse('production',key,credentials,Date.now()+30_000,s=>steps.push(s),async(_env,stage)=>stage==='login'?login('production'):stage==='dashboard'?dashboard:response));
-  if(response.status===403){assert.equal(steps.at(-1)?.iis403,7);assert.equal(steps.at(-1)?.format,'html');assert.ok(!JSON.stringify(steps).includes('PRIVATE'));assert.ok(!JSON.stringify(steps).includes(key));}
+  if(response.status===403){assert.equal(steps.at(-1)?.iis403,response.body.length?7:undefined);assert.equal(steps.at(-1)?.format,response.body.length?'html':'absent');assert.equal(steps.at(-1)?.body,response.body.length?'present':'empty');assert.ok(!JSON.stringify(steps).includes('PRIVATE'));assert.ok(!JSON.stringify(steps).includes(key));}
  }
 });
 
@@ -101,9 +114,12 @@ test('transporte fixa certificado/Dashboard/PDF, referência ao Dashboard, TLS e
   assert.equal(observed[0].url,DANFSE_PORTALS.production.certificate+'/EmissorNacional/Certificado');
   assert.equal(observed[1].url,DANFSE_PORTALS.production.origin+'/EmissorNacional/Dashboard');
   assert.equal(observed[2].url,DANFSE_PORTALS.production.origin+'/EmissorNacional/Notas/Download/DANFSe/'+key);
-  for(const {options} of observed){assert.equal(options.method,'GET');assert.equal(options.rejectUnauthorized,true);assert.equal(options.minVersion,'TLSv1.2');assert.equal(options.agent,false);assert.equal(options.pfx,credentials.pfx);}
+  for(const {options} of observed){assert.equal(options.method,'GET');assert.equal(options.rejectUnauthorized,true);assert.equal(options.minVersion,'TLSv1.2');assert.equal(options.agent,false);}
+  assert.equal(observed[0].options.pfx,credentials.pfx);assert.equal(observed[0].options.passphrase,credentials.password);
+  for(const {options} of observed.slice(1))for(const field of ['pfx','passphrase','key','cert'])assert.equal(Object.hasOwn(options,field),false,'www session requests must not present protected A1 credentials');
   assert.equal((observed[0].options.headers as Record<string,string>).Cookie,undefined);assert.equal((observed[2].options.headers as Record<string,string>).Cookie,'Session=synthetic-secret; WebSession=web-secret');
   assert.equal((observed[2].options.headers as Record<string,string>).Referer,DANFSE_PORTALS.production.origin+'/EmissorNacional/Dashboard');
+  assert.equal((observed[2].options.headers as Record<string,string>).Accept,'application/pdf,application/octet-stream;q=0.9,*/*;q=0.8');
   for(const [stage,passedKey,header] of [['pdf','../foreign',''],['login',key,'secret'],['pdf',key,'secret\r\nInjected: yes']] as const)await assert.rejects(portalDanfseGet('production',stage,passedKey,credentials,header,1000));
   assert.equal(observed.length,3);oversized=true;await assert.rejects(portalDanfseGet('production','pdf',key,credentials,'',1000),error=>Boolean(error&&typeof error==='object'&&'reason' in error&&error.reason==='response_limit'));
  }finally{mocked.mock.restore();}
