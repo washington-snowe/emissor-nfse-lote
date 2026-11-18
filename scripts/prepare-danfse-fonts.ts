@@ -2,6 +2,7 @@ import {mkdir,writeFile} from 'node:fs/promises';
 import path from 'node:path';
 import {pathToFileURL} from 'node:url';
 import {createClient} from '@supabase/supabase-js';
+import nextEnv from '@next/env';
 import {getSupabaseConfig} from '../src/lib/config.ts';
 import {serviceKey} from '../src/lib/server-config.ts';
 import {danfseFontProfile,readDanfseFonts,verifyDanfseFont,NT008_FONT_FILES,PRIVATE_DANFSE_FONT_BUCKET,PRIVATE_DANFSE_FONT_DIRECTORY,MAX_DANFSE_FONT_BYTES,DanfseFontError} from '../src/lib/nfse/danfse-fonts.ts';
@@ -34,6 +35,6 @@ export async function prepareDanfseFonts(options:{env:Record<string,string|undef
  await readDanfseFonts(profile,root);return {profile};
 }
 if(process.argv[1]&&import.meta.url===pathToFileURL(path.resolve(process.argv[1])).href){
- try{const result=await prepareDanfseFonts({env:process.env});console.info('DANFS-e font profile: '+result.profile);}
+ try{nextEnv.loadEnvConfig(process.cwd(),false,{info(){},error(){}});const result=await prepareDanfseFonts({env:process.env});console.info('DANFS-e font profile: '+result.profile);}
  catch(error){console.error('DANFS-e fonts unavailable: '+(error instanceof DanfseFontError?error.reason:'assets_unavailable'));process.exitCode=1;}
 }

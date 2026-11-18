@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {readFile,mkdtemp,rm,access} from 'node:fs/promises';
+import {readFile,mkdtemp,rm,access,writeFile} from 'node:fs/promises';
 import path from 'node:path';
 import {tmpdir} from 'node:os';
 import {execFileSync} from 'node:child_process';
@@ -69,5 +69,16 @@ test('an invalid second private file leaves no partial font installation',{skip:
  try{
   await assert.rejects(prepareDanfseFonts({root,env:{DANFSE_FONT_PROFILE:'nt008'},storage:{getBucket:async()=>({private:true}),download:async(file)=>file==='arialbd.ttf'?readFile(path.join(PRIVATE_DANFSE_FONT_DIRECTORY,file)):Buffer.alloc(200)}}),/integrity_failed/);
   await assert.rejects(access(path.join(root,PRIVATE_DANFSE_FONT_DIRECTORY)));
+ }finally{await rm(root,{recursive:true,force:true});}
+});
+
+
+test('font CLI reads local Next environment configuration before selecting the profile',async()=>{
+ const root=await mkdtemp(path.join(tmpdir(),'rex-font-env-'));
+ try{
+  await writeFile(path.join(root,'.env.local'),'DANFSE_FONT_PROFILE=invalid\n');
+  const env:NodeJS.ProcessEnv={...process.env,NODE_ENV:'production'};delete env.DANFSE_FONT_PROFILE;
+  try{execFileSync(process.execPath,['--experimental-strip-types',path.resolve('scripts/prepare-danfse-fonts.ts')],{cwd:root,env,stdio:'pipe'});assert.fail('local invalid font profile must stop build');}
+  catch(error){const result=error as {status?:number;stderr?:Buffer};assert.equal(result.status,1);assert.match(result.stderr!.toString(),/DANFS-e fonts unavailable: profile_invalid/);}
  }finally{await rm(root,{recursive:true,force:true});}
 });
