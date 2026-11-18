@@ -53,7 +53,7 @@ try{
  h=reset();h.schema=false;result=await checkProductionAccess('actor-a','company-a');assert.equal(result.verified,false);assert.match(result.message,/atualização 22/);
  const context={actorId:'actor-a',tenantId:'tenant-a',documentId:'document-a'};
  h=reset();result=await loadDanfse(context);assert.ok(result.bytes.subarray(0,5).equals(Buffer.from('%PDF-')));assert.equal(result.source,'local_nt008');assert.equal(h.loaded.length,0);assert.equal(h.http.length,0);assert.deepEqual(h.calls.map(c=>c.name),['danfse_document_source']);
- h=reset();result=await inspectDanfse(context);assert.equal(result.available,true);assert.ok(result.details.includes('nfse-danfse-v4'));assert.ok(result.details.includes('assinaturas: conferidos'));assert.equal(h.http.length,0);assert.equal(h.loaded.length,0);
+ h=reset();result=await inspectDanfse(context);assert.equal(result.available,true);assert.ok(result.details.includes('nfse-danfse-v4'));assert.ok(result.details.includes('assinaturas: conferidos'));assert.ok(result.details.includes('Tipografia: '));assert.equal(h.http.length,0);assert.equal(h.loaded.length,0);
  for(const privateText of [key,holder.certificatePem,'11222333000181','<NFSe'])assert.ok(!result.details.includes(privateText));
  h=reset();h.cache=pdf.toString('base64');h.cacheHash=hash(pdf);result=await loadDanfse(context);assert.equal(result.bytes.compare(pdf),0);assert.equal(result.source,'official_cache');assert.equal(h.loaded.length,0);assert.equal(h.http.length,0);
  h=reset();h.cache=pdf.toString('base64');h.cacheHash='f'.repeat(64);await assert.rejects(loadDanfse(context));

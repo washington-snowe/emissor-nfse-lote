@@ -63,9 +63,14 @@
     "fiscalScope": "Existing authorized statuses 100/107. No new operation, event, fiscal eligibility or tax setting inferred. Production remains report-only with reviewed fiscal data and delivery consent."
   },
   "typography": {
-    "normativeRequirement": "Arial for labels; Microsoft Sans Serif for values (section2.4).",
-    "bundled": "Unmodified Liberation Sans regular/bold, SIL Open Font License1.1; embedded as a portable sans-serif substitute with Arial-compatible metrics.",
-    "limitation": "Substitute is explicit; do not claim exact mandated proprietary typefaces or full typographic conformity. No license or authorization for Arial/Microsoft Sans Serif is fabricated. Unsupported characters fail closed."
+    "normativeRequirement": "Arial Bold for labels/header; Microsoft Sans Serif regular for content, municipality8pt and QR caption6pt (sections2.4–2.4.4).",
+    "profiles": {
+      "nt008": "Original operator-supplied Arial Bold / Microsoft Sans Serif, identity and SHA256 pinned, installed only into the private deployment artifact.",
+      "portable": "Public OFL Liberation Sans equivalent remains the default until the private font build is configured. It is not identical to the required families."
+    },
+    "privateDeployment": "Private Supabase bucket danfse-fonts, downloaded sequentially at build time with existing server credentials. No font download during PDF generation and no proprietary TTF/ZIP in the public repository.",
+    "restrictions": "OS/2 noEmbedding/bitmapOnly are rejected; noSubsetting is honored. These flags are technical restrictions, not independent proof of a licence for hosting on a server.",
+    "scope": "The operator supplied the files and authorized use. No purchase, service contract, independent rights clearance or claim of complete fiscal conformity is made by these checks."
   },
   "assets": [
     {
@@ -108,5 +113,25 @@
     "url": "https://servicodados.ibge.gov.br/api/v1/localidades/municipios",
     "sourceSha256": "86ecdccdf97d72e7e5e46f0854cfcea8bacc28154cc1bc4ed0e6110e3a6c9c02",
     "records": 5571
-  }
+  },
+  "operatorFontAssets": [
+    {
+      "file": "private deployment: arialbd.ttf",
+      "family": "Arial",
+      "style": "Bold",
+      "postscript": "Arial-BoldMT",
+      "bytes": 980756,
+      "sha256": "766f06ac8761f82f25d032a220e89438f6064591af9915061f20b949efdedf69",
+      "embedding": "editable; subsetting allowed"
+    },
+    {
+      "file": "private deployment: micross.ttf",
+      "family": "Microsoft Sans Serif",
+      "style": "Regular",
+      "postscript": "MicrosoftSansSerif",
+      "bytes": 876080,
+      "sha256": "fc5744108eb6112844be3ec63c0fd76fe0eb782aea25c6aaa58c151d8dc19055",
+      "embedding": "editable; subsetting allowed"
+    }
+  ]
 }

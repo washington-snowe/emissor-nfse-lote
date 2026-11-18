@@ -50,6 +50,7 @@ test('generated DANFSe is single-page A4, keeps key/amounts and yields a readabl
  try{
   const file=path.join(dir,'test.pdf');await writeFile(file,result.bytes);
   const text=execFileSync('pdftotext',['-layout',file,'-'],{encoding:'utf8'});
+  if(result.typography==='nt008'){const names=execFileSync('pdffonts',[file],{encoding:'utf8'});assert.match(names,/Arial-BoldMT/);assert.match(names,/MicrosoftSansSerif/);assert.ok(!names.includes('LiberationSans'));}
   for(const part of [key,'NFS-e SEM VALIDADE JURÍDICA','R$ 11,01','TRIBUTAÇÃO IBS / CBS','Totais Aproximados dos Tributos'])assert.ok(text.includes(part),part);
   execFileSync('pdftoppm',['-r','300','-singlefile','-png',file,path.join(dir,'qr')]);
   const require=createRequire(import.meta.url),{PNG}=require('pngjs'),image=PNG.sync.read(await readFile(path.join(dir,'qr.png')));

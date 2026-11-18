@@ -6,6 +6,7 @@ import {supportedNfseContract,supportedDpsHeadPath} from '@/lib/nfse/api-contrac
 import {ownSefinLookupId,documentedDpsHeadResult} from '@/lib/nfse/transport-proof';
 import {NFSE_BASES,nfseHead} from '@/lib/nfse/http';
 import {assertLocalDanfseReady} from '@/lib/nfse/danfse-render';
+import {danfseTypographyLabel} from '@/lib/nfse/danfse-fonts';
 import {DANFSE_SPEC_SHA256} from '@/lib/nfse/danfse-model';
 import {fiscalTransportError} from '@/lib/nfse/transport-error';
 
@@ -50,7 +51,8 @@ export async function checkProductionAccess(actorId:string,companyId:string){
   lines.push(`Consulta HEAD da DPS própria: HTTP ${response.status}.`,`Corpo da resposta HEAD: ${response.body.length===0?'ausente, conforme o método':'inesperado'}.`,'Destino da consulta: SEFIN oficial de produção.','Campo de ambiente no JSON: não se aplica ao método HEAD.',`Consulta HEAD conforme o contrato: ${sefinReady?'sim':'não'}.`);
   if(!sefinReady)return report(false,'A consulta HEAD à SEFIN ainda não confirmou o acesso conforme o contrato de produção. Confira o diagnóstico; o envio continua bloqueado.');
   try{
-   await assertLocalDanfseReady();
+   const renderer=await assertLocalDanfseReady();
+   lines.push('Tipografia: '+danfseTypographyLabel(renderer.typography));
    lines.push('Gerador local DANFS-e: conferido · NT008/2026 v1.02.','Preparação do PDF: sem dependência da API de geração suspensa ou da sessão do portal.');
   }catch{
    lines.push('Gerador local DANFS-e: indisponível.');

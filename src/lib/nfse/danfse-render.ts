@@ -7,14 +7,13 @@ import QRCode from 'qrcode';
 import {buildDanfseModel,DANFSE_RENDERER_VERSION,type DanfseField,type Municipalities,type DanfseModel} from './danfse-model.ts';
 import type {NfseEnvironment} from './http.ts';
 import {validDanfsePdf} from './danfse.ts';
+import {loadDanfseFonts} from './danfse-fonts.ts';
 
 const assets={
- 'LiberationSans-Regular.ttf':'bade59d822652f76e6941aa87b40a87c13d1cc70db98ededb5011127efafd1d3',
- 'LiberationSans-Bold.ttf':'1b5f2da6f4cadce4c05b9ecebe3a6fcd374eb95ae443605e799f4c3287978939',
  'nfse-horizontal.png':'ab57fa34887929a10ee3b9b4d666084ec9b9465e62bbcc3523b99b23ccac1063',
  'municipalities.json':'66b757c303712e7534527eb69e025ac716b86bfe7f534777efaa2d4f02e00a4e',
 } as const;
-type Assets={regular:Buffer;bold:Buffer;logo:Buffer;places:Municipalities};
+type Assets={logo:Buffer;places:Municipalities};
 let publicAssets:Promise<Assets>|undefined;
 function loadAssets(){
  return publicAssets??=(async()=>{
@@ -23,7 +22,7 @@ function loadAssets(){
    const bytes=await readFile(path.join(process.cwd(),'integrations/nfse/danfse/assets',name));
    if(createHash('sha256').update(bytes).digest('hex')!==hash)throw new Error('DANFSe assets unavailable');values.push(bytes);
   }
-  return {regular:values[0],bold:values[1],logo:values[2],places:JSON.parse(values[3].toString('utf8')) as Municipalities};
+  return {logo:values[0],places:JSON.parse(values[1].toString('utf8')) as Municipalities};
  })().catch(error=>{publicAssets=undefined;throw error;});
 }
 const cm=(value:number)=>value*72/2.54;
@@ -53,23 +52,24 @@ function wrap(font:PDFFont,value:string,size:number,maxWidth:number){
 }
 async function documentFonts(){
  const source=await loadAssets(),pdf=await PDFDocument.create({updateMetadata:false});pdf.registerFontkit(fontkit);
- const normal=await pdf.embedFont(source.regular,{subset:true}),bold=await pdf.embedFont(source.bold,{subset:true});
- return {pdf,normal,bold,source};
+ const fonts=await loadDanfseFonts();
+ const normal=await pdf.embedFont(fonts.values.bytes,{subset:fonts.values.subset}),bold=await pdf.embedFont(fonts.labels.bytes,{subset:fonts.labels.subset});
+ return {pdf,normal,bold,source,typography:fonts.profile};
 }
 
 /** No fiscal communication, external resources, HTML, uploaded PDF or A1. */
 export async function assertLocalDanfseReady(){
- const {pdf,normal,bold}=await documentFonts(),page=pdf.addPage([width,height]);
+ const {pdf,normal,bold,typography}=await documentFonts(),page=pdf.addPage([width,height]);
  const message='TESTE LOCAL DO GERADOR – NÃO É NFS-e';printable(normal,message);page.drawText(message,{x:20,y:height-30,font:normal,size:7});
  page.drawText('DANFSe v2.0',{x:20,y:height-50,font:bold,size:9});
  const code=QRCode.create('https://www.nfse.gov.br/ConsultaPublica/?tpc=1&chave='+'0'.repeat(50),{errorCorrectionLevel:'M'});
  if(code.modules.size<21)throw new Error('DANFSe QR unavailable');
  const bytes=Buffer.from(await pdf.save({useObjectStreams:false}));if(!validDanfsePdf(bytes))throw new Error('DANFSe renderer unavailable');
- return {version:DANFSE_RENDERER_VERSION};
+ return {version:DANFSE_RENDERER_VERSION,typography};
 }
 
 export async function renderLocalDanfse(xml:string,expected:{accessKey:string;issuerCnpj:string;environment:NfseEnvironment}){
- const {pdf,normal,bold,source}=await documentFonts(),model=buildDanfseModel(xml,expected,source.places);
+ const {pdf,normal,bold,source,typography}=await documentFonts(),model=buildDanfseModel(xml,expected,source.places);
  const page=pdf.addPage([width,height]);
  const draw=(text:string,x:number,top:number,size=7,font=normal,color=ink)=>{
   printable(font,text);page.drawText(text,{x,y:height-top-size,font,size,color});
@@ -106,7 +106,7 @@ export async function renderLocalDanfse(xml:string,expected:{accessKey:string;is
  const centered=(value:string,top:number,color=ink)=>{printable(bold,value);draw(value,center-bold.widthOfTextAtSize(value,9)/2,top,9,bold,color);};
  centered('DANFSe v2.0',headerTop+2);centered('Documento Auxiliar da NFS-e',headerTop+12);
  if(model.environment==='homologation')centered('NFS-e SEM VALIDADE JURÍDICA',headerTop+22,red);
- lineText('Município: '+model.municipality,left+quarter*3+2,headerTop+2,quarter-4,8,bold);
+ lineText('Município: '+model.municipality,left+quarter*3+2,headerTop+2,quarter-4,8,normal);
  lineText('Ambiente Gerador: '+model.generator,left+quarter*3+2,headerTop+15,quarter-4,6,normal);
  draw('Tipo de Ambiente: '+(model.environment==='production'?'Produção':'Homologação'),left+quarter*3+2,headerTop+24,6,normal);
  const identificationTop=cm(1.67);
@@ -136,7 +136,7 @@ export async function renderLocalDanfse(xml:string,expected:{accessKey:string;is
  pdf.setTitle('DANFSe '+model.number);pdf.setAuthor('');pdf.setCreator('RexNotas');pdf.setProducer('RexNotas – '+DANFSE_RENDERER_VERSION);pdf.setCreationDate(issued);pdf.setModificationDate(issued);
  pdf.setSubject('Representação auxiliar do XML autorizado; origem: geração local RexNotas.');
  const bytes=Buffer.from(await pdf.save({useObjectStreams:false}));if(!validDanfsePdf(bytes))throw new Error('DANFSe PDF invalid');
- return {bytes,sha256:createHash('sha256').update(bytes).digest('hex'),model};
+ return {bytes,sha256:createHash('sha256').update(bytes).digest('hex'),model,typography};
 }
 
 export type {DanfseModel};

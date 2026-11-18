@@ -5,7 +5,7 @@ const config: NextConfig = {
   serverExternalPackages: ["node-forge", "xmllint-wasm"],
   outputFileTracingIncludes: { "/**/*": [
     "./server/certificate-worker.cjs", "./node_modules/node-forge/**/*",
-    "./server/schema-worker.cjs", "./node_modules/xmllint-wasm/**/*", "./integrations/nfse/**/*",
+    "./server/schema-worker.cjs", "./node_modules/xmllint-wasm/**/*", "./integrations/nfse/**/*", "./.private/danfse-fonts/*.ttf",
   ] },
   async headers() {
     return [

@@ -7,7 +7,7 @@
   },
   "scripts": {
     "dev": "next dev --hostname 0.0.0.0",
-    "build": "next build",
+    "build": "node --experimental-strip-types scripts/prepare-danfse-fonts.ts && next build",
     "start": "next start --hostname 0.0.0.0",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",

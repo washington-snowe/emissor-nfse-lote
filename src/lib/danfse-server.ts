@@ -5,6 +5,7 @@ import {validDanfsePdf,MAX_DANFSE_BYTES} from '@/lib/nfse/danfse';
 import {verifyOfficialNfseContents} from '@/lib/nfse/receipt';
 import {renderLocalDanfse} from '@/lib/nfse/danfse-render';
 import {DANFSE_RENDERER_VERSION} from '@/lib/nfse/danfse-model';
+import {danfseTypographyLabel} from '@/lib/nfse/danfse-fonts';
 import type {NfseEnvironment} from '@/lib/nfse/http';
 
 type DanfseContext={actorId:string;tenantId:string;documentId:string};
@@ -55,6 +56,7 @@ async function readDanfse(context:DanfseContext,deadline:number,report?:(line:st
   const pdf=await renderLocalDanfse(verified.xml,{accessKey:data.accessKey,issuerCnpj:data.cnpj,environment:data.environment});
   report?.('Origem do PDF: geração no Rex pelo XML autorizado, sem acesso ao portal ou à API de PDF.');
   report?.('PDF A4 e QR Code de consulta nacional: gerados.');
+  report?.('Tipografia: '+danfseTypographyLabel(pdf.typography));
   return {bytes:pdf.bytes,accessKey:data.accessKey,environment:data.environment as NfseEnvironment,source:'local_nt008' as const};
  }catch{throw new DanfseError('rendering_failed');}
 }

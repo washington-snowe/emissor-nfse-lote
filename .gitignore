@@ -8,3 +8,6 @@ out/
 shots/
 test-results/
 playwright-report/
+
+# Private deployment assets supplied by the operator; never publish raw proprietary fonts.
+.private/
