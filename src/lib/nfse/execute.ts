@@ -14,6 +14,7 @@ export type FiscalMaterial = { pfx: Buffer; password: string; privateKeyPem: str
 type Outcome = "authorized" | "rejected" | "uncertain" | "not_found" | "intervention";
 type Dependencies = {
   productionEnabled?:boolean;
+  productionCreatedLookupEnabled?:boolean;
   contract: SupportedNfseContract; loadMaterial(): Promise<FiscalMaterial>; remainingMs(): number;
   identity(material: FiscalMaterial): Promise<{ id: string; number: string } | { blocked: "source_duplicate" } | null>;
   sign(xml: string, id: string, key: string, cert: string): string;
@@ -77,7 +78,7 @@ export async function executeFiscalJob(job: FiscalJob, deps: Dependencies) {
     // DPS identifier. Do not normalize it or trust its document/key: query the exact
     // signed original, then apply the same full receipt checks as reconciliation.
     const submitted = result && readFiscalJson(result.body);
-    const lookupCreated = job.mode === 'prepare' && job.environment === 'production' && result?.status === 201 &&
+    const lookupCreated = deps.productionCreatedLookupEnabled === true && job.mode === 'prepare' && job.environment === 'production' && result?.status === 201 &&
       submitted?.tipoAmbiente === 1 && submitted.versaoAplicativo === 'SefinNacional_1.6.0';
     if (job.mode === 'reconcile' || lookupCreated) {
       if (deps.remainingMs() < 20_000) { await deps.finish("uncertain", "network_uncertain"); return; }

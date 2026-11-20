@@ -310,6 +310,12 @@ try:
     assert schema_count and int(schema_count[1])>=20
     print(f"Fiscal schema diagnostics: {schema_count[1]} assertions; private snapshot owner/quota and unchanged state; no HTTP")
 
+    inline_source=f"select set_config('test.td_operation','{same_operation}',false);select set_config('test.td_token','{token}',false);"+(ROOT/'tests/database/inline-fiscal-receipt.sql').read_text()
+    inline_result=sql(inline_source)
+    inline_count=re.search(r'^INLINE_RECEIPT_ASSERTIONS=(\d+)$',inline_result,re.M)
+    assert inline_count and int(inline_count[1])>=18
+    print(f"Inline fiscal receipt: {inline_count[1]} assertions; fenced POST201 and GET observations commit atomically; no HTTP")
+
 
     def lookup(_):
         return sql("""

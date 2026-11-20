@@ -37,6 +37,8 @@ export async function processFiscalJobs(tenantId?: string, deadline = Date.now()
   const diagnosticsReady=!diagnostics.error&&diagnostics.data===true;
   const schemaDiagnostics=await admin.rpc("fiscal_schema_diagnostics_ready");
   const schemaDiagnosticsReady=!schemaDiagnostics.error&&schemaDiagnostics.data===true;
+  const inlineReceipt=environment==='production'&&schemaDiagnosticsReady?await admin.rpc('fiscal_inline_receipt_diagnostics_ready'):null;
+  const inlineReceiptReady=!inlineReceipt?.error&&inlineReceipt?.data===true;
   if (!prepareEnabled || !contract) await rpc(productionSchemaReady?'block_fiscal_environment_dependencies':"block_fiscal_dependencies", { ...(productionSchemaReady?{p_environment:environment}:{}),p_tenant: tenantId ?? null, p_company: null,
     p_reason: !enabled ? "transmission_disabled" : "contract_missing" });
   if (!contract) continue;
@@ -47,7 +49,7 @@ export async function processFiscalJobs(tenantId?: string, deadline = Date.now()
   let expectedDpsId=job.dps_id??undefined;
   const observations:{stage:unknown;data:Record<string,unknown>}[]=[];
   await executeFiscalJob(job, {
-    contract,productionEnabled:environment==='production'&&prepareEnabled&&productionSchemaReady, remainingMs: () => deadline - Date.now(), sign: signDps, validate: xml => validateFiscalSchema(xml, "DPS",environment==='production'?'production-20260209':'homologation-20261020'),
+    contract,productionEnabled:environment==='production'&&prepareEnabled&&productionSchemaReady, productionCreatedLookupEnabled:inlineReceiptReady, remainingMs: () => deadline - Date.now(), sign: signDps, validate: xml => validateFiscalSchema(xml, "DPS",environment==='production'?'production-20260209':'homologation-20261020'),
     identity: async material => {
       const result = await admin.rpc("reserve_fiscal_identity", { p_operation: job.id, p_token: job.lease_token, p_certificate: material.certificateId });
       if (result.error?.code === "23505") return { blocked: "source_duplicate" };

@@ -21,6 +21,7 @@ function reset(){
   if(name==='fiscal_contract')return {data:contract};
   if(name==='fiscal_diagnostics_ready')return {data:h.diagnosticsReady};
   if(name==='fiscal_schema_diagnostics_ready')return h.schemaReady?{data:true}:{error:{code:'PGRST202'}};
+  if(name==='fiscal_inline_receipt_diagnostics_ready')return {data:true};
     if(name==='claim_fiscal_jobs_for_environment'&&args.p_environment!==h.job.environment)return {data:[]};
   if(name==='claim_fiscal_jobs'||name==='claim_fiscal_jobs_for_environment'){assert.equal(args.p_tenant,'synthetic-tenant');return {data:args.p_reconcile_only?[]:[h.job]};}
   if(name==='fiscal_processing_certificate')return {data:'synthetic-certificate'};

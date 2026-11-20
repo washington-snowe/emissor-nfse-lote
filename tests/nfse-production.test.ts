@@ -18,7 +18,7 @@ type Dependencies=Parameters<typeof executeFiscalJob>[1];
 function scenario(mode:'prepare'|'reconcile'='prepare'){
  const events:string[]=[],pfx=Buffer.from('SYNTHETIC ONLY');let original=signed.xml;
  const job:FiscalJob={id:'00000000-0000-4000-8000-000000000001',tenant_id:'00000000-0000-4000-8000-000000000002',company_id:'00000000-0000-4000-8000-000000000003',lease_token:'00000000-0000-4000-8000-000000000004',mode,environment:'production',issuer_cnpj:'11222333000181',profile_snapshot:fiscalProfile,competence_date:'2026-10-31',amount:'11.01',foreign_amount:null,dps_number:mode==='reconcile'?'1':null,dps_id:mode==='reconcile'?signed.id:null,recipient,intermediary:null,signed_dps_xml:mode==='reconcile'?signed.xml:null,holder_certificate_pem:mode==='reconcile'?holder.certificatePem:null};
- const deps:Dependencies={productionEnabled:true,contract:supportedNfseContract(raw)!,remainingMs:()=>45_000,
+ const deps:Dependencies={productionEnabled:true,productionCreatedLookupEnabled:true,contract:supportedNfseContract(raw)!,remainingMs:()=>45_000,
   loadMaterial:async()=>{events.push('A1');return {...holder,pfx,password:'synthetic',certificateId:'00000000-0000-4000-8000-000000000005'};},
   identity:async()=>{events.push('reserve');return {id:signed.id,number:'1'};},
   productionIdentity:async()=>{events.push('unused');return 'unused';},sign:signDps,
@@ -127,6 +127,15 @@ test('erro fiscal em GET após 201 não vira rejeição do primeiro POST nem lib
  await executeFiscalJob(s.job,s.deps);
  assert.deepEqual(s.events.filter(x=>x==='POST'||x==='GET'),['POST','GET','GET']);
  assert.ok(s.events.includes('finish:uncertain'));assert.ok(!s.events.includes('finish:rejected'));
+});
+test('sem suporte do banco para consultas na mesma rodada, preserva 201 para reconciliação separada',async()=>{
+ for(const flag of [undefined,false]){
+  const s=scenario();s.deps.productionCreatedLookupEnabled=flag;
+  s.deps.request=async(method)=>{s.events.push(method);return {status:201,body:Buffer.from('{"tipoAmbiente":1,"versaoAplicativo":"SefinNacional_1.6.0","idDPS":"FOREIGN"}')};};
+  await executeFiscalJob(s.job,s.deps);assert.deepEqual(s.events.filter(x=>x==='POST'||x==='GET'),['POST']);assert.ok(s.events.includes('finish:uncertain'));
+ }
+ const s=scenario('reconcile');s.deps.productionCreatedLookupEnabled=false;await executeFiscalJob(s.job,s.deps);
+ assert.deepEqual(s.events,['A1','GET','GET','finish:authorized']);
 });
 test('POST de produção com rejeição de outro ambiente fica incerto sem repetir envio',async()=>{
  for(const environment of [0,2,undefined]){const s=scenario();s.deps.request=async()=>{s.events.push('POST');return {status:400,body:Buffer.from(JSON.stringify({tipoAmbiente:environment,idDPS:signed.id,erros:[{codigo:'E0008'}]}))};};await executeFiscalJob(s.job,s.deps);assert.equal(s.events.filter(x=>x==='POST').length,1);assert.ok(s.events.includes('finish:uncertain'));}
