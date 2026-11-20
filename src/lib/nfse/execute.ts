@@ -39,7 +39,7 @@ export async function executeFiscalJob(job: FiscalJob, deps: Dependencies) {
       return;
     }
     const base = NFSE_BASES[job.environment];
-    let result: { status: number; body: Buffer }, signedDps: string, holderCert: string, lookupKey: string | undefined;
+    let result: { status: number; body: Buffer } | undefined, signedDps: string, holderCert: string, lookupKey: string | undefined;
     let dpsId = job.dps_id;
     if (job.mode === "prepare") {
       if (deps.remainingMs() < 25_000) { await deps.release("preparation_retry"); return; }
@@ -72,6 +72,15 @@ export async function executeFiscalJob(job: FiscalJob, deps: Dependencies) {
       if (deps.remainingMs() < 20_000) { await deps.finish("uncertain", "network_uncertain"); return; }
       if (!job.signed_dps_xml || !job.holder_certificate_pem || !dpsId) { await deps.finish("intervention", "response_invalid"); return; }
       signedDps = job.signed_dps_xml; holderCert = job.holder_certificate_pem;
+    }
+    // The observed production 1.6.0 POST 201 envelope does not reproduce the original
+    // DPS identifier. Do not normalize it or trust its document/key: query the exact
+    // signed original, then apply the same full receipt checks as reconciliation.
+    const submitted = result && readFiscalJson(result.body);
+    const lookupCreated = job.mode === 'prepare' && job.environment === 'production' && result?.status === 201 &&
+      submitted?.tipoAmbiente === 1 && submitted.versaoAplicativo === 'SefinNacional_1.6.0';
+    if (job.mode === 'reconcile' || lookupCreated) {
+      if (deps.remainingMs() < 20_000) { await deps.finish("uncertain", "network_uncertain"); return; }
       const lookup = await deps.request("GET", base + deps.contract.dpsPath.replace(/\{[^}]+\}/, encodeURIComponent(dpsId)), material);
       if (lookup.status === 404) { await deps.finish("not_found", "not_found"); return; }
       const lookupData=readFiscalJson(lookup.body);
@@ -81,15 +90,16 @@ export async function executeFiscalJob(job: FiscalJob, deps: Dependencies) {
       lookupKey = key;
       result = await deps.request("GET", base + deps.contract.nfsePath.replace(/\{[^}]+\}/, key), material);
     }
+    if (!result) throw new Error("Fiscal response unavailable");
     const json = readFiscalJson(result.body);
     if(job.environment==='production'&&(!json||json.tipoAmbiente!==1||['idDps','idDPS'].some(field=>json[field]!=null&&json[field]!==dpsId))){await deps.finish('uncertain','response_invalid');return;}
-    if (job.mode === "prepare" && definitiveRejection(result.status, json, deps.contract,dpsId!)) {
+    if (job.mode === "prepare" && !lookupCreated && definitiveRejection(result.status, json, deps.contract,dpsId!)) {
       await deps.finish("rejected", "provider_rejection"); return;
     }
     if (result.status < 200 || result.status >= 300) { await deps.finish("uncertain", "network_uncertain"); return; }
     const xml = readCompressedNfse(json?.nfseXmlGZipB64);
     // GET /nfse may omit chaveAcesso: the key remains bound to the official GET /dps lookup.
-    const key = job.mode === "prepare" ? json?.chaveAcesso : lookupKey;
+    const key = lookupKey ?? json?.chaveAcesso;
     if (!xml || typeof key !== "string" || !/^\d{50}$/.test(key) || json?.chaveAcesso !== undefined && json.chaveAcesso !== key) { await deps.finish("uncertain", "response_invalid"); return; }
     const document = await deps.receipt(xml, key, signedDps, holderCert, dpsId!);
     if (!document) { await deps.finish("uncertain", "response_invalid"); return; }

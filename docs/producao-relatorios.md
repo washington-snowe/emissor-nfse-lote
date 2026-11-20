@@ -26,6 +26,8 @@ PDF oficial anteriormente baixado e íntegro continua disponível no cache priva
 
 O worker renova transporte mTLS antes da reserva e consulta a identidade exata antes da intenção única de POST. Resposta incerta só permite reconciliação. Revisão final autoriza atomicamente o lote real e a entrega aos vendedores exibidos. PDF não é autorização fiscal e não altera numeração. Desligar a flag suspende novas preparações/e-mails reais; reconciliação e documentos anteriores continuam disponíveis.
 
+O POST201 de produção da SEFIN1.6.0 pode apresentar uma identidade de envelope que não reproduz a DPS original. Esse retorno não autoriza a nota. Com ambiente numérico1 e essa versão exata, o worker consulta imediatamente a DPS original assinada e depois a NFS-e pela chave retornada nessa consulta, reaproveitando a mesma validação completa da reconciliação. Não normaliza a identidade, não usa a chave/XML daquele POST nem repete o envio. Falta de orçamento ou prova mantém o resultado incerto. Evidência sanitizada e limites em [production-created-reconciliation.provenance.json](../integrations/nfse/production-created-reconciliation.provenance.json).
+
 Cada entrega inclui XML autorizado e DANFS-e da mesma nota. Tomador fiscal e endereço de entrega são vínculos distintos. Homologação vai somente ao endereço de teste configurado. O texto conserva a saudação, emojis, link e assinatura solicitados pelo usuário. Brevo300/dia, SendPulse400/dia com75s persistidos e Mailjet200/dia continuam em fila sequencial, com cotas compartilhadas e troca após402/429 explícitos. Documento indisponível adia a entrega antes da intenção/cota; resultado incerto de envio não é repetido automaticamente. Nada nesta mudança envia e-mail ou nota pelo executor.
 
 ## Ativação e conferência
@@ -45,3 +47,6 @@ Decisão posterior sobre fontes: sem licença de servidor/PDF para as fontes pro
 
 
 Atualização posterior à decisão de manter fonte equivalente: o usuário voltou a solicitar as famílias exatas e enviou Arial e Microsoft Sans Serif. O perfil privado foi implementado e testado com esses arquivos. Não há nova migração;22 já foi confirmada. A instalação privada no Supabase/Vercel é etapa de configuração do operador, separada da emissão fiscal e de qualquer nova licença.
+
+
+Ativação das fontes concluída com os acessos disponibilizados pelo usuário: bucketdanfse-fonts privado, dois hashes conferidos e acesso público recusado; Production da Vercel configurada emperfilnt008/origemsupabase e nova implantaçãoREADY da revisão8c8a366. O log confirmou a preparação das fontes exatas. Não pedir para repetir a instalação manual ou22. A verificação do PDF real na sessão do usuário e a validação de emissão fiscal real continuam etapas separadas; nenhuma nota/e-mail foi enviada por essa configuração.

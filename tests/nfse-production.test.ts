@@ -48,6 +48,86 @@ test('produção reconcilia somente com GET mesmo com emissão desativada; não 
   const bad=scenario('reconcile');bad.deps.request=async()=>{bad.events.push('GET');return {status:200,body:Buffer.from(JSON.stringify({...value,chaveAcesso:key}))};};await executeFiscalJob(bad.job,bad.deps);assert.deepEqual(bad.events,['A1','GET','finish:uncertain']);
  }
 });
+test('201 de produção 1.6.0 consulta a DPS original sem usar a identidade, chave ou XML do primeiro envelope',async()=>{
+ const s=scenario(),request=s.deps.request,foreignKey='9'.repeat(50),urls:string[]=[];
+ s.deps.request=async(method,url,material,body)=>{
+  urls.push(url);
+  if(method==='POST'){
+   s.events.push(method);
+   return {status:201,body:Buffer.from(JSON.stringify({tipoAmbiente:1,versaoAplicativo:'SefinNacional_1.6.0',idDPS:'DPS'+'9'.repeat(42),chaveAcesso:foreignKey,nfseXmlGZipB64:'untrusted'}))};
+  }
+  return request(method,url,material,body);
+ };
+ await executeFiscalJob(s.job,s.deps);
+ assert.deepEqual(s.events,['A1','reserve','unused','intent','POST','GET','GET','finish:authorized']);
+ assert.deepEqual(urls,['https://sefin.nfse.gov.br/SefinNacional/nfse','https://sefin.nfse.gov.br/SefinNacional/dps/'+signed.id,'https://sefin.nfse.gov.br/SefinNacional/nfse/'+key]);
+ assert.ok(s.pfx.every(x=>x===0));
+});
+test('consulta após 201 não autoriza 404, ambiente ou identidade contraditórios; preserva um único POST',async()=>{
+ for(const lookup of [
+  {status:404,data:{tipoAmbiente:0,erro:{codigo:'E2404'}}},
+  ...[{}, {tipoAmbiente:0},{tipoAmbiente:2},{tipoAmbiente:'1'},{tipoAmbiente:1,idDPS:'FOREIGN'},
+   {tipoAmbiente:1,idDps:signed.id,idDPS:'FOREIGN'},{tipoAmbiente:1,idDPS:null},{tipoAmbiente:1,chaveAcesso:'bad'}]
+   .map(data=>({status:200,data:{chaveAcesso:key,...data}})),
+ ]){
+  const s=scenario();s.deps.request=async(method)=>{
+   s.events.push(method);
+   return {status:method==='POST'?201:lookup.status,body:Buffer.from(JSON.stringify(method==='POST'?{tipoAmbiente:1,versaoAplicativo:'SefinNacional_1.6.0',idDPS:'FOREIGN'}:lookup.data))};
+  };
+  await executeFiscalJob(s.job,s.deps);
+  assert.deepEqual(s.events.filter(x=>x==='POST'||x==='GET'),['POST','GET']);
+  assert.ok(s.events.includes('finish:'+(lookup.status===404?'not_found':'uncertain')));assert.ok(s.pfx.every(x=>x===0));
+ }
+});
+test('201 seguido de consultas exige XML íntegro da mesma DPS e ambiente; retorno 200 sozinho não autoriza',async()=>{
+ for(const invalid of ['xml','signature','dps','environment','key','envelope'] as const){
+  const s=scenario(),request=s.deps.request;
+  s.deps.request=async(method,url,material,body)=>{
+   if(method==='POST'){s.events.push(method);return {status:201,body:Buffer.from('{"tipoAmbiente":1,"versaoAplicativo":"SefinNacional_1.6.0","idDPS":"FOREIGN"}')};}
+   const response=await request(method,url,material,body);
+   if(url.includes('/dps/'))return response;
+   const json=JSON.parse(response.body.toString());
+   if(invalid==='xml')json.nfseXmlGZipB64='not-gzip';
+   if(invalid==='signature')json.nfseXmlGZipB64=gzipSync(Buffer.from(nfseFixture(signed.xml,service,key).replace('<vLiq>11.01</vLiq>','<vLiq>99.99</vLiq>'))).toString('base64');
+   if(invalid==='dps')json.nfseXmlGZipB64=gzipSync(Buffer.from(nfseFixture(signed.xml,service,key))).toString('base64');
+   if(invalid==='environment')json.nfseXmlGZipB64=gzipSync(Buffer.from(nfseFixture(signedDps(holder,'homologation').xml,service,key))).toString('base64');
+   if(invalid==='key')json.chaveAcesso='9'.repeat(50);
+   if(invalid==='envelope')json.idDPS='FOREIGN';
+   return {...response,body:Buffer.from(JSON.stringify(json))};
+  };
+  await executeFiscalJob(s.job,s.deps);
+  assert.deepEqual(s.events.filter(x=>x==='POST'||x==='GET'),['POST','GET','GET']);
+  assert.ok(s.events.includes('finish:uncertain'),invalid);assert.ok(!s.events.includes('finish:authorized'));assert.ok(s.pfx.every(x=>x===0));
+ }
+});
+test('consulta imediata após 201 respeita orçamento e não interpreta outros status, versões ou ambientes como autorização',async()=>{
+ const exhausted=scenario();let sent=false;
+ exhausted.deps.remainingMs=()=>sent?19_999:45_000;
+ exhausted.deps.request=async(method)=>{exhausted.events.push(method);sent=true;return {status:201,body:Buffer.from('{"tipoAmbiente":1,"versaoAplicativo":"SefinNacional_1.6.0","idDPS":"FOREIGN"}')};};
+ await executeFiscalJob(exhausted.job,exhausted.deps);
+ assert.deepEqual(exhausted.events.filter(x=>x==='POST'||x==='GET'),['POST']);assert.ok(exhausted.events.includes('finish:uncertain'));
+ for(const response of [
+  {status:201,tipoAmbiente:2,versaoAplicativo:'SefinNacional_1.6.0'},
+  {status:201,tipoAmbiente:0,versaoAplicativo:'SefinNacional_1.6.0'},
+  {status:201,tipoAmbiente:1,versaoAplicativo:'unknown'},
+  {status:400,tipoAmbiente:1,versaoAplicativo:'SefinNacional_1.6.0'},
+  {status:500,tipoAmbiente:1,versaoAplicativo:'SefinNacional_1.6.0'},
+ ]){
+  const s=scenario();s.deps.request=async(method)=>{s.events.push(method);return {status:response.status,body:Buffer.from(JSON.stringify({...response,idDPS:'FOREIGN'}))};};
+  await executeFiscalJob(s.job,s.deps);assert.deepEqual(s.events.filter(x=>x==='POST'||x==='GET'),['POST']);assert.ok(s.events.includes('finish:uncertain'));
+ }
+});
+test('erro fiscal em GET após 201 não vira rejeição do primeiro POST nem libera reenvio',async()=>{
+ const s=scenario(),request=s.deps.request;
+ s.deps.request=async(method,url,material,body)=>{
+  if(method==='POST'){s.events.push(method);return {status:201,body:Buffer.from('{"tipoAmbiente":1,"versaoAplicativo":"SefinNacional_1.6.0"}')};}
+  if(url.includes('/dps/'))return request(method,url,material,body);
+  s.events.push(method);return {status:400,body:Buffer.from(JSON.stringify({tipoAmbiente:1,idDPS:signed.id,erros:[{codigo:'E0008'}]}))};
+ };
+ await executeFiscalJob(s.job,s.deps);
+ assert.deepEqual(s.events.filter(x=>x==='POST'||x==='GET'),['POST','GET','GET']);
+ assert.ok(s.events.includes('finish:uncertain'));assert.ok(!s.events.includes('finish:rejected'));
+});
 test('POST de produção com rejeição de outro ambiente fica incerto sem repetir envio',async()=>{
  for(const environment of [0,2,undefined]){const s=scenario();s.deps.request=async()=>{s.events.push('POST');return {status:400,body:Buffer.from(JSON.stringify({tipoAmbiente:environment,idDPS:signed.id,erros:[{codigo:'E0008'}]}))};};await executeFiscalJob(s.job,s.deps);assert.equal(s.events.filter(x=>x==='POST').length,1);assert.ok(s.events.includes('finish:uncertain'));}
 });

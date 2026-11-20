@@ -1,0 +1,17 @@
+{
+  "purpose": "Retrieve a production receipt through the original DPS after a SEFIN 1.6.0 POST 201, without accepting or normalizing the POST envelope identity.",
+  "contractSource": "https://sefin.nfse.gov.br/SefinNacional/docs/index",
+  "observedAt": "2026-11-20",
+  "evidence": {
+    "source": "Sanitized persisted transport diagnostics and operation states in the application database, read administratively during incident investigation.",
+    "firstResponses": "Five production POST responses: HTTP 201, JSON object, numeric environment 1, SefinNacional_1.6.0, aggregate identity mismatch. The original raw envelopes were not preserved.",
+    "existingReconciliation": "Three operations subsequently reached authorized through their existing GET-only reconciliation: own DPS GET 200, linked NFSe GET 200, numeric environment 1, envelope identities omitted, and the unchanged full XML receipt verifier.",
+    "limits": "The exact first-envelope identifiers are unknown. This evidence does not establish an identifier normalization rule, authorize a new POST or reclassify another operation. No customer identifiers, keys, XML, certificates or values are included."
+  },
+  "policy": {
+    "trigger": "Production POST 201 JSON with numeric tipoAmbiente 1 and exact versaoAplicativo SefinNacional_1.6.0.",
+    "retrieval": "Discard the first response's identity, key and XML as receipt evidence. GET the exact locally signed original DPS using the captured contract and fixed official production host. GET the NFSe only by the valid 50-digit key returned by that own-DPS lookup.",
+    "authorization": "Unchanged production envelope, original signed DPS, issuer, environment, key, XSD, embedded DPS identity and authenticated content, status and NFSe signature checks remain mandatory.",
+    "failure": "Insufficient budget, unavailable or contradictory GETs, invalid or mismatched XML and transport errors preserve uncertainty and the single transmission. Recovery is GET-only."
+  }
+}

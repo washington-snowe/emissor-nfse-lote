@@ -6,9 +6,11 @@ Os arquivos foram enviados pelo operador e conferidos com fontkit, SHA256 e flag
 
 O GitHub é público. Os TTF/ZIP proprietários ficam em `.private/`, ignorado pelo Git, e **não** em `public/` ou no repositório. O build baixa apenas os dois arquivos fixos de um bucket privado e os inclui na função da Vercel. Não há fonte ou URL indicada pelo cliente, instalação de fonte no sistema, envio de certificado, novo SQL ou contato com a SEFIN. Cache e arquivos são recursos globais de tipografia, não documentos de clientes.
 
-## Ativação pelo operador
+## Ativação concluída
 
-O executor não possui conexão administrativa Supabase nem token Vercel. Depois da publicação testada:
+O usuário disponibilizou os acessos administrativos e autorizou a configuração. O bucket privado foi criado e os dois arquivos foram enviados e conferidos por SHA256. Production da Vercel usa `DANFSE_FONT_PROFILE=nt008` e `DANFSE_FONT_SOURCE=supabase`; a nova implantação da revisão8c8a366 ficouREADY, com domínio atribuído e perfilnt008 confirmado no log do build. Os TTF originais continuam indisponíveis por URLs públicas. Não é necessário repetir a configuração ou a migração22.
+
+A conferência restante é baixar o PDF da mesma nota de homologação já autorizada na sessão do usuário. As etapas abaixo documentam o procedimento de instalação para referência:
 
 1. No **Supabase → Storage**, criar o bucket **`danfse-fonts`**, com **Public bucket desativado**. Não criar políticas de leitura/escrita para usuários da aplicação. Pode usar limite de arquivo2MB; cada arquivo fornecido tem menos de1MB.
 2. Extrair o pacote preparado no workspace `.private/rex-danfse-fonts.zip` e enviar os dois arquivos diretamente na raiz do bucket, com os nomes exatos **`arialbd.ttf`** e **`micross.ttf`**. Não enviar o ZIP ao bucket. O pacote contém apenas os arquivos originais necessários; não inclui dados fiscais ou A1.
@@ -30,4 +32,4 @@ DANFSE_FONT_PROFILE=nt008 UI_TOOLS_DIR=/tmp/emissor-company-ui/node_modules node
 
 `pdffonts` confere Arial-BoldMT e MicrosoftSansSerif incorporadas; o QR é decodificado do PDF rasterizado. Textos longos e blocos completos permanecem em uma página A4. A prova completa com XML/assinaturas usa somente identidades sintéticas. Testes de preparação usam adaptador Storage privado sintético; não acessam o projeto remoto. Sem os TTF privados, os testes específicos dos arquivos do operador ficam opt-in; a lógica de perfil, integridade, restrições, ausência de fallback e recusa de bucket público continua coberta em qualquer checkout.
 
-`portable` permanece o padrão até a configuração acima, com diferença tipográfica explicitada no diagnóstico. Mudar para `nt008` não afirma conformidade integral do restante do DANFS-e nem comprova uma emissão real; isso depende dos demais controles e da conferência do documento autorizado.
+`portable` permanece o padrão do código para builds sem configuração; a implantação Production atual está configurada em `nt008`. Mudar para `nt008` não afirma conformidade integral do restante do DANFS-e nem comprova uma emissão real; isso depende dos demais controles e da conferência do documento autorizado.
