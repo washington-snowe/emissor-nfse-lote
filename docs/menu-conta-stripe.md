@@ -42,13 +42,14 @@ O upgrade mantém a frequência e a data de renovação da assinatura. O Portal 
 | `STRIPE_SECRET_KEY` | Chave secreta de teste `sk_test_…` da sua conta Stripe. |
 | `STRIPE_WEBHOOK_SECRET` | Segredo `whsec_…` do destino de eventos criado no passo 2. |
 | `STRIPE_BILLING_ENABLED` | `true` para habilitar a integração depois de configurar os dois segredos. Padrão no repositório: `false`. |
+| `STRIPE_BILLING_MODE` | `test` no sandbox. O servidor verifica se o modo corresponde à chave configurada. |
 
 5. Fazer novo deploy para carregar as variáveis. Não enviar os valores no chat nem usar `NEXT_PUBLIC`. Não é necessária chave publishable da Stripe: Checkout e Portal são hospedados pelo provedor.
 6. Entrar em Conta → Assinatura e selecionar um plano. Produtos, preços e configuração do Portal são provisionados pela aplicação na própria Stripe conforme a contratação. Não há dados completos de cartão no aplicativo.
 7. Usar somente dados de cartão de teste documentados pela Stripe no Checkout. Após concluir, conferir assinatura e pagamento no painel, além da entrega 2xx dos eventos no Dashboard Stripe.
 8. Confirmar upgrade mantendo a frequência da assinatura, atualização do meio de pagamento e cancelamento agendado no Portal. A Stripe mostra ajustes proporcionais antes da confirmação. Retorno `?retorno=sucesso` não ativa plano por si só: o estado vem do webhook e da consulta autenticada ao provedor.
 
-A publicação do código não configura a conta Stripe nem os segredos. O executor não possui essas credenciais. Ativação real exige a configuração comercial da conta e validação do fluxo no ambiente de teste. Chaves test/live e seus dados ficam separados; não trocar chaves como forma de transformar testes em pagamentos reais.
+Em 23/11/2026, os quatro produtos e oito preços em BRL foram conferidos na Stripe de teste e registrados no Supabase no mesmo modo. O destino de teste usa os nove eventos acima. Na Vercel, as duas credenciais da Stripe ficam em variáveis sensíveis de Production. O modo de cobrança habilitado precisa corresponder à chave para o Checkout e o webhook abrirem. Uma futura ativação comercial exige os produtos, os preços e o destino de eventos da conta live.
 
 ## Consumo e excedentes
 
@@ -70,4 +71,4 @@ Comissões são registros para repasse, não transferências de dinheiro. Métod
 
 Fontes oficiais e versão REST estão em `integrations/stripe/provenance.json`. Requisições só usam `api.stripe.com`, TLS, limite de corpo/prazo e nenhuma redireção. Checkout/Portal/faturas só aceitam URLs HTTPS dos hosts próprios do provedor. Webhook verifica o corpo original por HMAC v1 e tolerância de cinco minutos; campos de depuração não autenticam nada. Eventos são idempotentes e serializados por cliente; dados atuais são consultados antes de persistir estado.
 
-Os testes de banco usam Auth/Stripe sintéticos em PostgreSQL descartável. O teste de consumo relaxa a restrição de produção **somente numa transação local com rollback**, sem API externa; não libera a produção real. Testes de UI usam ações de fronteira sintéticas. Chaves reais, Checkout real em sandbox, entrega de e-mail e repasses não foram verificados neste ambiente.
+Os testes de banco usam Auth/Stripe sintéticos em PostgreSQL descartável. No sandbox real da Stripe, com uma conta fictícia e cartão de teste, foi criada uma sessão de Checkout Start mensal de R$ 14,90, confirmada sua reutilização, criado o Portal de upgrade e conferido o pagamento proporcional no mesmo ciclo e a preservação da data de renovação. A cobrança de excedentes de R$ 0,59 foi paga uma única vez e o snapshot reconheceu o pagamento sem comissão de indicação. O ensaio usa Stripe real em teste com identidade de conta simulada. Repasses continuam fora da ativação.
