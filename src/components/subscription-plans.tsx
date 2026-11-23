@@ -18,12 +18,15 @@ export function SubscriptionPlans({ ready, request, currentPlan, currentCadence,
     <div className="billing-plan-grid">{plans.map(plan => {
       const selected = currentPlan === plan.code && sameCycle;
       const featured = plan.code === "afiliado-pro";
+      const cyclePrice = planPrice(plan, cadence);
+      const monthlyPrice = annual ? Math.round(cyclePrice / 12) : cyclePrice;
       const canUpgrade = currentStatus === "active" && current && sameCycle &&
         upgradeEligible({ cadence, unitCents: planPrice(current, cadence) }, plan, cadence);
       return <article key={plan.code} className={featured ? "billing-plan billing-plan--featured" : "billing-plan"}>
         <h3>{plan.name}</h3>
         {featured && <span className="billing-plan-badge">Mais Escolhido</span>}
-        <p className="billing-plan-price"><strong>{money(planPrice(plan, cadence))}</strong><span>/{annual ? "ano" : "mês"}</span></p>
+        <p className="billing-plan-price"><strong>{money(monthlyPrice)}</strong><span>/mês</span></p>
+        {annual && <p className="billing-plan-cycle">Cobrança anual de {money(cyclePrice)}</p>}
         <p>{plan.includedNotes.toLocaleString("pt-BR")} notas por mês</p>
         <p>{overagePrice(plan.overageUnits)} por nota excedente</p>
         <BillingButton plan={plan.code} cadence={cadence} request={request}
