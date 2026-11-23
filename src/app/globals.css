@@ -1652,32 +1652,28 @@ strong {
   .workspace-mobile-content .workspace-navigation { margin-top: 20px; }
   .workspace-mobile-content .workspace-account-actions { padding-bottom: 8px; }
 }
-.billing-cadence { display: flex; flex-wrap: wrap; gap: 16px; border: 0; padding: 0; margin-block: 24px; }
-.billing-cadence legend { font-size: 13px; color: var(--muted); margin-bottom: 12px; }
-.billing-cadence label { display: flex; align-items: center; gap: 8px; min-height: 44px; font-size: 14px; cursor: pointer; }
-.billing-cadence input { accent-color: #275335; }
-.billing-cadence label span { font-size: 12px; background: #eaf0e6; padding: 3px 8px; border-radius: 4px; color: #275335; }
-.plan-table-wrap { max-width: 100%; overflow-x: auto; }
-.plan-table { border-collapse: collapse; width: 100%; min-width: 650px; text-align: left; margin-block: 16px; }
-.plan-table th, .plan-table td { padding: 18px 14px; border-bottom: 1px solid var(--line); font-size: 14px; vertical-align: top; }
-.plan-table thead th { color: var(--muted); font-size: 12px; font-weight: 400; }
-.plan-table .small-status { display: block; font-size: 11px; margin-top: 6px; }
-.plan-table .btn { padding: 9px 14px; font-size: 13px; min-height: 40px; white-space: nowrap; }
-.plan-table .field-error { max-width: 210px; margin-top: 8px; font-size: 12px; }
-
-.plan-table-wrap { position: relative; }
-@media(max-width: 600px) {
-  .plan-table { display: block; min-width: 0; }
-  .plan-table thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
-  .plan-table tbody { display: grid; gap: 18px; }
-  .plan-table tr { display: grid; padding: 18px; border: 1px solid var(--line); border-radius: 8px; }
-  .plan-table th, .plan-table td { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; border: 0; padding: 9px 0; min-width: 0; }
-  .plan-table tbody th { font-size: 18px; padding-top: 0; }
-  .plan-table td[data-label]::before { content: attr(data-label); font-family: "Outfit Variable", sans-serif; font-size: 13px; color: var(--muted); }
-  .plan-table td:last-child, .plan-table td:last-child form { display: block; width: 100%; }
-  .plan-table .btn { width: 100%; }
-  .plan-table .field-error { max-width: none; }
+.billing-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin-block: 20px;
+  min-height: 44px;
+  cursor: pointer;
 }
+.billing-toggle input { appearance: none; width: 36px; height: 20px; border: 1px solid #72816e; border-radius: 20px; background: #e4e9e1; position: relative; margin: 0; }
+.billing-toggle input::before { content: ""; width: 12px; height: 12px; position: absolute; top: 3px; left: 3px; border-radius: 50%; background: #495747; }
+.billing-toggle input:checked { background: #275335; border-color: #275335; }
+.billing-toggle input:checked::before { background: #fff; transform: translateX(16px); }
+.billing-plan-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(min(100%,210px),1fr)); gap: 14px; margin-block: 10px 20px; }
+.billing-plan { display: flex; flex-direction: column; gap: 8px; padding: 20px; border: 1px solid var(--line); border-radius: 10px; }
+.billing-plan--featured { border-color: #568066; box-shadow: inset 0 0 0 1px #568066; }
+.billing-plan h3, .billing-plan p { margin: 0; }
+.billing-plan-badge { align-self: start; border-radius: 30px; background: #eaf0e6; color: #275335; padding: 3px 10px; font-size: 12px; }
+.billing-plan .billing-plan-price { margin-block: auto 3px; padding-top: 12px; white-space: nowrap; }
+.billing-plan-price strong { font-size: 24px; }
+.billing-plan-price span { margin-left: 3px; color: var(--muted); }
+.billing-plan form { margin-top: 10px; }
+.billing-plan .btn { width: 100%; white-space: normal; }
 
 .dashboard-header > span { min-width: 0; overflow-wrap: anywhere; }
 

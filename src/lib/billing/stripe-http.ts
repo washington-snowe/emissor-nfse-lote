@@ -1,6 +1,9 @@
 import "server-only";
 import { limitedText } from "@/lib/limited-body";
 import { STRIPE_API_VERSION } from "@/lib/billing/stripe-contract";
+export class StripeRequestError extends Error {
+  constructor(readonly status: number) { super("Billing provider unavailable"); }
+}
 export function stripeConfig() {
   const key = process.env.STRIPE_SECRET_KEY, webhook = process.env.STRIPE_WEBHOOK_SECRET;
   if (!key || !/^sk_(test|live)_[A-Za-z0-9]+$/.test(key) || process.env.STRIPE_BILLING_ENABLED !== "true") return null;
@@ -13,7 +16,7 @@ export async function stripeRequest(path: string, parameters?: Record<string,str
     headers: { Authorization: `Bearer ${config.key}`, "Stripe-Version": STRIPE_API_VERSION, ...(parameters ? { "Content-Type": "application/x-www-form-urlencoded" } : {}), ...(idempotency ? { "Idempotency-Key": idempotency } : {}) },
     body: parameters ? new URLSearchParams(parameters) : undefined });
   const body = await limitedText(response.body,1024*1024);
-  if (!response.ok || body.length > 1024*1024) throw new Error("Billing provider unavailable");
+  if (!response.ok || body.length > 1024*1024) throw new StripeRequestError(response.status);
   const value: unknown = JSON.parse(body);
   if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error("Invalid billing response");
   return value as Record<string, unknown>;

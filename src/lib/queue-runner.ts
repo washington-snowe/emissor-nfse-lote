@@ -14,9 +14,9 @@ export async function processQueuedWork(tenantId?: string, remaining = 500) {
   let result = {processed:certificates.processed,available:certificates.available};
   if (!certificates.attempted) {
     const report = await processReportJobs(tenantId, 1);
-    const fiscal = report.processed > 0 ? report : await processFiscalJobs(tenantId, deadline);
-    const billing = fiscal.processed > 0 ? fiscal : await processBillingUsage(tenantId, deadline);
-    result = billing.processed > 0 ? billing : await processInvoiceEmails(tenantId, deadline);
+    const billing = report.processed > 0 ? report : await processBillingUsage(tenantId, deadline);
+    const fiscal = billing.processed > 0 ? billing : await processFiscalJobs(tenantId, deadline);
+    result = fiscal.processed > 0 ? fiscal : await processInvoiceEmails(tenantId, deadline);
   }
   const admin = createAdminClient(), origin = getSiteOrigin(process.env), secret = process.env.CRON_SECRET;
   if (result.processed > 0 && remaining > 1 && Date.now() < deadline && admin && origin && secret && secret.length >= 32) {

@@ -1,11 +1,11 @@
 import "server-only";
 import { createHash } from "node:crypto";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { plans, planPrice, money, type Plan, type Cadence } from "@/lib/billing/catalog";
+import { plans, planPrice, overagePrice, upgradeEligible, type Plan, type Cadence, type StoredCadence } from "@/lib/billing/catalog";
 import { stripeConfig, stripeRequest, stripeGet } from "@/lib/billing/stripe-http";
 import { checkoutRecovery } from "@/lib/billing/checkout-state";
 import { stripeId, stripeUrl, objectId } from "@/lib/billing/stripe-contract";
-export type BillingAccount = { tenant_id: string; livemode: boolean; customer_id: string | null; customer_request: string; customer_attempted_at: string | null; token: string; checkout_request: string | null; checkout_plan: string | null; checkout_cadence: Cadence | null; checkout_started_at: string | null; checkout_session: string | null; subscriptions: { id: string; plan_code: string; cadence: Cadence; status: string }[] };
+export type BillingAccount = { tenant_id: string; livemode: boolean; customer_id: string | null; customer_request: string; customer_attempted_at: string | null; token: string; checkout_request: string | null; checkout_plan: string | null; checkout_cadence: StoredCadence | null; checkout_started_at: string | null; checkout_session: string | null; subscriptions: { id: string; plan_code: string; cadence: StoredCadence; status: string }[] };
 export async function billingRpc(name: string, args: Record<string, unknown>) {
   const admin = createAdminClient(); if (!admin) throw new Error("Billing unavailable");
   const result = await admin.rpc(name, args); if (result.error) throw new Error("Billing operation unavailable"); return result.data;
@@ -23,13 +23,13 @@ export async function ensurePrice(plan: Plan, cadence: Cadence) {
   const config = stripeConfig(); if (!config) throw new Error("Billing unavailable");
   const stored = await billingRpc("stripe_price", { p_live: config.live, p_plan: plan.code, p_cadence: cadence });
   if (stripeId(stored,"price")) return stored;
-  const alternate = await billingRpc("stripe_price", { p_live: config.live, p_plan: plan.code, p_cadence: cadence === "monthly" ? "quarterly" : "monthly" });
+  const alternate = await billingRpc("stripe_price", { p_live: config.live, p_plan: plan.code, p_cadence: cadence === "monthly" ? "annual" : "monthly" });
   const previous = stripeId(alternate,"price") ? await stripeGet("/prices/"+alternate) : null;
   const existingProduct = objectId(previous?.product);
   const product = existingProduct ? { id: existingProduct } : await stripeRequest("/products", { name: `Emissor · ${plan.name}`, "metadata[application]": "emissor-nfse", "metadata[plan_code]": plan.code }, `nfse:product:v1:${plan.code}`);
   if (!stripeId(product.id,"prod")) throw new Error("Invalid product");
   const cents = planPrice(plan,cadence);
-  const price = await stripeRequest("/prices", { product: product.id, currency: "brl", unit_amount: String(cents), "recurring[interval]": "month", "recurring[interval_count]": cadence === "monthly" ? "1" : "3", "metadata[application]": "emissor-nfse", "metadata[plan_code]": plan.code, "metadata[cadence]": cadence }, `nfse:price:v1:${plan.code}:${cadence}:${cents}`);
+  const price = await stripeRequest("/prices", { product: product.id, currency: "brl", unit_amount: String(cents), "recurring[interval]": cadence === "monthly" ? "month" : "year", "recurring[interval_count]": "1", "metadata[application]": "emissor-nfse", "metadata[plan_code]": plan.code, "metadata[cadence]": cadence }, `nfse:price:v2:${plan.code}:${cadence}:${cents}`);
   if (!stripeId(price.id,"price")) throw new Error("Invalid price");
   await billingRpc("store_stripe_price", { p_live: config.live, p_plan: plan.code, p_cadence: cadence, p_price: price.id, p_cents: cents });
   return price.id;
@@ -39,14 +39,20 @@ async function portal(account: BillingAccount, origin: string, target?: { plan: 
   const parameters: Record<string,string> = { customer: account.customer_id, return_url: origin+"/painel/conta/assinatura" };
   const configuration: Record<string,string> = { "business_profile[headline]": "Gerencie sua assinatura do Emissor", "features[invoice_history][enabled]": "true", "features[payment_method_update][enabled]": "true", "features[subscription_cancel][enabled]": "true", "features[subscription_cancel][mode]": "at_period_end" };
   const active = account.subscriptions[0];
-  if (target && active && ["active","trialing"].includes(active.status) && (target.plan.code !== active.plan_code || target.cadence !== active.cadence)) {
+  if (target) {
+    if (!active || active.status !== "active" || target.plan.code === active.plan_code || target.cadence !== active.cadence)
+      throw new Error("Upgrade requires an active subscription and the same billing interval");
     const subscription = await stripeGet("/subscriptions/"+active.id);
     const metadata = subscription.metadata as Record<string,unknown> | undefined;
-    const items = (subscription.items as { data?: { id: string; price: { id: string; product: string } }[] })?.data;
-    if (objectId(subscription.customer)!==account.customer_id || metadata?.tenant_id!==account.tenant_id || metadata?.application!=="emissor-nfse" || items?.length!==1 || !stripeId(items[0].id,"si")) throw new Error("Subscription context mismatch");
+    const items = (subscription.items as { data?: { id: string; quantity: number; price: { unit_amount: number; currency: string; recurring?: {interval?: string; interval_count?: number} } }[] })?.data;
+    if (objectId(subscription.customer)!==account.customer_id || metadata?.tenant_id!==account.tenant_id || metadata?.application!=="emissor-nfse" || subscription.livemode!==account.livemode || subscription.status!=="active" || subscription.cancel_at_period_end!==false ||
+      items?.length!==1 || !stripeId(items[0].id,"si") || items[0].quantity!==1 || items[0].price?.currency!=="brl") throw new Error("Subscription context mismatch");
+    const currentPrice=items[0].price;
+    if(currentPrice.recurring?.interval!==(target.cadence==="monthly"?"month":"year") || currentPrice.recurring.interval_count!==1 ||
+      !upgradeEligible({cadence:active.cadence,unitCents:currentPrice.unit_amount},target.plan,target.cadence)) throw new Error("Invalid upgrade");
     const priceId = await ensurePrice(target.plan,target.cadence), price = await stripeGet("/prices/"+priceId);
     const productId = objectId(price.product); if (!stripeId(productId,"prod")) throw new Error("Invalid product");
-    Object.assign(configuration, { "features[subscription_update][enabled]": "true", "features[subscription_update][default_allowed_updates][0]": "price", "features[subscription_update][proration_behavior]": "create_prorations", "features[subscription_update][products][0][product]": productId, "features[subscription_update][products][0][prices][0]": priceId });
+    Object.assign(configuration, { "features[subscription_update][enabled]": "true", "features[subscription_update][default_allowed_updates][0]": "price", "features[subscription_update][proration_behavior]": "always_invoice", "features[subscription_update][products][0][product]": productId, "features[subscription_update][products][0][prices][0]": priceId });
     Object.assign(parameters, { "flow_data[type]": "subscription_update_confirm", "flow_data[subscription_update_confirm][subscription]": active.id, "flow_data[subscription_update_confirm][items][0][id]": items[0].id, "flow_data[subscription_update_confirm][items][0][price]": priceId, "flow_data[subscription_update_confirm][items][0][quantity]": "1", "flow_data[after_completion][type]": "redirect", "flow_data[after_completion][redirect][return_url]": origin+"/painel/conta/assinatura" });
   }
   const hash = createHash("sha256").update(new URLSearchParams(configuration).toString()).digest("hex");
@@ -61,7 +67,7 @@ export async function billingDestination(input: { actor: string; email: string; 
   try {
     const plan = plans.find(plan => plan.code === input.plan), cadence = input.cadence;
     if (input.manage) return await portal(account,input.origin);
-    if (!plan || !["monthly","quarterly"].includes(cadence ?? "")) throw new Error("Invalid plan");
+    if (!plan || !["monthly","annual"].includes(cadence ?? "")) throw new Error("Invalid plan");
     const chosenCadence = cadence as Cadence;
     if (account.subscriptions.length) return await portal(account,input.origin,{ plan, cadence: chosenCadence });
     const customerId = await customer(account,input.email);
@@ -89,7 +95,7 @@ export async function billingDestination(input: { actor: string; email: string; 
       "line_items[0][price]": price, "line_items[0][quantity]": "1", "payment_method_types[0]": "card", client_reference_id: account.tenant_id,
       success_url: input.origin+"/painel/conta/assinatura?retorno=sucesso", cancel_url: input.origin+"/painel/conta/assinatura?retorno=cancelado",
       "subscription_data[metadata][application]": "emissor-nfse", "subscription_data[metadata][tenant_id]": account.tenant_id,
-      "custom_text[submit][message]": `${plan.includedNotes} notas por mês. CNPJs sem limite. Excedentes: ${money(plan.overageCents)} por nota autorizada em produção, na próxima fatura. Homologação não consome a franquia.`,
+      "custom_text[submit][message]": `${plan.includedNotes} notas por mês. CNPJs sem limite. Excedentes: ${overagePrice(plan.overageUnits)} por NFS-e autorizada em produção, com cobrança automática quando o saldo atingir o mínimo da Stripe. Homologação não consome a franquia.`,
     }, "nfse:checkout:"+intent.checkout_request);
     const url=stripeUrl(session.url,"checkout"); if (!stripeId(session.id,"cs") || !url) throw new Error("Invalid checkout");
     if (await billingRpc("save_stripe_checkout", { p_tenant: account.tenant_id, p_live: config.live, p_token: account.token, p_session: session.id }) !== true) throw new Error("Checkout lease expired");

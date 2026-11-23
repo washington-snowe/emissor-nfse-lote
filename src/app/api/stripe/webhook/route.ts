@@ -23,7 +23,9 @@ export async function POST(request: Request) {
     claim=await billingRpc("claim_stripe_event",{ p_id:event.id,p_type:event.type,p_customer:event.data.object.customer,p_live:config.live,p_sha:createHash("sha256").update(body).digest("hex") });
     if(!claim) throw new Error("Billing claim unavailable");
     if(claim.duplicate || claim.ignored) return NextResponse.json({received:true});
-    const snapshot=await stripeSnapshot(event,claim,async (path,params)=>{if(Date.now()>deadline-8000) throw new Error("Billing budget exceeded"); return stripeGet(path,params);});
+    const account=claim;
+    const snapshot=await stripeSnapshot(event,account,async (path,params)=>{if(Date.now()>deadline-8000) throw new Error("Billing budget exceeded"); return stripeGet(path,params);},
+      (batchId,invoiceId)=>billingRpc("billing_usage_invoice_context", {p_tenant:account.tenant_id,p_live:config.live,p_customer:account.customer_id,p_batch:batchId,p_invoice:invoiceId}));
     const saved=await billingRpc("apply_stripe_event",{p_id:event.id,p_live:config.live,p_token:claim.token,p_subscription:snapshot.subscriptions,p_invoices:snapshot.invoices,p_first_invoice:snapshot.firstInvoice});
     if(saved!==true) throw new Error("Billing lease expired");
     return NextResponse.json({received:true},{headers:{"Cache-Control":"no-store"}});

@@ -30,6 +30,7 @@ try {
     "@/app/painel/notas/email-teste/actions": path.join(root, "tests/ui/workflow-actions.ts"),
     "@/app/painel/notas/diagnostic-actions": path.join(root, "tests/ui/workflow-actions.ts"),
     "@/app/painel/notas/receipt-diagnostic-actions": path.join(root, "tests/ui/workflow-actions.ts"),
+    "@/app/painel/notas/danfse-diagnostic-actions": path.join(root, "tests/ui/workflow-actions.ts"),
     "@/app/painel/notas/actions": path.join(root, "tests/ui/workflow-actions.ts"),
     "next/navigation": path.join(root, "tests/ui/navigation.ts"),
     "next/link": path.join(root, "tests/ui/link.tsx"),
@@ -67,11 +68,18 @@ try {
     await nav.getByLabel('Empresa em uso').selectOption('00000000-0000-4000-8000-000000000002');
     await page.waitForFunction(()=>window.workflowUiTest.companyId==='00000000-0000-4000-8000-000000000002');
     if(width<=900) await nav.locator(':scope > summary').click();
-    await page.getByRole('radio',{name:'Trimestral',exact:false}).check();
-    assert.equal(await page.locator('.plan-table tbody tr').count(),5);
-    await page.getByText('R$ 40,00',{exact:true}).waitFor();
-    await page.getByText('R$ 401,80',{exact:true}).waitFor();
-    await page.locator('.plan-table tbody tr').first().getByRole('button',{name:'Escolher plano',exact:true}).click();
+    const annual = page.getByRole('switch',{name:'Anual (Economize 20%)',exact:true});
+    assert(await annual.isChecked());
+    assert.equal(await page.locator('.billing-plan').count(),4);
+    assert.equal(await page.getByText('Mais Escolhido',{exact:true}).count(),1);
+    await page.locator('.billing-plan--featured').getByRole('heading',{name:'Afiliado Pro'}).waitFor();
+    await page.getByText('R$ 143,04',{exact:true}).waitFor();
+    await page.getByText('R$ 1.343,04',{exact:true}).waitFor();
+    await annual.uncheck();
+    await page.getByText('R$ 14,90',{exact:true}).waitFor();
+    await page.getByText('R$ 139,90',{exact:true}).waitFor();
+    await page.getByText('R$ 0,0993 por nota excedente',{exact:true}).waitFor();
+    await page.locator('.billing-plan').first().getByRole('button',{name:'Escolher plano',exact:true}).click();
     await page.getByRole('alert').filter({hasText:'Checkout sintético'}).waitFor();
     await page.screenshot({path:path.join(root,`shots/reports/navigation-plans-${width}.png`),fullPage:true});
     if(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth)) console.log(await page.evaluate(()=>[...document.querySelectorAll('body *')].map(node=>({tag:node.tagName,class:node.className,width:node.getBoundingClientRect().width,right:node.getBoundingClientRect().right})).filter(item=>item.right>innerWidth+1).slice(0,12)));
@@ -92,7 +100,7 @@ try {
     await page.getByRole('button',{name:'Atualizar senha',exact:true}).click();
     await page.getByRole('status').filter({hasText:'Acesso sintético atualizado'}).waitFor();
     for(const input of await page.locator('input[type="password"]').all()) assert.equal(await input.inputValue(),'');
-    console.log(`Account ${width}px: full menu without API, company switch, quarterly prices, profile error preservation, login password cleared`);
+    console.log(`Account ${width}px: company switch, annual default and monthly prices, one featured plan, profile and login forms`);
   }
   assert.deepEqual(errors, []);
 } finally {

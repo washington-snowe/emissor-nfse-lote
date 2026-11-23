@@ -17,7 +17,12 @@ select pg_temp.bill_check(public.stripe_price(false,'afiliado','monthly')='price
 do $$ begin
  begin perform public.store_stripe_price(false,'start','quarterly','price_wrong',4001); raise exception 'Wrong quarterly price accepted'; exception when invalid_parameter_value then perform pg_temp.bill_check(true,'quarterly rounding validated in database'); end;
 end $$;
-select pg_temp.bill_check(public.prepare_stripe_checkout(current_setting('test.bill_b')::uuid,false,(current_setting('test.bill_claim')::jsonb->>'token')::uuid,gen_random_uuid(),'afiliado','monthly')->>'checkout_plan'='afiliado','checkout intent persists before external creation');
+select public.store_stripe_price(false,'afiliado-pro','annual','price_annual',33504);
+select pg_temp.bill_check(public.stripe_price(false,'afiliado-pro','annual')='price_annual','annual price applies exactly 20 percent off twelve monthly payments');
+select pg_temp.bill_check(public.prepare_stripe_checkout(current_setting('test.bill_b')::uuid,false,(current_setting('test.bill_claim')::jsonb->>'token')::uuid,gen_random_uuid(),'afiliado-pro','annual')->>'checkout_cadence'='annual','checkout intent persists before external creation');
+do $$ begin
+ begin perform public.prepare_stripe_checkout(current_setting('test.bill_b')::uuid,false,(current_setting('test.bill_claim')::jsonb->>'token')::uuid,gen_random_uuid(),'afiliado','monthly');raise exception 'Retired plan sold';exception when invalid_parameter_value then perform pg_temp.bill_check(true,'retired catalog available to historical snapshots only');end;
+end $$;
 select pg_temp.bill_check(public.release_billing_account(current_setting('test.bill_b')::uuid,false,(current_setting('test.bill_claim')::jsonb->>'token')::uuid),'billing action releases owned lease');
 select set_config('test.bill_event',public.claim_stripe_event('evt_synthetic','invoice.paid','cus_synthetic',false,repeat('a',64))::text,false);
 select set_config('test.bill_subscription',jsonb_build_array(jsonb_build_object('id','sub_synthetic','customer_id','cus_synthetic','tenant_id',current_setting('test.bill_b'),'price_id','price_synthetic','status','active','period_start',now(),'period_end',now()+interval '1 month','created_at',now(),'cancel_at_period_end',false))::text,false);

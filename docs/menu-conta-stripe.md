@@ -18,21 +18,22 @@ Perfil salva nome e telefone opcional com versão esperada. Login permite altera
 
 ## Preços aprovados pelo usuário
 
-| Plano | Mensal | Trimestral, total | Notas por mês | Cada excedente |
+| Plano | Mensal | Anual, total | Notas por mês | Cada excedente |
 | --- | ---: | ---: | ---: | ---: |
-| Start | R$ 19,90 | R$ 40,00 | 150 | R$ 0,30 |
-| Afiliado | R$ 39,90 | R$ 80,20 | 500 | R$ 0,18 |
-| Afiliado 5x | R$ 99,90 | R$ 200,80 | 2.500 | R$ 0,06 |
-| Afiliado 10x | R$ 149,90 | R$ 301,30 | 5.000 | R$ 0,05 |
-| Afiliado 20x | R$ 199,90 | R$ 401,80 | 10.000 | R$ 0,03 |
+| Start | R$ 14,90 | R$ 143,04 | 150 | R$ 0,0993 |
+| Afiliado Pro | R$ 34,90 | R$ 335,04 | 600 | R$ 0,0582 |
+| Escala | R$ 69,90 | R$ 671,04 | 2.500 | R$ 0,0280 |
+| Top Afiliado | R$ 139,90 | R$ 1.343,04 | 10.000 | R$ 0,0140 |
 
-Todos incluem CNPJs sem limite. O trimestre corresponde a três mensalidades multiplicadas por 67%, arredondando apenas o total para centavos, com inteiros/BigInt. O desconto não altera o preço unitário dos excedentes. A franquia é mensal também no trimestre, ancorada na data original da assinatura, com ajuste de meses curtos. Não há acúmulo da franquia de um mês para outro.
+Anual vem selecionado e custa 80% de doze mensalidades, em uma única cobrança por ano. O Afiliado Pro recebe o único selo “Mais Escolhido”. Todos incluem CNPJs sem limite. A franquia é mensal, inclusive no plano anual, e segue a data original da assinatura. A migração 25 preserva os planos e as referências antigas para o histórico, protege as tabelas internas com RLS e adiciona o catálogo vigente.
+
+O upgrade mantém a frequência e a data de renovação da assinatura. O Portal da Stripe apresenta a diferença proporcional ao tempo restante e cobra esse valor ao confirmar a alteração. Na próxima renovação, cobra o novo preço integral. A troca de frequência fica fora desse fluxo de upgrade.
 
 ## Ativar a Stripe em teste
 
-1. Aplicar somente `202611120013_account_and_referrals.sql` e depois `202611120014_stripe_billing.sql`. Não repetir migrações 1–12. Não executar `tests/database` no Supabase remoto.
+1. Confira se a migração `202611230025_billing_catalog_and_rls.sql` está aplicada. As anteriores permanecem registradas. Os arquivos de `tests/database` são para o PostgreSQL descartável.
 2. Após o deploy, no ambiente de teste da Stripe, criar destino de eventos para:
-   `https://emissor-nfse-lote-kjou.vercel.app/api/stripe/webhook`.
+   `https://www.rexnotas.com.br/api/stripe/webhook`.
 3. Selecionar eventos: `checkout.session.completed`, `customer.subscription.created`, `customer.subscription.updated`, `customer.subscription.deleted`, `invoice.paid`, `invoice.payment_failed`, `invoice.voided`, `invoice.marked_uncollectible`, `charge.refunded`.
 4. Na Vercel do projeto **emissor-nfse-lote-kjou**, configurar as variáveis privadas abaixo, além das já existentes `SUPABASE_SERVICE_ROLE_KEY` e `CRON_SECRET`:
 
@@ -45,17 +46,17 @@ Todos incluem CNPJs sem limite. O trimestre corresponde a três mensalidades mul
 5. Fazer novo deploy para carregar as variáveis. Não enviar os valores no chat nem usar `NEXT_PUBLIC`. Não é necessária chave publishable da Stripe: Checkout e Portal são hospedados pelo provedor.
 6. Entrar em Conta → Assinatura e selecionar um plano. Produtos, preços e configuração do Portal são provisionados pela aplicação na própria Stripe conforme a contratação. Não há dados completos de cartão no aplicativo.
 7. Usar somente dados de cartão de teste documentados pela Stripe no Checkout. Após concluir, conferir assinatura e pagamento no painel, além da entrega 2xx dos eventos no Dashboard Stripe.
-8. Confirmar alteração de plano/cadência, atualização do meio de pagamento e cancelamento agendado no Portal. A Stripe mostra ajustes proporcionais antes da confirmação. Retorno `?retorno=sucesso` não ativa plano por si só: o estado vem do webhook e da consulta autenticada ao provedor.
+8. Confirmar upgrade mantendo a frequência da assinatura, atualização do meio de pagamento e cancelamento agendado no Portal. A Stripe mostra ajustes proporcionais antes da confirmação. Retorno `?retorno=sucesso` não ativa plano por si só: o estado vem do webhook e da consulta autenticada ao provedor.
 
 A publicação do código não configura a conta Stripe nem os segredos. O executor não possui essas credenciais. Ativação real exige a configuração comercial da conta e validação do fluxo no ambiente de teste. Chaves test/live e seus dados ficam separados; não trocar chaves como forma de transformar testes em pagamentos reais.
 
 ## Consumo e excedentes
 
-Somente uma NFS-e autorizada em produção gera uma unidade de consumo. Documento e registro de uso são gravados na mesma transação; a operação é única. Rejeição, arquivo importado, preparação e homologação não geram consumo pago. O núcleo fiscal atual continua bloqueando produção: nenhum teste com A1 real ou autorização de produção foi declarado.
+Somente uma NFS-e autorizada em produção gera uma unidade de consumo. Documento e uso são gravados na mesma transação. Homologação fica fora da franquia. Operações anteriores sem assinatura ficam no histórico sem cobrança retroativa.
 
-Ao ultrapassar a franquia, o registro preserva preço, mês e assinatura daquele uso. O worker reúne até 500 unidades compatíveis e cria item pendente na Stripe para a próxima fatura, inclusive quando a cobrança fixa é trimestral. O valor é exato; não estima consumo a partir de linhas de CSV. Documento fiscal nunca deixa de ser registrado por ausência de configuração comercial: nesse caso o consumo fica sem precificação e exige revisão operacional.
+Cada excedente é avaliado com a tarifa vigente na autorização e registrado em unidades inteiras de R$ 0,0001. Quando a soma chega a R$ 0,50, o mínimo documentado pela Stripe em BRL, o worker cria uma fatura separada e tenta cobrar automaticamente no cartão salvo. O valor é truncado para centavos na fatura e a fração restante passa para o próximo lote da assinatura. Saldos abaixo do mínimo continuam acumulados. O histórico distingue fatura em aberto de pagamento confirmado pelo webhook.
 
-Lotes de cobrança têm reserva, token, intenção persistida e chave de idempotência. Resposta perdida exige consulta dos itens Stripe por metadado do lote. A janela de reuso é limitada a 23 horas; fora dela, sem comprovante localizado, vai para intervenção, sem outro POST. O Cron diário/manual recupera interrupções; não há promessa de processamento contínuo no Hobby. Itens pendentes após término de uma assinatura e situações sem preço exigem conferência operacional antes de eventual fatura final; o aplicativo não cria cobrança final inesperada automaticamente.
+O worker registra a intenção, vincula a fatura ao lote e valida cliente, moeda, vínculo e total antes de cobrar. Cada etapa usa chave de idempotência própria. Resposta indefinida exige consulta da fatura original. Se não houver comprovante após a janela de 23 horas, o lote fica para intervenção. A migração mantém o fluxo dos excedentes antigos que já tinham sido prometidos para a renovação.
 
 ## Indicações
 

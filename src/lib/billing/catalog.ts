@@ -1,14 +1,25 @@
 export const plans = [
-  { code: "start", name: "Start", monthlyCents: 1990, includedNotes: 150, overageCents: 30 },
-  { code: "afiliado", name: "Afiliado", monthlyCents: 3990, includedNotes: 500, overageCents: 18 },
-  { code: "afiliado-5x", name: "Afiliado 5x", monthlyCents: 9990, includedNotes: 2500, overageCents: 6 },
-  { code: "afiliado-10x", name: "Afiliado 10x", monthlyCents: 14990, includedNotes: 5000, overageCents: 5 },
-  { code: "afiliado-20x", name: "Afiliado 20x", monthlyCents: 19990, includedNotes: 10000, overageCents: 3 },
+  { code: "start-v2", name: "Start", monthlyCents: 1490, includedNotes: 150, overageUnits: 993 },
+  { code: "afiliado-pro", name: "Afiliado Pro", monthlyCents: 3490, includedNotes: 600, overageUnits: 582 },
+  { code: "escala", name: "Escala", monthlyCents: 6990, includedNotes: 2500, overageUnits: 280 },
+  { code: "top-afiliado", name: "Top Afiliado", monthlyCents: 13990, includedNotes: 10000, overageUnits: 140 },
 ] as const;
 export type Plan = typeof plans[number];
-export type Cadence = "monthly" | "quarterly";
+export type Cadence = "monthly" | "annual";
+export type StoredCadence = Cadence | "quarterly";
+export const cadenceLabels: Record<StoredCadence,string> = { monthly: "Mensal", annual: "Anual", quarterly: "Trimestral" };
+// The tariff is stored in ten-thousandths of a real. Stripe charges in whole cents.
+export const MINIMUM_USAGE_CHARGE_CENTS = 50;
 export function planPrice(plan: Plan, cadence: Cadence) {
-  return cadence === "monthly" ? plan.monthlyCents : Number((BigInt(plan.monthlyCents) * 3n * 67n + 50n) / 100n);
+  return cadence === "monthly" ? plan.monthlyCents : Number(BigInt(plan.monthlyCents) * 12n * 80n / 100n);
+}
+export function overagePrice(units: number) {
+  if (!Number.isSafeInteger(units) || units < 0) throw new Error("Invalid overage tariff");
+  return `R$ ${Math.floor(units / 10000)},${String(units % 10000).padStart(4, "0")}`;
+}
+export function upgradeEligible(current: { cadence: StoredCadence; unitCents: number }, target: Plan, cadence: Cadence) {
+  return current.cadence === cadence && Number.isSafeInteger(current.unitCents) &&
+    current.unitCents > 0 && planPrice(target, cadence) > current.unitCents;
 }
 export function money(cents: number | string) {
   const raw = BigInt(cents), sign = raw < 0n ? "−" : "", value = raw < 0n ? -raw : raw;

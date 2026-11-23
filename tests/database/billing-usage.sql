@@ -42,5 +42,43 @@ select set_config('request.jwt.claims','{"sub":"00000000-0000-4000-8000-00000000
 select pg_temp.usage_check(public.billing_account_summary(true)->>'billable_authorizations'='2','account sees actual monthly authorized usage');
 select pg_temp.usage_check(public.billing_account_summary(false)->>'billable_authorizations'='0','test mode cannot show live billable usage');
 reset role;
+-- Switch the disposable account to the new rate after testing the historical ledger.
+update public.account_subscriptions set plan_code='start-v2' where id='sub_usage';
+update public.billing_plans set included_notes=3 where code='start-v2';
+create temporary table new_usage_ops as select gen_random_uuid() as id,n from generate_series(1,12) n;
+insert into public.fiscal_operations
+ select (jsonb_populate_record(null::public.fiscal_operations,to_jsonb(template)||jsonb_build_object(
+   'id',n.id,'environment','production','status','queued','transmit_count',0,'dps_id',null,'dps_number',null,'certificate_id',null
+ ))).* from new_usage_ops n cross join (select * from usage_operations limit 1) template;
+create function pg_temp.authorize_usage(first_note integer,last_note integer) returns void language sql as $$
+ insert into public.fiscal_documents(tenant_id,company_id,operation_id,environment,access_key,xml_sha256)
+ select o.tenant_id,o.company_id,o.id,'production',lpad((100+n.n)::text,50,'0'),repeat('e',64)
+ from new_usage_ops n join public.fiscal_operations o on o.id=n.id where n.n between first_note and last_note order by n.n
+$$;
+select pg_temp.authorize_usage(1,6);
+select pg_temp.usage_check((select count(*)=5 and sum(unit_subcents)=4965 from private.billing_usage where status='pending'),'five exact fractional charges stay below the minimum');
+set role service_role;
+select pg_temp.usage_check(not public.billing_usage_ready(current_setting('test.usage_tenant')::uuid),'below minimum will not spin the worker');
+select pg_temp.usage_check(public.claim_billing_usage(current_setting('test.usage_tenant')::uuid) is null,'no Stripe intent below fifty cents');
+reset role;
+select pg_temp.authorize_usage(7,7);
+set role service_role;
+select set_config('test.usage_batch',public.claim_billing_usage(current_setting('test.usage_tenant')::uuid)::text,true);
+select pg_temp.usage_check(current_setting('test.usage_batch')::jsonb->>'method'='immediate' and current_setting('test.usage_batch')::jsonb->>'amount_cents'='59' and current_setting('test.usage_batch')::jsonb->>'remainder_subcents'='58','six notes claim 59 cents and carry 0.58 cents');
+select pg_temp.usage_check(not public.bind_billing_usage_invoice((current_setting('test.usage_batch')::jsonb->>'id')::uuid,(current_setting('test.usage_batch')::jsonb->>'token')::uuid,'in_immediate'),'binding requires durable intent');
+select pg_temp.usage_check(public.mark_billing_usage_attempt((current_setting('test.usage_batch')::jsonb->>'id')::uuid,(current_setting('test.usage_batch')::jsonb->>'token')::uuid),'immediate invoice intent stored');
+select pg_temp.usage_check(public.bind_billing_usage_invoice((current_setting('test.usage_batch')::jsonb->>'id')::uuid,(current_setting('test.usage_batch')::jsonb->>'token')::uuid,'in_immediate'),'attach invoice to leased batch');
+select pg_temp.usage_check(not public.bind_billing_usage_invoice((current_setting('test.usage_batch')::jsonb->>'id')::uuid,(current_setting('test.usage_batch')::jsonb->>'token')::uuid,'in_other'),'cannot replace previously bound invoice');
+select pg_temp.usage_check(public.billing_usage_invoice_context(current_setting('test.usage_tenant')::uuid,true,'cus_foreign',(current_setting('test.usage_batch')::jsonb->>'id')::uuid,'in_immediate') is null,'webhook context rejects other customers');
+select pg_temp.usage_check(public.billing_usage_invoice_context(current_setting('test.usage_tenant')::uuid,true,'cus_usage',(current_setting('test.usage_batch')::jsonb->>'id')::uuid,'in_immediate')->>'amountCents'='59','webhook receives the exact bound amount');
+select pg_temp.usage_check(public.finish_billing_usage((current_setting('test.usage_batch')::jsonb->>'id')::uuid,(current_setting('test.usage_batch')::jsonb->>'token')::uuid,'in_immediate'),'persist submitted invoice');
+reset role;
+select pg_temp.authorize_usage(8,12);
+set role service_role;
+select set_config('test.usage_batch',public.claim_billing_usage(current_setting('test.usage_tenant')::uuid)::text,true);
+select pg_temp.usage_check(current_setting('test.usage_batch')::jsonb->>'amount_cents'='50' and current_setting('test.usage_batch')::jsonb->>'remainder_subcents'='23','carry from previous batch makes the exact difference');
+select pg_temp.usage_check(not public.billing_usage_ready(current_setting('test.usage_tenant')::uuid),'active lease excludes a second dispatch');
+reset role;
+select pg_temp.usage_check((select bool_and(c.relrowsecurity) from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname='private' and c.relkind in('r','p')),'private application tables have RLS as well as restricted grants');
 select 'USAGE_ASSERTIONS='||count(*) from usage_checks;
 rollback;

@@ -1,5 +1,5 @@
 import { objectId, stripeId } from "./stripe-contract.ts";
-export type UsageBatch={id:string;tenant_id:string;subscription_id:string;amount_cents:number;notes:number;month_start:string;month_end:string;token:string;first_attempt_at:string|null;customer_id:string};
+export type UsageBatch={id:string;tenant_id:string;subscription_id:string;amount_cents:number;notes:number;month_start:string;month_end:string;token:string;first_attempt_at:string|null;customer_id:string;method?:"renewal"|"immediate";stripe_invoice?:string|null};
 type Json=Record<string,unknown>;
 export async function transmitUsage(batch:UsageBatch,deps:{get:(path:string,params?:Record<string,string>)=>Promise<Json>;post:(path:string,params:Record<string,string>,key:string)=>Promise<Json>;mark:()=>Promise<boolean>;now:()=>number}) {
  if(!Number.isSafeInteger(batch.amount_cents)||batch.amount_cents<=0||!Number.isSafeInteger(batch.notes)||batch.notes<1||batch.notes>500) throw new Error("Invalid usage batch");

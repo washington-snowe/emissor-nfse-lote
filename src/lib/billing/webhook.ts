@@ -10,8 +10,10 @@ export function readStripeEvent(value: unknown): StripeEvent | null {
   return stripeId(raw.id,"evt") && typeof raw.type==="string" && raw.type.length<=100 && typeof raw.livemode==="boolean" && stripeId(object.customer,"cus") ? raw as unknown as StripeEvent : null;
 }
 export type StripeSnapshot = { subscriptions: Json[]; invoices: Json[]; firstInvoice: string | null };
-export async function stripeSnapshot(event: StripeEvent, context: { tenant_id: string; customer_id: string; prices: { price_id: string }[] }, get: (path: string, params?: Record<string,string>)=>Promise<Json>): Promise<StripeSnapshot> {
+export async function stripeSnapshot(event: StripeEvent, context: { tenant_id: string; customer_id: string; prices: { price_id: string }[] }, get: (path: string, params?: Record<string,string>)=>Promise<Json>,
+  usageInvoice?: (batchId: string, invoiceId: string) => Promise<{ subscriptionId?: string; amountCents?: number } | null>): Promise<StripeSnapshot> {
   const subscriptions=new Map<string,Json>(), invoices=new Map<string,Json>();
+  let standaloneInvoice = false;
   async function subscription(id: unknown) {
     if (!stripeId(id,"sub")) throw new Error("Invalid subscription ID");
     if (subscriptions.has(id)) return subscriptions.get(id)!;
@@ -28,8 +30,18 @@ export async function stripeSnapshot(event: StripeEvent, context: { tenant_id: s
     if (!stripeId(id,"in")) throw new Error("Invalid invoice ID");
     if (invoices.has(id)) return invoices.get(id)!;
     const raw=supplied ?? await get("/invoices/"+id);
-    const sub=objectId(raw.subscription);
-    if (!sub || objectId(raw.customer)!==context.customer_id || raw.livemode!==event.livemode || raw.currency!=="brl") throw new Error("Invoice context mismatch");
+    let sub=objectId(raw.subscription);
+    if (objectId(raw.customer)!==context.customer_id || raw.livemode!==event.livemode || raw.currency!=="brl") throw new Error("Invoice context mismatch");
+    if (!sub) {
+      standaloneInvoice = true;
+      const metadata=record(raw.metadata);
+      if (metadata.application!=="emissor-nfse" || typeof metadata.nfse_batch!=="string") return null;
+      if (!usageInvoice || !/^[0-9a-f-]{36}$/.test(metadata.nfse_batch)) throw new Error("Invalid overage identifier");
+      const bound=await usageInvoice(metadata.nfse_batch,id);
+      if (!stripeId(bound?.subscriptionId,"sub") || bound.subscriptionId!==metadata.nfse_subscription ||
+          !Number.isSafeInteger(bound.amountCents) || bound.amountCents!==raw.total) throw new Error("Overage invoice mismatch");
+      sub=bound.subscriptionId;
+    }
     await subscription(sub);
     const paid=integer(raw.amount_paid); let cash=0,refunded=0;
     const chargeId=objectId(raw.charge);
@@ -57,9 +69,11 @@ export async function stripeSnapshot(event: StripeEvent, context: { tenant_id: s
     const charge=await get("/charges/"+object.id); if (objectId(charge.customer)!==context.customer_id) throw new Error("Charge context mismatch");
     await invoice(objectId(charge.invoice));
   }
+  if (standaloneInvoice) return { subscriptions:[...subscriptions.values()],invoices:[...invoices.values()],firstInvoice:null };
   let first: Json | null=null, cursor: string | undefined;
   for(let page=0;page<5;page++) {
-    const list=await get("/invoices",{ customer: context.customer_id,status:"paid",limit:"100",...(cursor ? { starting_after: cursor } : {}) });
+    const sub = subscriptions.keys().next().value;
+    const list=await get("/invoices",{ customer: context.customer_id,status:"paid",limit:"100",...(sub ? { subscription: sub } : {}),...(cursor ? { starting_after: cursor } : {}) });
     if (!Array.isArray(list.data) || typeof list.has_more!=="boolean") throw new Error("Invalid invoice listing");
     for(const value of list.data) {
       const raw=record(value); if (!objectId(raw.subscription) || integer(raw.amount_paid)===0 || !objectId(raw.charge)) continue;
@@ -72,7 +86,7 @@ export async function stripeSnapshot(event: StripeEvent, context: { tenant_id: s
   let firstInvoice: string | null=null;
   if (first) {
     const payment=await invoice(first.id,first);
-    if (BigInt(String(payment.cash_cents))>0n) firstInvoice=String(payment.id);
+    if (payment && BigInt(String(payment.cash_cents))>0n) firstInvoice=String(payment.id);
   }
   if(subscriptions.size>3 || invoices.size>3) throw new Error("Billing snapshot limit");
   return { subscriptions:[...subscriptions.values()],invoices:[...invoices.values()],firstInvoice };
