@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import { PHASE_PRODUCTION_BUILD } from "next/constants";
 
 const config: NextConfig = {
   poweredByHeader: false,
@@ -25,4 +26,12 @@ const config: NextConfig = {
   },
 };
 
-export default config;
+export default function nextConfig(phase: string): NextConfig {
+  if (phase === PHASE_PRODUCTION_BUILD) {
+    const publicVariables = Object.keys(process.env).filter(key => key.startsWith("NEXT_PUBLIC_"));
+    if (publicVariables.length) {
+      throw new Error("Configuração pública proibida neste projeto: " + publicVariables.sort().join(", "));
+    }
+  }
+  return config;
+}

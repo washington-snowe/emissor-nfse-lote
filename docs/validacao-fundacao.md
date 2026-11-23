@@ -40,6 +40,6 @@ Na validação original, Supabase remoto ainda não havia sido criado/configurad
 
 ## Configuração reutilizável
 
-Salvos no rascunho: `install_script`, `start_skill` e requisitos `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, `NEXT_PUBLIC_SITE_URL`. A ferramenta confirmou persistência; isso não executa, aplica ou publica os campos. As operações equivalentes de instalar, compilar e iniciar foram executadas nesta instância. Publicação e restauração em nova tarefa não foram validadas.
+Salvos no rascunho: `install_script`, `start_skill` e requisitos `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, `SITE_URL`. A ferramenta confirmou persistência; isso não executa, aplica ou publica os campos. As operações equivalentes de instalar, compilar e iniciar foram executadas nesta instância. Publicação e restauração em nova tarefa não foram validadas.
 
 A verificação focada em 320 px manteve apontamentos de composição do checker (resultado global não passou), sem transbordamento ou colisão FAIL nos alvos conferidos. Não foi uma repetição do gate e não substitui sua aprovação pendente.

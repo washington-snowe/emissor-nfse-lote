@@ -2,8 +2,8 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 
 const origin = process.env.AUTH_LIVE_BASE_URL?.replace(/\/+$/, "");
-const supabase = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+const supabase = process.env.SUPABASE_URL;
+const key = process.env.SUPABASE_PUBLISHABLE_KEY;
 const enabled = Boolean(origin);
 
 // Explicit opt-in: these checks only read deployed endpoints and never create users or send mail.
@@ -89,7 +89,7 @@ test(
     assert.equal(
       destination.origin,
       origin,
-      "NEXT_PUBLIC_SITE_URL deve corresponder à origem publicada.",
+      "SITE_URL deve corresponder à origem publicada.",
     );
     assert.equal(destination.pathname, "/entrar");
     assert.equal(destination.searchParams.get("status"), "confirmation-error");

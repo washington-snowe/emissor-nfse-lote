@@ -516,6 +516,46 @@ try:
       end $$;
     """)
     print("Retention: owner deletion blocked by foreign key")
+
+    # Restore the synthetic database into a new database in the networkless container.
+    backup = "/tmp/rex-recovery-fixture.dump"
+    docker("exec", CONTAINER, "pg_dump", "-U", "postgres", "-Fc", "-f", backup, "postgres")
+    docker("exec", CONTAINER, "createdb", "-U", "postgres", "rex_recovery")
+    docker("exec", CONTAINER, "pg_restore", "-U", "postgres", "--exit-on-error", "-d", "rex_recovery", backup)
+
+    def restored_sql(source):
+        return docker("exec", "-i", CONTAINER, "psql", "-X", "-qAt", "-v", "ON_ERROR_STOP=1",
+                      "-U", "postgres", "-d", "rex_recovery", source=source).stdout.strip()
+
+    integrity = f"""
+      select (select count(*) from auth.users),
+        (select count(*) from private.report_sources),
+        (select count(*) from private.fiscal_document_contents),
+        (select count(*) from private.invoice_email_attempts),
+        (select count(*) from private.fiscal_source_reservations),
+        (select min(next_number) from private.dps_counters where environment='production'),
+        (select status||':'||transmit_count from public.fiscal_operations where id='{production_operation}');
+    """
+    before = sql(integrity).strip()
+    assert restored_sql(integrity) == before and before.endswith("|reconciling:1"), "Restore lost fiscal recovery state"
+    assert restored_sql(f"""
+      select (select count(d.id)>0 and bool_and(d.xml_sha256=encode(sha256(convert_to(x.xml,'UTF8')),'hex'))
+        from public.fiscal_documents d join private.fiscal_document_contents x on x.document_id=d.id)
+        and (select dps_sha256=encode(sha256(convert_to(signed_dps_xml,'UTF8')),'hex') from private.fiscal_execution where operation_id='{production_operation}')
+        and not has_column_privilege('authenticated','public.certificate_verifications','lease_token','select')
+        and not has_function_privilege('authenticated','public.certificate_material(uuid,uuid,text)','execute');
+    """) == "t", "Restore lost document integrity or certificate access restrictions"
+    assert restored_sql(f"""
+      set role authenticated;
+      set request.jwt.claims='{{"sub":"00000000-0000-4000-8000-000000000002"}}';
+      select count(*) from public.fiscal_operations where id='{production_operation}';
+    """) == "0", "RLS failed after restore"
+    assert restored_sql(f"""
+      update private.fiscal_execution set lease_until=now()-interval '1 second' where operation_id='{production_operation}';
+      set role service_role;
+      select j->>'mode' from public.claim_fiscal_jobs_for_environment('production','{pc['tenant']}',1,true) j;
+    """) == "reconcile", "Restore made an interrupted transmission eligible to send again"
+    print("Recovery drill: pg_dump and pg_restore preserved report sources, document hashes, RLS, numbering and GET-only recovery (synthetic data, no Vault)")
 finally:
     env.pop("POSTGRES_PASSWORD", None)
     if started:

@@ -34,9 +34,11 @@ reset role;
 select pg_temp.auto_check((select count(*)=2 from public.certificate_verifications),'one durable record per certificate');
 set role authenticated;
 select set_config('request.jwt.claims','{"sub":"00000000-0000-4000-8000-000000000001"}',true);
-select pg_temp.auto_check((select count(*)=1 from public.certificate_verifications),'A sees only own status');
-select pg_temp.auto_check((select count(*)=0 from public.certificate_verifications where certificate_id=current_setting('test.auto_b')::uuid),'foreign known certificate ID stays invisible');
+select pg_temp.auto_check((select count(certificate_id)=1 from public.certificate_verifications),'A sees only own status');
+select pg_temp.auto_check((select count(certificate_id)=0 from public.certificate_verifications where certificate_id=current_setting('test.auto_b')::uuid),'foreign known certificate ID stays invisible');
 do $$ begin
+ begin perform lease_token,lease_until from public.certificate_verifications; raise exception 'Client read lease';
+ exception when insufficient_privilege then perform pg_temp.auto_check(true,'browser cannot read certificate worker lease'); end;
  begin update public.certificate_verifications set status='verified'; raise exception 'Client forged verification';
  exception when insufficient_privilege then perform pg_temp.auto_check(true,'client cannot write status'); end;
  begin perform public.enqueue_certificate_verification('00000000-0000-4000-8000-000000000001',current_setting('test.auto_a')::uuid); raise exception 'Client called trusted RPC';

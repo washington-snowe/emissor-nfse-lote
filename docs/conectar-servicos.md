@@ -5,12 +5,12 @@ O código Next.js está preparado no checkout. O usuário autorizou commit e pus
 ## Projetos informados pelo usuário
 
 - Supabase: `https://lcueompcxefjszkrtyyp.supabase.co`.
-- Origem pública da aplicação confirmada posteriormente: `https://emissor-nfse-lote-kjou.vercel.app`.
-- Callback esperado na Vercel: `https://emissor-nfse-lote-kjou.vercel.app/auth/callback`.
+- Origem pública da aplicação: `https://www.rexnotas.com.br`.
+- Callback de produção: `https://www.rexnotas.com.br/auth/callback`.
 
 O domínio `emissor-nfse-lote-nuxi.vercel.app` informado inicialmente retornou 404 na homologação. A URL longa de preview fornecida posteriormente exige autenticação da Vercel. Use a origem pública acima nas configurações de Production do projeto `emissor-nfse-lote-kjou`; o [registro de homologação](homologacao-autenticacao.md) descreve a divergência de callback encontrada.
 
-Em Production na Vercel, `NEXT_PUBLIC_SITE_URL` deve ser a origem HTTPS acima. No desenvolvimento local com `npm run dev`, manter `http://localhost:3000` e seu callback permitido. A publishable key continua fora do repositório. O usuário informou ter feito a configuração; confirmação operacional depende de conexão e testes reais, não apenas destas URLs.
+Em Production na Vercel, `SITE_URL` deve ser a origem HTTPS acima. No desenvolvimento local com `npm run dev`, manter `http://localhost:3000` e seu callback permitido. A publishable key continua fora do repositório. O usuário informou ter feito a configuração; confirmação operacional depende de conexão e testes reais, não apenas destas URLs.
 
 ## 1. Criar o projeto Supabase
 
@@ -32,18 +32,18 @@ Nesta etapa não é necessário criar tabelas ou buckets manualmente. As estrutu
 
 | Nome | Valor |
 | --- | --- |
-| `NEXT_PUBLIC_SUPABASE_URL` | Project URL do Supabase |
-| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Publishable key do Supabase |
-| `NEXT_PUBLIC_SITE_URL` | Origem HTTPS da aplicação na Vercel, sem caminho ou barra final |
+| `SUPABASE_URL` | Project URL do Supabase |
+| `SUPABASE_PUBLISHABLE_KEY` | Publishable key do Supabase |
+| `SITE_URL` | Origem HTTPS da aplicação na Vercel, sem caminho ou barra final |
 
-Comece configurando o domínio principal em Production. Previews exigem origem e callback próprios, além de valores de variáveis correspondentes; um callback de outro domínio não compartilha os cookies PKCE. Faça novo deploy após salvar variáveis públicas para que o build as incorpore.
+Configure as três variáveis no servidor, sem prefixo `NEXT_PUBLIC_`. O build recusa esse prefixo. Faça um novo deploy após alterar a configuração. Previews que usam autenticação exigem um projeto de teste e callback próprios.
 
 ## 3. Configurar a autenticação no Supabase
 
 1. Em Authentication, habilite o provedor de e-mail/senha e mantenha a confirmação de e-mail habilitada.
-2. Em URL Configuration, coloque em **Site URL** a mesma origem usada em `NEXT_PUBLIC_SITE_URL`.
+2. Em URL Configuration, coloque em **Site URL** a mesma origem usada em `SITE_URL`.
 3. Adicione a origem da aplicação seguida de `/auth/callback` à lista de **Redirect URLs** permitidas.
-4. Para desenvolvimento local, permita também `http://localhost:3000/auth/callback`. O `.env.local` de desenvolvimento usa `http://localhost:3000` em `NEXT_PUBLIC_SITE_URL`.
+4. Para desenvolvimento local, permita também `http://localhost:3000/auth/callback`. O `.env.local` de desenvolvimento usa `http://localhost:3000` em `SITE_URL`.
 5. Configure a política de senhas e limites de Auth. O formulário de cadastro exige 12 a 128 caracteres; a política do Supabase pode ser mais rigorosa, mas deve ser coerente com a interface antes de abrir acesso público.
 6. O envio padrão do Supabase tem restrições de desenvolvimento. Para cadastro e confirmação com usuários externos, configurar SMTP apropriado e remetente verificado; não considerar envio de e-mail homologado só por criar o projeto.
 

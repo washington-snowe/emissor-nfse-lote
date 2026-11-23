@@ -6,7 +6,7 @@ test("ausência ou configuração incompleta desabilita autenticação", () => {
   assert.equal(getSupabaseConfig({}), null);
   assert.equal(
     getSupabaseConfig({
-      NEXT_PUBLIC_SUPABASE_URL: "https://project.supabase.co",
+      SUPABASE_URL: "https://project.supabase.co",
     }),
     null,
   );
@@ -24,8 +24,8 @@ test("URL Supabase exige HTTPS sem credenciais, caminho, query ou fragmento", ()
   ]) {
     assert.equal(
       getSupabaseConfig({
-        NEXT_PUBLIC_SUPABASE_URL: url,
-        NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: "sb_publishable_test",
+        SUPABASE_URL: url,
+        SUPABASE_PUBLISHABLE_KEY: "sb_publishable_test",
       }),
       null,
       url,
@@ -33,8 +33,8 @@ test("URL Supabase exige HTTPS sem credenciais, caminho, query ou fragmento", ()
   }
   assert.deepEqual(
     getSupabaseConfig({
-      NEXT_PUBLIC_SUPABASE_URL: " https://project.supabase.co/ ",
-      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: "sb_publishable_test",
+      SUPABASE_URL: " https://project.supabase.co/ ",
+      SUPABASE_PUBLISHABLE_KEY: "sb_publishable_test",
     }),
     { url: "https://project.supabase.co", key: "sb_publishable_test" },
   );
@@ -52,21 +52,21 @@ test("callbacks usam origem explícita segura sem confiar no Host da requisiçã
     "http://localhost:3000",
   ]) {
     assert.equal(
-      getSiteOrigin({ NEXT_PUBLIC_SITE_URL: origin, NODE_ENV: "production" }),
+      getSiteOrigin({ SITE_URL: origin, NODE_ENV: "production" }),
       null,
       origin,
     );
   }
   assert.equal(
     getSiteOrigin({
-      NEXT_PUBLIC_SITE_URL: "https://site.example/",
+      SITE_URL: "https://site.example/",
       NODE_ENV: "production",
     }),
     "https://site.example",
   );
   assert.equal(
     getSiteOrigin({
-      NEXT_PUBLIC_SITE_URL: "http://localhost:3000",
+      SITE_URL: "http://localhost:3000",
       NODE_ENV: "development",
     }),
     "http://localhost:3000",
@@ -83,16 +83,16 @@ test("chaves privilegiadas são recusadas na configuração pública", () => {
   ]) {
     assert.equal(
       getSupabaseConfig({
-        NEXT_PUBLIC_SUPABASE_URL: "https://project.supabase.co",
-        NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: key,
+        SUPABASE_URL: "https://project.supabase.co",
+        SUPABASE_PUBLISHABLE_KEY: key,
       }),
       null,
     );
   }
   assert.ok(
     getSupabaseConfig({
-      NEXT_PUBLIC_SUPABASE_URL: "https://project.supabase.co",
-      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: jwt("anon"),
+      SUPABASE_URL: "https://project.supabase.co",
+      SUPABASE_PUBLISHABLE_KEY: jwt("anon"),
     }),
   );
 });

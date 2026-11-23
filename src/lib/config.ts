@@ -1,8 +1,8 @@
 type Environment = Record<string, string | undefined>;
 
 export function getSupabaseConfig(env: Environment) {
-  const url = env.NEXT_PUBLIC_SUPABASE_URL?.trim();
-  const key = env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY?.trim();
+  const url = env.SUPABASE_URL?.trim();
+  const key = env.SUPABASE_PUBLISHABLE_KEY?.trim();
   if (!url || !key) return null;
   try {
     if (!/^sb_publishable_[A-Za-z0-9_-]+$/.test(key)) {
@@ -31,7 +31,7 @@ export function getSupabaseConfig(env: Environment) {
 
 export function getSiteOrigin(env: Environment) {
   try {
-    const url = new URL(env.NEXT_PUBLIC_SITE_URL ?? "");
+    const url = new URL(env.SITE_URL ?? "");
     const local =
       env.NODE_ENV !== "production" &&
       url.protocol === "http:" &&

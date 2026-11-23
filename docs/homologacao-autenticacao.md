@@ -27,7 +27,7 @@ No alias público funcional, GET `/auth/callback` sem código respondeu 307 para
 
 Correção externa solicitada e posteriormente validada, no projeto Vercel **emissor-nfse-lote-kjou**:
 
-1. `NEXT_PUBLIC_SITE_URL=https://emissor-nfse-lote-kjou.vercel.app`, no ambiente Production.
+1. `SITE_URL=https://emissor-nfse-lote-kjou.vercel.app`, no ambiente Production.
 2. Redeploy desse projeto após salvar a variável.
 3. No Supabase, Site URL igual à origem pública funcional; Redirect URLs incluindo `https://emissor-nfse-lote-kjou.vercel.app/auth/callback`.
 

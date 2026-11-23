@@ -54,7 +54,10 @@ select set_config('request.jwt.claims','{"sub":"00000000-0000-4000-8000-00000000
 select pg_temp.access_check((select count(*)=0 from public.fiscal_access_checks),'other account cannot read connection check');
 reset role;
 set role anon;
-select pg_temp.access_check(jsonb_array_length(public.nfse_contract_status())=1,'structural API documentation is explicit public metadata');
+do $$ begin
+ begin perform public.nfse_contract_status(); raise exception 'Client read the captured contract';
+ exception when insufficient_privilege then perform pg_temp.access_check(true,'capture metadata is server only'); end;
+end $$;
 do $$ begin
  begin perform * from public.fiscal_access_checks; raise exception 'Anonymous fiscal check read allowed';
  exception when insufficient_privilege then perform pg_temp.access_check(true,'anonymous account connection data denied'); end;
