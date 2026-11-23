@@ -28,6 +28,9 @@ const config: NextConfig = {
 
 export default function nextConfig(phase: string): NextConfig {
   if (phase === PHASE_PRODUCTION_BUILD) {
+    // Vercel supplies this telemetry setting even with system exposure disabled.
+    // Rex has no client telemetry integration, so exclude it before bundling.
+    delete process.env.NEXT_PUBLIC_VERCEL_OBSERVABILITY_CLIENT_CONFIG;
     const publicVariables = Object.keys(process.env).filter(key => key.startsWith("NEXT_PUBLIC_"));
     if (publicVariables.length) {
       throw new Error("Configuração pública proibida neste projeto: " + publicVariables.sort().join(", "));
