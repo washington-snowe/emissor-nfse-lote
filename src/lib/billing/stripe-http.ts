@@ -1,15 +1,12 @@
 import "server-only";
 import { limitedText } from "@/lib/limited-body";
 import { STRIPE_API_VERSION } from "@/lib/billing/stripe-contract";
+import { readStripeConfig } from "@/lib/billing/stripe-config";
 export class StripeRequestError extends Error {
   constructor(readonly status: number) { super("Billing provider unavailable"); }
 }
 export function stripeConfig() {
-  const key = process.env.STRIPE_SECRET_KEY, webhook = process.env.STRIPE_WEBHOOK_SECRET;
-  if (!key || !/^sk_(test|live)_[A-Za-z0-9]+$/.test(key) || process.env.STRIPE_BILLING_ENABLED !== "true") return null;
-  const live = key.startsWith("sk_live_");
-  if (process.env.STRIPE_BILLING_MODE !== (live ? "live" : "test")) return null;
-  return { key, live, webhook: webhook?.startsWith("whsec_") ? webhook : null };
+  return readStripeConfig(process.env);
 }
 export async function stripeRequest(path: string, parameters?: Record<string,string>, idempotency?: string) {
   const config = stripeConfig();

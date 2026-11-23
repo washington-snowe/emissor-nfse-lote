@@ -7,7 +7,17 @@ import { verifyStripeSignature, stripeUrl } from "../src/lib/billing/stripe-cont
 import { readStripeEvent, stripeSnapshot, type StripeEvent } from "../src/lib/billing/webhook.ts";
 import { transmitUsage, type UsageBatch } from "../src/lib/billing/usage.ts";
 import { collectImmediateUsage } from "../src/lib/billing/immediate-usage.ts";
+import { inspectStripeConfig, readStripeConfig } from "../src/lib/billing/stripe-config.ts";
 const now=Date.UTC(2026,10,12),seconds=now/1000,tenant="00000000-0000-4000-8000-000000000001";
+test("configuração da Stripe aceita sandbox com espaços de cópia e rejeita modo ou tipo incompatível", () => {
+  const env = { STRIPE_BILLING_ENABLED: "true", STRIPE_BILLING_MODE: "test", STRIPE_SECRET_KEY: " sk_test_Fixture\n", STRIPE_WEBHOOK_SECRET: "whsec_Fixture\n" };
+  assert.deepEqual(readStripeConfig(env), { key: "sk_test_Fixture", live: false, webhook: "whsec_Fixture" });
+  assert.equal(readStripeConfig({ ...env, STRIPE_SECRET_KEY: "rk_test_Fixture" })?.live, false);
+  assert.equal(readStripeConfig({ ...env, STRIPE_SECRET_KEY: "sk_live_Fixture" }), null);
+  assert.equal(readStripeConfig({ ...env, STRIPE_BILLING_ENABLED: "false" }), null);
+  assert.equal(inspectStripeConfig({ ...env, STRIPE_SECRET_KEY: "pk_test_Fixture" }).key, "publishable");
+  assert.equal(readStripeConfig({ ...env, STRIPE_WEBHOOK_SECRET: "sk_test_Fixture" })?.webhook, null);
+});
 const subscription={id:"sub_synthetic",customer:"cus_synthetic",livemode:false,metadata:{application:"emissor-nfse",tenant_id:tenant},items:{data:[{quantity:1,price:{id:"price_synthetic",currency:"brl"}}]},status:"active",current_period_start:seconds,current_period_end:seconds+30*86400,created:seconds,cancel_at_period_end:false};
 const first={id:"in_first",customer:"cus_synthetic",livemode:false,currency:"brl",subscription:"sub_synthetic",amount_paid:3990,charge:"ch_first",status:"paid",status_transitions:{paid_at:seconds+10},created:seconds,hosted_invoice_url:"https://invoice.stripe.com/synthetic"};
 const renewed={...first,id:"in_renewed",charge:"ch_renewed",status_transitions:{paid_at:seconds+30*86400}};
