@@ -1,3 +1,4 @@
+import { PageHeader } from "@/components/page-header";
 import type { Metadata } from "next";
 import { randomUUID } from "node:crypto";
 import { FiscalRefresh } from "@/components/fiscal-refresh";
@@ -13,6 +14,8 @@ export const maxDuration=60;
 const labels:Record<string,string>={active:"Ativa",trialing:"Período de avaliação",past_due:"Pagamento pendente",canceled:"Cancelada",unpaid:"Pagamento não concluído",incomplete:"Aguardando pagamento",incomplete_expired:"Pagamento expirado",paused:"Pausada"};
 type Subscription={id:string;plan_code:string;cadence:StoredCadence;status:string;period_end:string;cancel_at_period_end:boolean};
 type Payment={id:string;status:string;paid_cents:string;refunded_cents:string;created_at:string;hosted_url:string|null};
+export const dynamic = "force-dynamic";
+
 export default async function SubscriptionPage({searchParams}:{searchParams:Promise<{retorno?:string}>}) {
  const {client}=await requireWorkspace(), config=stripeConfig(), {retorno}=await searchParams;
  const [summary, credits] = await Promise.all([
@@ -24,7 +27,7 @@ export default async function SubscriptionPage({searchParams}:{searchParams:Prom
  const current=active??data?.subscriptions?.[0];
  const plan=plans.find(item=>item.code===current?.plan_code), ready=Boolean(config?.webhook && createAdminClient() && !summary.error);
  const date=(value:string)=>new Intl.DateTimeFormat("pt-BR",{dateStyle:"short",timeZone:"America/Sao_Paulo"}).format(new Date(value));
- return <WorkspaceShell active="subscription"><div className="dashboard-content company-page"><span className="eyebrow">Conta</span><h1>Sua assinatura.</h1><p>Plano, consumo e pagamentos em um só lugar.</p>
+ return <WorkspaceShell active="subscription"><div className="dashboard-content company-page"><PageHeader title="Assinatura" description="Consulte o plano, o consumo de notas e os pagamentos da sua conta." />
  {config && !config.live && <p className="save-notice">Pagamentos em modo de teste da Stripe. Nenhuma cobrança real é feita neste modo.</p>}
  {retorno==="sucesso" && <p className="save-notice">Pagamento enviado para confirmação. O status abaixo será atualizado após a confirmação da Stripe.</p>}
  {retorno==="cancelado" && <p className="save-notice">Você voltou do checkout. Confira o status da assinatura antes de iniciar outra contratação.</p>}

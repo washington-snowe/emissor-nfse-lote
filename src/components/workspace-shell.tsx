@@ -1,44 +1,126 @@
 "use client";
+
 import Link from "next/link";
+import { useRef, useState, useTransition } from "react";
+import {
+  ArrowRight, Building2, ChevronDown, CreditCard, FileStack, FileText, History, House,
+  KeyRound, LogOut, Menu, Plus, Settings2, Share2, ShieldCheck, Ticket, Upload, UserRound, X,
+} from "lucide-react";
 import { Brand } from "@/components/brand";
-import { useState, useTransition } from "react";
-import { Building2, ChevronDown, ChevronsUpDown, CreditCard, FileText, House, KeyRound, Layers, LogOut, Menu, ReceiptText, Settings2, Share2, ShieldCheck, UploadCloud, UserRound } from "lucide-react";
 import { signOut } from "@/app/auth/actions";
 import { selectWorkspaceCompany } from "@/app/painel/navigation-actions";
 import { chooseCompany, formatCompanyDocument, workspaceDestination, type NavigationCompany, type WorkspaceArea } from "@/lib/workspace-navigation";
+
+const sections = [
+  { label: "Operação", items: [
+    { area: "overview", label: "Início", Icon: House },
+    { area: "imports", label: "Notas em lote", Icon: Upload },
+    { area: "history", label: "Importações salvas", Icon: History },
+    { area: "invoices", label: "Notas", Icon: FileText },
+  ] },
+  { label: "Empresa", items: [
+    { area: "companies", label: "Cadastro", Icon: Building2 },
+    { area: "service", label: "Serviço", Icon: FileStack },
+    { area: "advanced", label: "Avançado", Icon: Settings2 },
+    { area: "certificates", label: "Certificado", Icon: ShieldCheck },
+  ] },
+  { label: "Conta", items: [
+    { area: "profile", label: "Perfil", Icon: UserRound },
+    { area: "login", label: "Login", Icon: KeyRound },
+    { area: "subscription", label: "Assinatura", Icon: CreditCard },
+    { area: "referrals", label: "Indicações", Icon: Share2 },
+  ] },
+] as const;
+
 export function WorkspaceShell({ email, name, active = "overview", companies = [], companyId, canAdmin = false, children }: {
   canAdmin?: boolean; email?: string; name?: string; active?: WorkspaceArea; companies?: NavigationCompany[]; companyId?: string; children: React.ReactNode;
 }) {
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState("");
+  const drawer = useRef<HTMLDialogElement>(null);
+  const drawerTrigger = useRef<HTMLButtonElement>(null);
   const selected = chooseCompany(companies, companyId);
   const displayName = name || email?.split("@")[0] || "Minha conta";
-  const link = (area: WorkspaceArea, label: string, Icon: typeof House) => <Link href={workspaceDestination(area, selected?.id)}
-    className={`workspace-nav-link${active === area ? " is-current" : ""}`} aria-current={active === area ? "page" : undefined}>
-    <Icon size={19} strokeWidth={1.7} aria-hidden="true" /><span>{label}</span></Link>;
-  const companyPicker = (suffix: string) => <div className="workspace-company"><span className="workspace-company-icon"><Building2 size={21} aria-hidden="true" /></span><div className="workspace-company-copy">
-    {companies.length ? <><label className="sr-only" htmlFor={`workspace-company-${suffix}`}>Empresa em uso</label><select id={`workspace-company-${suffix}`} value={selected?.id ?? ""} disabled={pending} onChange={event => {
-      const id = event.target.value; setError(""); startTransition(async () => { const result = await selectWorkspaceCompany(id, active); if (result?.error) setError(result.error); });
-    }}>{companies.map(company => <option key={company.id} value={company.id}>{company.legal_name}</option>)}</select><span className="mono">{selected ? formatCompanyDocument(selected.cnpj) : ""}</span></> : <Link href="/painel/empresas/nova">Cadastrar empresa<span>Comece pelo CNPJ</span></Link>}
-  </div><ChevronsUpDown size={16} aria-hidden="true" />{error && <p className="field-error" role="alert">{error}</p>}</div>;
+  const navigate = (area: WorkspaceArea, label: string, Icon: typeof House) => {
+    const current = active === area || (active === "emailTest" && area === "invoices");
+    return <Link key={area} href={workspaceDestination(area, selected?.id)}
+      className={`workspace-nav-link${current ? " is-current" : ""}`} aria-current={current ? "page" : undefined}>
+      <Icon size={18} strokeWidth={1.8} aria-hidden="true" /><span>{label}</span>
+    </Link>;
+  };
   const navigation = <nav aria-label="Navegação principal" className="workspace-navigation">
-    {link("overview", "Início", House)}{link("invoices", "Notas", FileText)}
-    <details className="workspace-nav-group" open><summary><UploadCloud size={19} aria-hidden="true" /><span>Emitir</span><ChevronDown size={16} aria-hidden="true" /></summary><div className="workspace-subnav">
-      {link("imports", "Notas em lote", Layers)}
-    </div></details><span className="workspace-nav-heading">Ajustes</span>
-    <details className="workspace-nav-group" open><summary><Building2 size={19} aria-hidden="true" /><span>Empresa</span><ChevronDown size={16} aria-hidden="true" /></summary><div className="workspace-subnav">
-      {link("companies", "Cadastro", ReceiptText)}{link("service", "Serviço", FileText)}{link("advanced", "Avançado", Settings2)}{link("certificates", "Certificado", ShieldCheck)}
-      <Link className="workspace-manage-link" href="/painel/empresas">Gerenciar empresas</Link>
-    </div></details>
-    <details className="workspace-nav-group" open><summary><Settings2 size={19} aria-hidden="true" /><span>Conta</span><ChevronDown size={16} aria-hidden="true" /></summary><div className="workspace-subnav">
-      {link("profile", "Perfil", UserRound)}{link("login", "Login", KeyRound)}{link("subscription", "Assinatura", CreditCard)}{link("referrals", "Indicações", Share2)}
-    </div></details>
-    {canAdmin && link("admin", "Administração", ShieldCheck)}
+    {sections.map(section => <div className="workspace-nav-section" key={section.label}>
+      <span className="workspace-nav-heading">{section.label}</span>
+      {section.items.map(({ area, label, Icon }) => navigate(area, label, Icon))}
+    </div>)}
+    {canAdmin && <div className="workspace-nav-section">{navigate("admin", "Administração", Ticket)}</div>}
   </nav>;
-  const account = <details className="workspace-account"><summary><span className="workspace-avatar">{displayName.slice(0, 1).toLocaleUpperCase("pt-BR")}</span><span className="workspace-account-copy"><strong>{displayName}</strong><span>{email}</span></span><ChevronsUpDown size={16} aria-hidden="true" /></summary><div className="workspace-account-actions"><Link href="/painel/conta/perfil">Meu perfil</Link><form action={signOut}><button type="submit"><LogOut size={17} aria-hidden="true" /> Sair da conta</button></form></div></details>;
-  return <div className="dashboard-shell workspace-shell"><aside className="workspace-sidebar"><div className="rex-workspace-brand"><Brand href="/painel" /></div>{companyPicker("desktop")}<div className="workspace-nav-scroll">{navigation}</div>{account}</aside>
-    <main id="conteudo" className="dashboard-main"><header className="dashboard-header"><div className="rex-mobile-brand"><Brand href="/painel" /></div><span>{selected?.legal_name || "Seu espaço de trabalho"}</span><span className="user-email">{email}</span></header>
-      <details className="workspace-mobile-navigation"><summary><Menu size={18} aria-hidden="true" /> Menu do painel<ChevronDown size={16} aria-hidden="true" /></summary><div className="workspace-mobile-content">
-        {companyPicker("mobile")}{navigation}{account}
-      </div></details>{children}</main></div>;
+  const account = <details className="workspace-account">
+    <summary>
+      <span className="workspace-avatar">{displayName.slice(0, 1).toLocaleUpperCase("pt-BR")}</span>
+      <span className="workspace-account-copy"><strong title={displayName}>{displayName}</strong><span title={email}>{email}</span></span>
+      <ChevronDown size={16} aria-hidden="true" />
+    </summary>
+    <div className="workspace-account-actions">
+      <Link href="/painel/conta/perfil"><UserRound size={16} aria-hidden="true" /> Meu perfil</Link>
+      <form action={signOut}><button type="submit"><LogOut size={16} aria-hidden="true" /> Sair da conta</button></form>
+    </div>
+  </details>;
+
+  return <div className="dashboard-shell workspace-shell workspace-experience">
+    <aside className="workspace-sidebar">
+      <div className="workspace-brand-row"><Brand href="/painel" /></div>
+      <div className="workspace-nav-scroll">{navigation}</div>
+      {account}
+    </aside>
+    <div className="workspace-stage">
+      <header className="workspace-bar">
+        <div className="workspace-bar-inner">
+          <button ref={drawerTrigger} className="icon-button workspace-menu-button" type="button" aria-label="Menu do painel" aria-haspopup="dialog" onClick={() => drawer.current?.showModal()}>
+            <Menu size={20} aria-hidden="true" />
+          </button>
+          <div className="workspace-context">
+            {selected ? <>
+              <div className="workspace-picker">
+                <Building2 size={17} aria-hidden="true" />
+                <label className="sr-only" htmlFor="workspace-company">Empresa em uso</label>
+                <select id="workspace-company" value={selected.id} disabled={pending} title={selected.legal_name} onChange={event => {
+                  const id = event.target.value;
+                  setError("");
+                  startTransition(async () => {
+                    const result = await selectWorkspaceCompany(id, active);
+                    if (result?.error) setError(result.error);
+                  });
+                }}>
+                  {companies.map(company => <option key={company.id} value={company.id}>{company.legal_name}</option>)}
+                </select>
+                <ChevronDown size={15} aria-hidden="true" />
+              </div>
+              <span className="workspace-document mono">{formatCompanyDocument(selected.cnpj)}</span>
+            </> : <Link className="workspace-context-link" href="/painel/empresas/nova"><Plus size={16} aria-hidden="true" /> Cadastrar empresa</Link>}
+          </div>
+          <Link className="workspace-companies-link" href="/painel/empresas" aria-label="Gerenciar empresas" title="Gerenciar empresas"><span>Empresas</span><ArrowRight size={16} aria-hidden="true" /></Link>
+        </div>
+        {error && <p className="field-error workspace-switch-error" role="alert">{error}</p>}
+        {pending && <span className="sr-only" role="status">Trocando empresa…</span>}
+      </header>
+      <dialog ref={drawer} className="workspace-drawer" aria-label="Menu do painel" onClose={() => drawerTrigger.current?.focus()}
+        onClick={event => {
+          if (event.target instanceof Element && event.target.closest("a") && !event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey) {
+            drawer.current?.close();
+          }
+        }}>
+        <div className="workspace-drawer-inner">
+          <header className="workspace-brand-row">
+            <Brand href="/painel" />
+            <button type="button" className="icon-button" aria-label="Fechar menu" onClick={() => drawer.current?.close()} autoFocus><X size={21} aria-hidden="true" /></button>
+          </header>
+          <div className="workspace-nav-scroll">{navigation}</div>
+          <Link className="workspace-drawer-company" href="/painel/empresas"><Building2 size={18} aria-hidden="true" /> Gerenciar empresas <ArrowRight size={16} aria-hidden="true" /></Link>
+          {account}
+        </div>
+      </dialog>
+      <main id="conteudo" className="dashboard-main">{children}</main>
+    </div>
+  </div>;
 }

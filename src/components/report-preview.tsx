@@ -1,6 +1,8 @@
 "use client";
 
 import Link from "next/link";
+import { FileControl } from "@/components/file-control";
+import { formatCompanyDocument } from "@/lib/workspace-navigation";
 import { ReportResults } from "@/components/report-results";
 import { useEffect, useRef, useState } from "react";
 import {useRouter} from "next/navigation";
@@ -115,19 +117,27 @@ export function ReportPreview({ companies, saveAction, initialCompanyId,automati
   return (
     <>
       <form onSubmit={inspect} className="report-form" aria-busy={pending||saving}>
-        <div className="form-grid">
-          <div className="field">
-            <label htmlFor="report-company">Empresa emissora</label>
-            <select id="report-company" required disabled={saving} value={companyId} onChange={(event) => { reset(); setCompanyId(event.target.value); }}>
-              <option value="" disabled>Escolha sua empresa</option>
-              {companies.map((company) => <option key={company.id} value={company.id}>{company.legal_name} · {company.cnpj}</option>)}
-            </select>
-            <p className="field-hint">As lojas do CSV são vendedores informados, não o seu CNPJ emissor.</p>
+        <div className="form-grid report-upload-grid">
+          <div className="field report-upload-company">
+            {automaticUpload && initialCompanyId && selectedCompany ? <>
+              <span className="field-title">Empresa emissora</span>
+              <div className="context-value"><strong>{selectedCompany.legal_name}</strong><span className="mono">{formatCompanyDocument(selectedCompany.cnpj)}</span></div>
+              <p className="field-hint">Para trocar a empresa, use o seletor no topo do painel.</p>
+            </> : <>
+              <label htmlFor="report-company">Empresa emissora</label>
+              <select id="report-company" required disabled={saving} value={companyId} onChange={(event) => { reset(); setCompanyId(event.target.value); }}>
+                <option value="" disabled>Escolha sua empresa</option>
+                {companies.map((company) => <option key={company.id} value={company.id}>{company.legal_name} · {company.cnpj}</option>)}
+              </select>
+              <p className="field-hint">As notas do lote serão emitidas por esta empresa.</p>
+            </>}
           </div>
-          <div className="field">
+          <div className="field report-upload-file">
             <label htmlFor="report-file">Relatório mensal da Shopee</label>
-            <input ref={fileInput} id="report-file" type="file" accept=".csv,text/csv" required disabled={saving} aria-describedby="report-file-hint report-error" onChange={(event) => {void chooseFile(event.target.files?.[0]??null);}} />
-            <p id="report-file-hint" className="field-hint">CSV mensal por vendedor · UTF-8 · até 512 KB e 10.000 linhas.</p>
+            <FileControl file={file} prompt="Selecionar arquivo CSV" detail="Relatório mensal por vendedor"
+              input={{ ref: fileInput, id: "report-file", accept: ".csv,text/csv", required: true, disabled: saving,
+                "aria-describedby": "report-file-hint report-error", onChange: event => { void chooseFile(event.target.files?.[0] ?? null); } }} />
+            <p id="report-file-hint" className="field-hint">CSV em UTF-8, até 512 KB e 10.000 linhas.</p>
           </div>
         </div>
         <div className="report-actions">
@@ -140,7 +150,7 @@ export function ReportPreview({ companies, saveAction, initialCompanyId,automati
           {automatic&&preview&&!saving&&error&&<button className="btn btn--secondary" type="button" onClick={()=>persist()}>Tentar salvar novamente</button>}
         </div>
         <p id="report-error" className="field-error" role="alert">{error}</p>
-        <p className="report-privacy"><LockKeyhole size={16} aria-hidden="true" /> {automatic?"Ao escolher o CSV, conferimos e salvamos o original de forma privada para preparar a revisão nesta página. Nenhuma nota é enviada antes de sua confirmação.":saveAction ? "A conferência é local. Ao salvar a importação, o original será enviado e armazenado de forma privada na sua conta." : "O arquivo é lido neste navegador e não é enviado nem salvo. Use “Limpar arquivo” para descartar a prévia."}</p>
+        <p className="report-privacy"><LockKeyhole size={16} aria-hidden="true" /> {automatic?"O CSV é salvo na sua conta para revisão. O envio das notas exige sua confirmação.":saveAction ? "A conferência é local. Ao salvar a importação, o original será enviado e armazenado de forma privada na sua conta." : "O arquivo é lido neste navegador e não é enviado nem salvo. Use “Limpar arquivo” para descartar a prévia."}</p>
         {saved && <p className="save-notice" role="status">{saved.duplicate ? "Este arquivo já estava salvo nesta empresa." : "Importação salva. O processamento continua sem precisar manter esta página aberta."} <Link className="text-link" href={`/painel/importacoes/historico/${saved.id}`}>Abrir importação</Link></p>}
       </form>
 

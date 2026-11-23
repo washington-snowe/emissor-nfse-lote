@@ -1,3 +1,4 @@
+import { EmptyState, PageHeader } from "@/components/page-header";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Building2, Plus, ArrowUpRight } from "lucide-react";
@@ -24,16 +25,8 @@ export default async function Companies({
   return (
     <WorkspaceShell email={context.user.email} active="companies">
       <div className="dashboard-content company-page">
-        <div className="company-page-heading">
-          <div>
-            <span className="eyebrow">Seu espaço de trabalho</span>
-            <h1>Suas empresas.</h1>
-            <p>Dados e configurações independentes para cada CNPJ.</p>
-          </div>
-          <Link className="btn btn--primary" href="/painel/empresas/nova">
-            <Plus size={18} aria-hidden="true" /> Cadastrar empresa
-          </Link>
-        </div>
+        <PageHeader title="Empresas" description="Gerencie os cadastros e as configurações fiscais de cada CNPJ."
+          actions={<Link className="btn btn--primary" href="/painel/empresas/nova"><Plus size={18} aria-hidden="true" /> Cadastrar empresa</Link>} />
         {salvo === "1" && (
           <p className="save-notice" role="status">
             Empresa salva. A configuração fiscal continua pendente.
@@ -66,24 +59,10 @@ export default async function Companies({
             ))}
           </div>
         ) : (
-          <section className="dashboard-welcome">
-            <span className="welcome-icon">
-              <Building2 size={36} strokeWidth={1.4} aria-hidden="true" />
-            </span>
-            <h2>Seu primeiro CNPJ começa aqui.</h2>
-            <p>
-              Buscamos os dados disponíveis para você revisar, sem preencher
-              tudo do zero.
-            </p>
-            <Link href="/painel/empresas/nova" className="text-link">
-              Cadastrar minha empresa{" "}
-              <ArrowUpRight size={16} aria-hidden="true" />
-            </Link>
-          </section>
+          <EmptyState icon={<Building2 size={24} aria-hidden="true" />} title="Nenhuma empresa cadastrada">
+            Informe um CNPJ para consultar os dados da sua empresa.
+          </EmptyState>
         )}
-        <Link href="/painel" className="text-link">
-          Voltar à visão geral
-        </Link>
       </div>
     </WorkspaceShell>
   );

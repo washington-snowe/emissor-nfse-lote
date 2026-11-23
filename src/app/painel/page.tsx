@@ -1,82 +1,50 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import {
-  ArrowUpRight,
-  Building2,
-  FileSpreadsheet,
-  ShieldCheck,
-} from "lucide-react";
+import { ArrowRight, Building2, CircleCheck, Clock3, FileSpreadsheet, History, TriangleAlert, Upload } from "lucide-react";
 import { getWorkspaceData } from "@/lib/workspace-data";
 import { WorkspaceShell } from "@/components/workspace";
+import { PageHeader } from "@/components/page-header";
+import { workspaceDestination } from "@/lib/workspace-navigation";
 
-export const metadata: Metadata = { title: "Meu espaço" };
+export const metadata: Metadata = { title: "Visão geral" };
 export const dynamic = "force-dynamic";
 
-export default async function Dashboard({
-  searchParams,
-}: {
+export default async function Dashboard({ searchParams }: {
   searchParams: Promise<{ status?: string; empresa?: string }>;
 }) {
   const { status, empresa } = await searchParams;
-  const { client, context, selected } = await getWorkspaceData(empresa);
-  const result = await client
-    .from("companies")
-    .select("id", { count: "exact", head: true })
-    .eq("tenant_id", context.tenantId);
-  if (result.error) throw new Error("Companies unavailable.");
-  const count = result.count ?? 0;
-  const totals = await client.rpc("fiscal_status_totals");
-  return (
-    <WorkspaceShell email={context.user.email} companyId={selected?.id}>
-      <div className="dashboard-content">
-        <header className="rex-page-intro"><h1>Visão geral</h1><p>Importe suas comissões e acompanhe a emissão das notas.</p></header>
-        {!totals.error && <dl className="report-totals"><div><dt>Empresas cadastradas</dt><dd>{count}</dd></div><div><dt>Operações na fila</dt><dd>{["queued", "blocked", "preparing", "sending", "uncertain", "reconciling"].reduce((sum, key) => sum + (totals.data?.[key] ?? 0), 0)}</dd></div><div><dt>Notas autorizadas</dt><dd>{totals.data?.authorized ?? 0}</dd></div></dl>}
-        {status === "logout-error" && (
-          <p className="field-error" role="alert">
-            Não foi possível encerrar a sessão. Tente sair novamente.
-          </p>
-        )}
-        <section className="dashboard-welcome rex-dashboard-hero" aria-labelledby="next-steps">
-          <span className="welcome-icon">
-            <Building2 size={36} strokeWidth={1.4} aria-hidden="true" />
-          </span>
-          <h2 id="next-steps">
-            {count
-              ? `${count} ${count === 1 ? "empresa cadastrada" : "empresas cadastradas"}.`
-              : "O primeiro passo é sua empresa."}
-          </h2>
-          <p>
-            {count
-              ? "Use os dados da empresa e o perfil fiscal para preparar a próxima nota. O histórico mostra as pendências de cada operação."
-              : "Digite o CNPJ e preenchemos os dados disponíveis para você revisar."}
-          </p>
-          <Link
-            className="btn btn--primary"
-            href={selected ? `/painel/importacoes?empresa=${selected.id}` : "/painel/empresas/nova"}
-          >
-            {count ? "Importar relatório" : "Cadastrar minha empresa"}{" "}
-            <ArrowUpRight size={17} aria-hidden="true" />
-          </Link>
-        </section>
-        <div className="dashboard-info">
-          <div>
-            <FileSpreadsheet size={24} aria-hidden="true" />
-            <h2>Comissões e relatórios</h2>
-            <p>
-              Confira e salve o CSV mensal da Shopee. Revise tomadores, competência e valores antes de colocar um lote na fila.
-            </p>
-            <Link href={selected ? `/painel/importacoes?empresa=${selected.id}` : "/painel/importacoes"} className="text-link">Conferir relatório <ArrowUpRight size={16} aria-hidden="true" /></Link>
-          </div>
-          <div>
-            <ShieldCheck size={24} aria-hidden="true" />
-            <h2>Emissão fiscal</h2>
-            <p>
-              Acompanhe os resultados e baixe os documentos de cada nota.
-            </p>
-            <Link href={selected ? `/painel/notas?empresa=${selected.id}` : "/painel/notas"} className="text-link">Acompanhar emissões <ArrowUpRight size={16} aria-hidden="true" /></Link>
-          </div>
+  const { client, selected } = await getWorkspaceData(empresa);
+  const totals = selected ? await client.rpc("company_fiscal_totals", { p_company: selected.id }) : null;
+  const count = (statuses: string[]) => statuses.reduce((sum, key) => sum + (totals?.data?.[key] ?? 0), 0);
+  const notes = workspaceDestination("invoices", selected?.id);
+  const imp = workspaceDestination("imports", selected?.id);
+  const history = workspaceDestination("history", selected?.id);
+  return <WorkspaceShell companyId={selected?.id}>
+    <div className="dashboard-content">
+      <PageHeader title="Visão geral" description="Acompanhe a emissão de notas da empresa selecionada." />
+      {status === "logout-error" && <p className="field-error" role="alert">Não foi possível encerrar a sessão. Tente novamente.</p>}
+      {totals?.error && <p className="save-notice" role="status">Os totais da empresa estão indisponíveis. Abra Notas para consultar as emissões.</p>}
+      {selected && totals && !totals.error && <dl className="overview-metrics" aria-label="Situação das notas da empresa">
+        {[
+          { label: "Autorizadas", value: count(["authorized"]), Icon: CircleCheck },
+          { label: "Em andamento", value: count(["queued", "preparing", "sending", "reconciling"]), Icon: Clock3 },
+          { label: "Precisam de atenção", value: count(["blocked", "uncertain", "rejected", "intervention"]), Icon: TriangleAlert },
+        ].map(({ label, value, Icon }) => <div key={label}><dt><Icon size={18} aria-hidden="true" />{label}</dt><dd>{value.toLocaleString("pt-BR")}</dd></div>)}
+      </dl>}
+      <section className="overview-next" aria-labelledby="overview-next-title">
+        {selected ? <div className="overview-next-icon"><FileSpreadsheet size={28} aria-hidden="true" /></div> : <div className="overview-next-icon"><Building2 size={28} aria-hidden="true" /></div>}
+        <div>
+          <h2 id="overview-next-title">{selected ? "Novo lote de notas" : "Cadastre sua empresa"}</h2>
+          <p>{selected ? "Selecione o CSV mensal da Shopee e confira os dados do lote antes de emitir." : "Informe o CNPJ para consultar os dados cadastrais da empresa que vai emitir."}</p>
         </div>
+        <Link className="btn btn--primary" href={selected ? imp : "/painel/empresas/nova"}>
+          {selected ? <><Upload size={17} aria-hidden="true" /> Importar relatório</> : <>Cadastrar empresa <ArrowRight size={17} aria-hidden="true" /></>}
+        </Link>
+      </section>
+      <div className="overview-shortcuts">
+        <Link href={notes} className="overview-shortcut"><CircleCheck size={22} aria-hidden="true" /><span><strong>Notas</strong><span>Consulte resultados e baixe documentos.</span></span><ArrowRight size={17} aria-hidden="true" /></Link>
+        <Link href={history} className="overview-shortcut"><History size={22} aria-hidden="true" /><span><strong>Importações salvas</strong><span>Veja os relatórios enviados e retome a revisão.</span></span><ArrowRight size={17} aria-hidden="true" /></Link>
       </div>
-    </WorkspaceShell>
-  );
+    </div>
+  </WorkspaceShell>;
 }

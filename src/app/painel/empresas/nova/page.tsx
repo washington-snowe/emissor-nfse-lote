@@ -1,3 +1,4 @@
+import { PageHeader } from "@/components/page-header";
 import type { Metadata } from "next";
 import { requireWorkspace } from "@/lib/tenancy-server";
 import { WorkspaceShell } from "@/components/workspace";
@@ -10,9 +11,8 @@ export default async function NewCompany() {
   return (
     <WorkspaceShell email={context.user.email} active="companies">
       <div className="dashboard-content company-page">
-        <span className="eyebrow">Empresas</span>
-          <h1>Cadastre sua empresa.</h1>
-        <p>Informe o CNPJ, revise os dados e salve sua empresa.</p>
+        <PageHeader title="Cadastrar empresa" description="Informe o CNPJ para consultar e revisar os dados cadastrais."
+          back={{ href: "/painel/empresas", label: "Empresas" }} />
         <CompanyForm />
       </div>
     </WorkspaceShell>

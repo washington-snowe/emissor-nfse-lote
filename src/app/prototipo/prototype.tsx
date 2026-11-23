@@ -4,7 +4,8 @@ import { useCallback, useEffect, useRef, useState, type ReactNode } from "react"
 import Link from "next/link";
 import { ArrowDownToLine, ArrowRight, ArrowUpRight, Building2, ChevronDown, CircleCheck, CreditCard, FileSpreadsheet, FileText, History, House, KeyRound, Mail, Menu, Settings2, ShieldCheck, Ticket, Upload, UserRound, Users, X } from "lucide-react";
 import { Brand } from "@/components/brand";
-import { money, overagePrice, planPrice, plans } from "@/lib/billing/catalog";
+import { plans } from "@/lib/billing/catalog";
+import { PlanCard, PlanIntervalToggle } from "@/components/plan-card";
 import { screens, type Screen } from "./screens";
 
 const navigation = [
@@ -56,11 +57,13 @@ export function Prototype({ initial }: { initial: Screen }) {
   const [customer, setCustomer] = useState("conta@exemplo.test");
   const [reason, setReason] = useState("Boas-vindas");
   const [donated, setDonated] = useState(0);
-  const [menuOpen, setMenuOpen] = useState(false);
   const heading = useRef<HTMLHeadingElement>(null);
   const dialog = useRef<HTMLDialogElement>(null);
+  const menu = useRef<HTMLDialogElement>(null);
+  const menuButton = useRef<HTMLButtonElement>(null);
   const go = useCallback((next: Screen) => {
-    setFeedback(""); setMenuOpen(false); setCode(""); setCodeError(false);
+    menu.current?.close();
+    setFeedback(""); setCode(""); setCodeError(false);
     setScreen(next);
     if (next === "revisar") setReviewed(false);
     if (location.pathname + location.search !== prototypeHref(next)) {
@@ -83,7 +86,7 @@ export function Prototype({ initial }: { initial: Screen }) {
   }, [screen, initial]);
 
   const next = (to: Screen, label: string, primary = false) => <Go to={to} navigate={go} primary={primary}>{label}</Go>;
-  const saved = () => setFeedback("Dados de demonstração salvos nesta sessão.");
+  const saved = () => setFeedback("Alteração simulada.");
   const summary = <Stats items={[
     { label: "Notas previstas", value: "32", Icon: FileText },
     { label: "Competência", value: "31/10/2026", Icon: FileSpreadsheet },
@@ -162,15 +165,11 @@ export function Prototype({ initial }: { initial: Screen }) {
       content = <section className="rex-surface"><h2>Certificado da empresa</h2><p>A1 protegido · Acesso à SEFIN conferido</p><div className="rex-demo-actions"><button className="btn btn--secondary" onClick={() => setFeedback("Certificado e verificação simulados.")}><ShieldCheck size={16} /> Verificar acesso</button></div></section>; break;
     case "assinatura":
       content = <><section className="rex-surface"><h2>Afiliado Pro</h2><p>32 de 600 notas no mês · 50 créditos de emissão disponíveis</p></section>
-        <section className="rex-surface"><div className="rex-section-head"><h2>Planos</h2><label className="rex-switch"><input type="checkbox" role="switch" checked={annual} onChange={(event) => setAnnual(event.target.checked)} /> Anual <span>Economize 20%</span></label></div>
-          <div className="rex-price-grid">{plans.map((plan) => {
-            const price = planPrice(plan, annual ? "annual" : "monthly");
-            return <article key={plan.code} className={`billing-plan rex-price${plan.code === "afiliado-pro" ? " billing-plan--featured" : ""}`}>
-              <h3>{plan.name}</h3>{plan.code === "afiliado-pro" && <span className="billing-plan-badge">Mais Escolhido</span>}
-              <p className="billing-plan-price"><strong>{money(annual ? price / 12 : price)}</strong> /mês</p>
-              <p>{plan.includedNotes.toLocaleString("pt-BR")} notas por mês</p><p>{overagePrice(plan.overageUnits)} por excedente</p>
-              <button className="btn btn--secondary" onClick={() => setFeedback("A contratação abre a Stripe no painel real.")}>Escolher plano</button></article>;
-          })}</div></section></>; break;
+        <section className="rex-surface plans-section">
+          <div className="split-intro"><h2>Planos</h2><PlanIntervalToggle annual={annual} onChange={setAnnual} /></div>
+          <div className="billing-plan-grid">{plans.map(plan => <PlanCard key={plan.code} plan={plan} cadence={annual ? "annual" : "monthly"}
+            action={<button className="btn btn--secondary" onClick={() => setFeedback("A contratação abre a Stripe no painel real.")}>Escolher plano</button>} />)}</div>
+        </section></>; break;
     case "indicacoes":
       content = <section className="rex-surface"><h2>Seu link de indicação</h2><p>Compartilhe o link com quem também emite notas de afiliado.</p><div className="rex-demo-actions"><button className="btn btn--primary" onClick={() => setFeedback("Link de exemplo copiado.")}>Copiar link de exemplo</button></div></section>; break;
     case "admin":
@@ -217,24 +216,33 @@ export function Prototype({ initial }: { initial: Screen }) {
       </section>; break;
   }
 
-  return <div className="workspace-shell rex-demo" data-prototype-screen={screen}>
-    <aside className={`workspace-sidebar rex-demo-nav${menuOpen ? " is-open" : ""}`}>
-      <div className="rex-workspace-brand"><Brand href="/prototipo" /></div>
-      <div className="workspace-company"><span className="workspace-company-icon"><Building2 size={20} /></span><div className="workspace-company-copy"><strong>Estúdio Exemplo</strong><span>Empresa de demonstração</span></div></div>
-      <nav aria-label="Telas do protótipo" className="workspace-navigation workspace-nav-scroll">
+  const demoNavigation = <nav aria-label="Telas do protótipo" className="workspace-navigation workspace-nav-scroll">
         {navigation.map(([id, label, Icon]) => <a key={id} href={prototypeHref(id)} data-prototype-target={id} className={`workspace-nav-link${screen === id ? " is-current" : ""}`} aria-current={screen === id ? "page" : undefined} onClick={(event) => { event.preventDefault(); go(id); }}><Icon size={18} aria-hidden="true" />{label}</a>)}
-      </nav>
+      </nav>;
+  return <div className="workspace-shell workspace-experience rex-demo" data-prototype-screen={screen}>
+    <aside className="workspace-sidebar rex-demo-nav">
+      <div className="workspace-brand-row"><Brand href="/prototipo" /></div>
+      {demoNavigation}
       <div className="rex-demo-nav-footer"><Link className="text-link" href="/">Página inicial <ArrowUpRight size={16} /></Link>{next("entrar", "Acesso")}</div>
     </aside>
+    <dialog className="workspace-drawer" ref={menu} aria-label="Menu do protótipo" onClose={() => menuButton.current?.focus()}>
+      <div className="workspace-drawer-inner">
+        <header className="workspace-brand-row"><Brand href="/prototipo" />
+          <button type="button" className="icon-button" aria-label="Fechar menu" onClick={() => menu.current?.close()} autoFocus><X size={21} aria-hidden="true" /></button>
+        </header>
+        {demoNavigation}
+        <div className="rex-demo-nav-footer"><Link className="text-link" href="/">Página inicial <ArrowUpRight size={16} /></Link>{next("entrar", "Acesso")}</div>
+      </div>
+    </dialog>
     <main id="conteudo" className="dashboard-main">
-      <header className="dashboard-header rex-demo-top"><button type="button" className="btn btn--secondary rex-demo-menu" onClick={() => setMenuOpen(!menuOpen)} aria-expanded={menuOpen} aria-label="Menu do protótipo" data-prototype-target="menu"><Menu size={18} /></button>
+      <header className="workspace-bar"><div className="workspace-bar-inner rex-demo-top"><button type="button" ref={menuButton} className="icon-button workspace-menu-button" onClick={() => menu.current?.showModal()} aria-haspopup="dialog" aria-label="Menu do protótipo" data-prototype-target="menu"><Menu size={18} /></button>
         <span>Protótipo · dados fictícios</span>
         <label className="rex-demo-select"><span className="sr-only">Ir para tela</span><select value={screen} onChange={(event) => go(event.target.value as Screen)}>
           {[...new Set(Object.values(screens).map(({ group }) => group))].map((group) => <optgroup key={group} label={group}>{(Object.keys(screens) as Screen[]).filter((id) => screens[id].group === group).map((id) => <option key={id} value={id}>{screens[id].title}</option>)}</optgroup>)}
         </select><ChevronDown size={15} aria-hidden="true" /></label>
-      </header>
+      </div></header>
       <div className="dashboard-content rex-demo-content rex-admin" key={screen}>
-        <header className="rex-page-intro"><h1 tabIndex={-1} ref={heading}>{info.title}</h1><p>{info.description}</p></header>
+        <header className="page-header"><h1 tabIndex={-1} ref={heading}>{info.title}</h1><p>{info.description}</p></header>
         {feedback && <p className="rex-admin-result" role="status">{feedback}</p>}
         {content}
       </div>

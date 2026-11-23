@@ -1,3 +1,4 @@
+import { PageHeader } from "@/components/page-header";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { after } from "next/server";
@@ -43,14 +44,13 @@ export default async function Certificates({ searchParams }: { searchParams: Pro
   }
   if (start) after(async () => {try {await processCertificateChecks(context.tenantId);} catch { /* Durable lease recovery. */ }});
   return <WorkspaceShell email={context.user.email} active="certificates" companyId={selected?.id}><div className="dashboard-content">
-    <span className="eyebrow">Identidade fiscal</span><h1>Seus certificados A1.</h1><p>Certificados independentes para cada CNPJ, com armazenamento protegido.</p>
+    <PageHeader title="Certificado A1" description="Adicione o certificado da empresa selecionada e acompanhe a verificação de acesso à SEFIN." />
     {capabilities?.data?.vault !== true || capabilities?.data?.certificates !== true || certificates.error ? <p className="save-notice">O armazenamento protegido ainda está em configuração. O upload de A1 permanece indisponível.</p> :
       companies.data.length ? <CertificateForm key={selected?.id} companies={companies.data.filter(company => company.id === selected?.id)} /> : <Link className="text-link" href="/painel/empresas/nova">Cadastrar empresa antes do certificado</Link>}
-    <div className="company-list">{certificates.data?.map(certificate => <article key={certificate.id} className="company-card certificate-card"><div>
+    <div className="company-list">{Boolean(certificates.data?.length) && <h2 className="list-title">Certificados da empresa</h2>}{certificates.data?.map(certificate => <article key={certificate.id} className="company-card certificate-card"><div>
       <h2>{companies.data.find(company => company.id===certificate.company_id)?.legal_name ?? "Empresa"}</h2>
       <p className="mono">{certificate.subject_cnpj}</p><p>Validade: {new Intl.DateTimeFormat("pt-BR",{dateStyle:"short",timeZone:"America/Sao_Paulo"}).format(new Date(certificate.valid_until))}</p>
       <span className="small-status">{certificate.status === "active" ? new Date(certificate.valid_until).getTime()<=renderTime ? "Vencido" : "Armazenado com proteção" : certificate.status === "replaced" ? "Substituído para novas operações" : "Desativado nesta conta"}</span>
     </div>{certificate.status === "active" && <div className="certificate-actions">{new Date(certificate.valid_until).getTime()>renderTime && <><AutomaticCertificateStatus verification={checkMap.get(certificate.id)} available={!checks.error}/><CertificateSefinDiagnostic id={certificate.id}/></>}<CertificateDeactivate id={certificate.id} /></div>}</article>)}</div>
-    <Link className="text-link" href="/painel">Voltar à visão geral</Link>
   </div></WorkspaceShell>;
 }

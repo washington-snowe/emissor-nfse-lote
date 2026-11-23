@@ -1,3 +1,4 @@
+import { PageHeader } from "@/components/page-header";
 import { FileCheck2, History, Search, Ticket, Users } from "lucide-react";
 import { WorkspaceShell } from "@/components/workspace";
 import { requireRexAdmin } from "@/lib/admin-credits";
@@ -19,11 +20,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
 
   return <WorkspaceShell active="admin">
     <div className="dashboard-content rex-admin">
-      <header className="rex-page-intro">
-        <p className="rex-label">Administração</p>
-        <h1>Créditos de emissão</h1>
-        <p>Libere notas gratuitas, consulte saldos e acompanhe o histórico de cada liberação.</p>
-      </header>
+      <PageHeader title="Créditos de emissão" description="Libere notas gratuitas e acompanhe os saldos e o histórico." />
       {!dashboard ? <p className="field-error" role="alert">O painel não pôde carregar. Atualize a página para tentar de novo.</p> : <>
         <div className="rex-admin-metrics" aria-label="Resumo dos créditos">
           {[
@@ -43,7 +40,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
             <label className="field"><span>Buscar conta por e-mail</span><input name="conta" defaultValue={query} type="search" maxLength={254} placeholder="E-mail da conta" /></label>
             <button className="btn btn--secondary" type="submit"><Search size={16} aria-hidden="true" /> Buscar</button>
           </form>
-          {dashboard.accounts.length ? <p className="field-help">{dashboard.accounts.length === 25 ? "Exibindo até 25 contas. Use a busca para localizar outra." : `${number.format(dashboard.accounts.length)} conta(s) encontrada(s).`}</p>
+          {dashboard.accounts.length ? <p className="field-help">{dashboard.accounts.length === 25 ? "Exibindo até 25 contas. Use a busca para localizar outra." : `${number.format(dashboard.accounts.length)} ${dashboard.accounts.length === 1 ? "conta encontrada" : "contas encontradas"}.`}</p>
             : <p className="field-help" role="status">Nenhuma conta confirmada encontrada.</p>}
           <ReleaseCreditForm key={query} accounts={dashboard.accounts} />
           <p className="field-help">Os créditos cobrem notas autorizadas em produção que ficariam fora da franquia do plano.</p>

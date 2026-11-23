@@ -1,3 +1,4 @@
+import { PageHeader } from "@/components/page-header";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -49,13 +50,9 @@ export default async function EditCompany({
   return (
     <WorkspaceShell email={context.user.email} active="companies" companyId={id}>
       <div className="dashboard-content company-page">
-        <span className="eyebrow">Empresas</span>
-        <h1>Dados da sua empresa.</h1>
-        <p>
-          Atualize as informações cadastrais. O CNPJ permanece vinculado à mesma
-          empresa.
-        </p>
-        <Link className="btn btn--secondary" href={`/painel/empresas/${id}/fiscal`}>Configurar dados fiscais</Link>
+        <PageHeader title="Cadastro da empresa" description={row.legal_name}
+          back={{ href: "/painel/empresas", label: "Empresas" }}
+          actions={<Link className="btn btn--secondary" href={`/painel/empresas/${id}/fiscal`}>Configuração fiscal</Link>} />
         <CompanyForm initial={initial} companyId={id} />
       </div>
     </WorkspaceShell>

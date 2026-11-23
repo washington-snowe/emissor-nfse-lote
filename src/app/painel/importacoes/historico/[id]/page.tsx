@@ -1,5 +1,5 @@
+import { PageHeader } from "@/components/page-header";
 import type {Metadata} from "next";
-import Link from "next/link";
 import {notFound} from "next/navigation";
 import {requireWorkspace} from "@/lib/tenancy-server";
 import {WorkspaceShell} from "@/components/workspace";
@@ -12,9 +12,9 @@ export default async function SavedReport({params}:{params:Promise<{id:string}>}
   if(!/^[0-9a-f-]{36}$/i.test(id))notFound();
   const report=await client.from("report_imports").select("company_id,file_name").eq("id",id).eq("tenant_id",context.tenantId).maybeSingle();
   if(report.error||!report.data)notFound();
-  return <WorkspaceShell email={context.user.email} active="imports" companyId={report.data.company_id}><div className="dashboard-content report-page">
-    <span className="eyebrow">Importação salva</span><h1>Revise seu relatório.</h1><p>{report.data.file_name}</p>
-    <Link className="text-link" href={`/painel/importacoes/historico?empresa=${report.data.company_id}`}>Voltar às importações</Link>
+  return <WorkspaceShell email={context.user.email} active="history" companyId={report.data.company_id}><div className="dashboard-content report-page">
+    <PageHeader title="Revisão do relatório" description={report.data.file_name}
+      back={{ href: `/painel/importacoes/historico?empresa=${report.data.company_id}`, label: "Importações salvas" }} />
     <ImportedReportReview id={id}/>
   </div></WorkspaceShell>;
 }

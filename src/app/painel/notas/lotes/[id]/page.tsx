@@ -1,8 +1,8 @@
+import { PageHeader } from "@/components/page-header";
 import {InvoiceEmailControls} from "@/components/invoice-email-controls";
 import {emailConfig} from "@/lib/email/config";
 import {attachEmailStatuses} from "@/lib/email/display";
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireWorkspace } from "@/lib/tenancy-server";
 import { WorkspaceShell } from "@/components/workspace";
@@ -21,9 +21,11 @@ export default async function Batch({ params }: { params: Promise<{ id: string }
   if (list.error) throw new Error("Fiscal batch unavailable");
   const operations = await attachEmailStatuses(client,context.tenantId,(list.data ?? []) as OperationDisplay[]);
   const diagnostics=await client.rpc("fiscal_diagnostics_ready");
-  return <WorkspaceShell email={context.user.email} active="invoices" companyId={batch.data.company_id}><div className="dashboard-content company-page"><span className="eyebrow">{batch.data.environment==='production'?'Produção':'Homologação'}</span><h1>{batch.data.origin === "standalone" ? "Sua nota avulsa." : "Seu lote de notas."}</h1><p>{operations.length} {operations.length === 1 ? "operação preparada" : "operações preparadas"}. Acompanhe o resultado fiscal de cada uma.</p>
+  return <WorkspaceShell email={context.user.email} active="invoices" companyId={batch.data.company_id}><div className="dashboard-content company-page"><PageHeader title={batch.data.origin === "standalone" ? "Nota avulsa" : "Lote de notas"}
+      description={`${operations.length} ${operations.length === 1 ? "nota" : "notas"} · ${batch.data.environment === "production" ? "Produção" : "Homologação"}`}
+      back={{ href: `/painel/notas?empresa=${batch.data.company_id}`, label: "Notas" }} />
     {(diagnostics.error||diagnostics.data!==true)&&<p className="save-notice">Novas transmissões aguardam a atualização do registro técnico. Operações já enviadas continuam permitindo somente consulta.</p>}
-    <Link className="text-link" href={`/painel/notas?empresa=${batch.data.company_id}`}>Voltar às emissões</Link><div className="standalone-actions report-back"><FiscalControls batchId={batch.data.id} /><FiscalRefresh waiting={operations.some(operation => ["queued", "preparing", "sending", "uncertain", "reconciling"].includes(operation.status))} /></div>
+    <div className="standalone-actions report-back"><FiscalControls batchId={batch.data.id} /><FiscalRefresh waiting={operations.some(operation => ["queued", "preparing", "sending", "uncertain", "reconciling"].includes(operation.status))} /></div>
     {emailConfig(process.env).enabled&&<InvoiceEmailControls batchId={batch.data.id} environment={batch.data.environment}/>}<FiscalOperationList operations={operations} />
   </div></WorkspaceShell>;
 }

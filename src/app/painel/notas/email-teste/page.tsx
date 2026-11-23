@@ -1,3 +1,4 @@
+import { PageHeader } from "@/components/page-header";
 import {randomUUID} from 'node:crypto';
 import type {Metadata} from 'next';
 import {WorkspaceShell} from '@/components/workspace';
@@ -13,7 +14,7 @@ export default async function ProviderTests(){
  const report=await client.rpc('email_provider_test_report');
  const tests=(Array.isArray(report.data)?report.data:[]) as ProviderTestDisplay[];
  const destinations=allowedTestDestinations(context.user.email,Boolean(context.user.email_confirmed_at),config.testTo);
- return <WorkspaceShell active="invoices"><div className="dashboard-content company-page"><span className="eyebrow">E-mails</span><h1>Confira a entrega.</h1>
+ return <WorkspaceShell active="emailTest"><div className="dashboard-content company-page"><PageHeader title="Teste de e-mails" description="Confira a entrega de uma mensagem por provedor em um endereço de teste." back={{ href: "/painel/notas", label: "Notas" }} />
   <EmailProviderTests request={randomUUID()} destinations={destinations} configured={config.enabled?config.providers:[]} sender={config.sender} ready={!report.error} tests={tests}/>
   <FiscalRefresh waiting={tests.some(test=>['queued','processing'].includes(test.status))}/>
  </div></WorkspaceShell>;

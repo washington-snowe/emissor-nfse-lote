@@ -1,3 +1,4 @@
+import { PageHeader } from "@/components/page-header";
 import type { Metadata } from "next";
 import Link from "next/link";
 import {notFound} from "next/navigation";
@@ -26,12 +27,12 @@ export default async function Imports({ searchParams }: { searchParams: Promise<
   const capabilities = admin ? await admin.rpc("workflow_capabilities") : null;
   return <WorkspaceShell email={context.user.email} active="imports" companyId={selected?.id}>
     <div className="dashboard-content report-page">
-      <span className="eyebrow">Relatórios de comissões</span>
-      <h1>Importar relatório da Shopee</h1>
-      <p>Escolha o CSV do mês e revise os dados antes de confirmar a emissão.</p>
-      <Link href={selected ? `/painel/importacoes/historico?empresa=${selected.id}` : "/painel/importacoes/historico"} className="text-link">Ver importações salvas</Link>
-      {relatorio?<><Link className="text-link report-back" href={`/painel/importacoes?empresa=${selected?.id??""}`}>Importar outro relatório</Link><ImportedReportReview id={relatorio}/></>:<ReportPreview key={selected?.id} automaticUpload initialCompanyId={selected?.id} companies={data} saveAction={capabilities?.data?.imports === true ? saveReport : undefined} />}
-      <Link href="/painel" className="text-link report-back">Voltar à visão geral</Link>
+      <PageHeader title={relatorio ? "Revisão do relatório" : "Notas em lote"}
+        description={relatorio ? "Confira os dados preparados a partir do CSV." : "Selecione o CSV mensal da Shopee para preparar as notas do lote."}
+        actions={<Link href={relatorio ? `/painel/importacoes?empresa=${selected?.id ?? ""}` : selected ? `/painel/importacoes/historico?empresa=${selected.id}` : "/painel/importacoes/historico"} className="btn btn--secondary">
+          {relatorio ? "Importar outro relatório" : "Importações salvas"}
+        </Link>} />
+      {relatorio ? <ImportedReportReview id={relatorio} /> :<ReportPreview key={selected?.id} automaticUpload initialCompanyId={selected?.id} companies={data} saveAction={capabilities?.data?.imports === true ? saveReport : undefined} />}
     </div>
   </WorkspaceShell>;
 }

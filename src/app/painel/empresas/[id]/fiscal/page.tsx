@@ -1,3 +1,4 @@
+import { PageHeader, PageTabs } from "@/components/page-header";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -32,12 +33,17 @@ export default async function FiscalConfiguration({ params, searchParams }: { pa
   const fullQuery = modo === "completo" ? "&modo=completo" : "";
   const available = Boolean(createAdminClient()) && !current.error;
   return <WorkspaceShell email={context.user.email} active={active} companyId={company.data.id}><div className="dashboard-content company-page">
-    <span className="eyebrow">Configuração fiscal</span><h1>{automatic ? "Sua empresa, sem complicação." : section === "service" ? "Serviço e tributação." : section === "advanced" ? "Configurações avançadas." : "Prepare sua empresa para emitir."}</h1><p>{company.data.legal_name}</p>
-    <Link className="text-link" href={`/painel/empresas/${company.data.id}`}>Voltar ao cadastro da empresa</Link>
-    <nav className="settings-tabs" aria-label="Configurações da empresa"><Link href={`/painel/empresas/${id}`}>Cadastro</Link><Link href={`${fiscalUrl}?secao=servico${fullQuery}`} aria-current={active === "service" ? "page" : undefined}>Serviço</Link><Link href={`${fiscalUrl}?secao=avancado${fullQuery}`} aria-current={active === "advanced" ? "page" : undefined}>Avançado</Link></nav>
+    <PageHeader title={active === "advanced" ? "Configuração avançada" : active === "service" ? "Serviço e tributação" : "Configuração fiscal"} description={company.data.legal_name}
+      back={{ href: `/painel/empresas/${company.data.id}`, label: "Cadastro da empresa" }}
+      actions={!automatic && <Link className="btn btn--secondary" href={fiscalUrl}>Configuração automática</Link>} />
+    <PageTabs label="Configurações da empresa" items={[
+      { href: `/painel/empresas/${id}`, label: "Cadastro" },
+      { href: `${fiscalUrl}?secao=servico${fullQuery}`, label: "Serviço", current: active === "service" },
+      { href: `${fiscalUrl}?secao=avancado${fullQuery}`, label: "Avançado", current: active === "advanced" },
+      { href: `/painel/certificados?empresa=${id}`, label: "Certificado" },
+    ]} />
     {!parsed && !automatic && <p className="save-notice">Personalize os parâmetros aplicáveis à sua operação. Depois você poderá editar Serviço e Avançado separadamente.</p>}
-    {!automatic && <Link className="text-link" href={fiscalUrl}>Voltar à configuração automática</Link>}
-    {!available ? <section className="dashboard-welcome"><h2>Configuração fiscal indisponível.</h2><p>Verifique a configuração privada do servidor, a migração de perfis fiscais e se o enquadramento da empresa foi alterado desde a última versão.</p></section> :
+    {!available ? <section className="dashboard-welcome"><h2>Configuração fiscal indisponível</h2><p>Não foi possível carregar os dados fiscais. Tente novamente em instantes.</p></section> :
       automatic ? <AutomaticAffiliateSummary companyId={company.data.id} regime={company.data.tax_regime} initial={initial} reason={setup?.reason}
         municipality={[company.data.address?.city, company.data.address?.state].filter(value => typeof value === "string" && value).join(" / ")}
         /> :

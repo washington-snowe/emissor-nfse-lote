@@ -1,10 +1,10 @@
-export type WorkspaceArea = "overview" | "companies" | "imports" | "invoices" | "standalone" | "service" | "advanced" | "certificates" | "profile" | "login" | "subscription" | "referrals" | "admin";
+export type WorkspaceArea = "overview" | "companies" | "imports" | "invoices" | "standalone" | "service" | "advanced" | "certificates" | "profile" | "login" | "subscription" | "referrals" | "admin" | "history" | "emailTest";
 export type NavigationCompany = { id: string; legal_name: string; cnpj: string };
 export const COMPANY_COOKIE = "emissor_company";
 export function workspaceDestination(area: string, companyId?: string) {
   const company = companyId && /^[0-9a-f-]{36}$/i.test(companyId) ? companyId : undefined;
   const paths: Record<WorkspaceArea, string> = {
-    admin: "/painel/admin", overview: "/painel", invoices: "/painel/notas", imports: "/painel/importacoes", standalone: "/painel/importacoes",
+    admin: "/painel/admin", history: "/painel/importacoes/historico", emailTest: "/painel/notas/email-teste", overview: "/painel", invoices: "/painel/notas", imports: "/painel/importacoes", standalone: "/painel/importacoes",
     companies: company ? `/painel/empresas/${company}` : "/painel/empresas",
     service: company ? `/painel/empresas/${company}/fiscal?secao=servico` : "/painel/empresas",
     advanced: company ? `/painel/empresas/${company}/fiscal?secao=avancado` : "/painel/empresas",
@@ -12,7 +12,7 @@ export function workspaceDestination(area: string, companyId?: string) {
     subscription: "/painel/conta/assinatura", referrals: "/painel/conta/indicacoes",
   };
   const path = Object.hasOwn(paths, area) ? paths[area as WorkspaceArea] : "/painel";
-  return company && ["overview","invoices","imports","standalone","certificates"].includes(area) ? `${path}?empresa=${company}` : path;
+  return company && ["overview","invoices","imports","standalone","certificates","history"].includes(area) ? `${path}?empresa=${company}` : path;
 }
 export function chooseCompany(companies: NavigationCompany[], requested?: string) {
   return companies.find(company => company.id === requested) ?? companies[0] ?? null;

@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState, useEffect } from "react";
-import { ArrowRight, LoaderCircle } from "lucide-react";
+import { useActionState, useEffect, useState } from "react";
+import { ArrowRight, Eye, EyeOff, LoaderCircle } from "lucide-react";
 import { signIn, signUp } from "@/app/auth/actions";
 import type { AuthState } from "@/lib/auth-validation";
 
@@ -11,6 +11,8 @@ export function AuthForm({ signup = false, referral }: { signup?: boolean; refer
     signup ? signUp : signIn,
     {},
   );
+  const [email, setEmail] = useState("");
+  const [visible, setVisible] = useState(false);
   useEffect(() => {
     const first = state.fields?.email
       ? "email"
@@ -20,7 +22,7 @@ export function AuthForm({ signup = false, referral }: { signup?: boolean; refer
     if (first) document.getElementById(first)?.focus();
   }, [state]);
   return (
-    <form action={action} className="auth-form">
+    <form action={action} className="auth-form" onSubmit={() => setVisible(false)}>
       {signup && referral && <input type="hidden" name="referral" value={referral} />}
       <div className="field">
         <label htmlFor="email">E-mail</label>
@@ -28,6 +30,8 @@ export function AuthForm({ signup = false, referral }: { signup?: boolean; refer
           id="email"
           name="email"
           type="email"
+          value={email}
+          onChange={event => setEmail(event.target.value)}
           autoComplete="email"
           maxLength={254}
           required
@@ -42,10 +46,10 @@ export function AuthForm({ signup = false, referral }: { signup?: boolean; refer
       </div>
       <div className="field">
         <label htmlFor="password">Senha</label>
-        <input
+        <div className="password-input"><input
           id="password"
           name="password"
-          type="password"
+          type={visible ? "text" : "password"}
           autoComplete={signup ? "new-password" : "current-password"}
           minLength={signup ? 12 : undefined}
           maxLength={128}
@@ -55,6 +59,10 @@ export function AuthForm({ signup = false, referral }: { signup?: boolean; refer
             signup ? "password-help password-error" : "password-error"
           }
         />
+          <button type="button" className="icon-button" aria-label={visible ? "Ocultar senha" : "Mostrar senha"} onClick={() => setVisible(!visible)}>
+            {visible ? <EyeOff size={18} aria-hidden="true" /> : <Eye size={18} aria-hidden="true" />}
+          </button>
+        </div>
         {signup && (
           <p className="field-hint" id="password-help">
             Use pelo menos 12 caracteres.
@@ -76,7 +84,7 @@ export function AuthForm({ signup = false, referral }: { signup?: boolean; refer
           </>
         ) : (
           <>
-            {signup ? "Criar minha conta" : "Acessar minha conta"}
+            {signup ? "Criar conta" : "Entrar"}
             <ArrowRight size={18} aria-hidden="true" />
           </>
         )}

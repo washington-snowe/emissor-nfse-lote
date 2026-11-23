@@ -4,6 +4,7 @@ import Script from "next/script";
 import "@fontsource-variable/outfit";
 import "@fontsource/dm-mono/400.css";
 import "./globals.css";
+import "./experience.css";
 
 export const metadata: Metadata = {
   title: {
@@ -16,7 +17,7 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
   other: { "page-type": "software", "site-kind": "software" },
 };
-export const viewport: Viewport = { themeColor: "#f8f8f8" };
+export const viewport: Viewport = { themeColor: "#f7f6f3" };
 
 export default function RootLayout({
   children,
@@ -25,7 +26,7 @@ export default function RootLayout({
     <html
       lang="pt-BR"
       data-type="software"
-      data-radius="sharp"
+      data-radius="soft"
       data-buttons="solid"
       data-motion="on"
       suppressHydrationWarning
