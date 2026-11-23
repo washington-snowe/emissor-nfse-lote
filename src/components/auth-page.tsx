@@ -19,19 +19,13 @@ export function AuthPage({
       <aside className="auth-story">
         <Brand inverse />
         <div>
-          <span className="eyebrow">Seu espaço de trabalho</span>
-          <h2>
-            O começo de uma
-            <br />
-            rotina mais organizada.
-          </h2>
+          <h2>Suas notas da Shopee, em lote.</h2>
           <p>
-            Uma conta para acompanhar a preparação das suas empresas, comissões
-            e notas.
+            Importe as comissões e acompanhe cada nota pelo Rex.
           </p>
           <ul>
             <li>
-              <Check size={18} aria-hidden="true" /> Foco em afiliados PJ
+              <Check size={18} aria-hidden="true" /> Para afiliados da Shopee
             </li>
             <li>
               <Check size={18} aria-hidden="true" /> Empresas com configurações
@@ -44,7 +38,7 @@ export function AuthPage({
           </ul>
         </div>
         <span className="auth-story-footer">
-          Emissor · Projeto em desenvolvimento
+          Rex Notas
         </span>
       </aside>
       <div className="auth-main">

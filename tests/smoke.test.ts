@@ -10,7 +10,7 @@ test(
     assert.equal(home.status, 200);
     assert.equal(home.headers.get("x-content-type-options"), "nosniff");
     assert.equal(home.headers.get("x-frame-options"), "DENY");
-    assert.match(await home.text(), /NFS-e para/);
+    assert.match(await home.text(), /Emita suas notas em lote/);
     for (const path of ["/entrar", "/criar-conta"]) {
       const response = await fetch(`${origin}${path}`);
       assert.equal(response.status, 200);

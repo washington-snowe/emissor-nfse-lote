@@ -27,8 +27,8 @@ export default async function Imports({ searchParams }: { searchParams: Promise<
   return <WorkspaceShell email={context.user.email} active="imports" companyId={selected?.id}>
     <div className="dashboard-content report-page">
       <span className="eyebrow">Relatórios de comissões</span>
-      <h1>Confira seu relatório da Shopee.</h1>
-      <p>Escolha o CSV, confira as notas previstas e confirme a revisão para iniciar seu lote em homologação.</p>
+      <h1>Importar relatório da Shopee</h1>
+      <p>Escolha o CSV do mês e revise os dados antes de confirmar a emissão.</p>
       <Link href={selected ? `/painel/importacoes/historico?empresa=${selected.id}` : "/painel/importacoes/historico"} className="text-link">Ver importações salvas</Link>
       {relatorio?<><Link className="text-link report-back" href={`/painel/importacoes?empresa=${selected?.id??""}`}>Importar outro relatório</Link><ImportedReportReview id={relatorio}/></>:<ReportPreview key={selected?.id} automaticUpload initialCompanyId={selected?.id} companies={data} saveAction={capabilities?.data?.imports === true ? saveReport : undefined} />}
       <Link href="/painel" className="text-link report-back">Voltar à visão geral</Link>

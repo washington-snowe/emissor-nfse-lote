@@ -1,12 +1,13 @@
 "use client";
 import Link from "next/link";
+import { Brand } from "@/components/brand";
 import { useState, useTransition } from "react";
 import { Building2, ChevronDown, ChevronsUpDown, CreditCard, FileText, House, KeyRound, Layers, LogOut, Menu, ReceiptText, Settings2, Share2, ShieldCheck, UploadCloud, UserRound } from "lucide-react";
 import { signOut } from "@/app/auth/actions";
 import { selectWorkspaceCompany } from "@/app/painel/navigation-actions";
 import { chooseCompany, formatCompanyDocument, workspaceDestination, type NavigationCompany, type WorkspaceArea } from "@/lib/workspace-navigation";
-export function WorkspaceShell({ email, name, active = "overview", companies = [], companyId, children }: {
-  email?: string; name?: string; active?: WorkspaceArea; companies?: NavigationCompany[]; companyId?: string; children: React.ReactNode;
+export function WorkspaceShell({ email, name, active = "overview", companies = [], companyId, canAdmin = false, children }: {
+  canAdmin?: boolean; email?: string; name?: string; active?: WorkspaceArea; companies?: NavigationCompany[]; companyId?: string; children: React.ReactNode;
 }) {
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState("");
@@ -32,10 +33,11 @@ export function WorkspaceShell({ email, name, active = "overview", companies = [
     <details className="workspace-nav-group" open><summary><Settings2 size={19} aria-hidden="true" /><span>Conta</span><ChevronDown size={16} aria-hidden="true" /></summary><div className="workspace-subnav">
       {link("profile", "Perfil", UserRound)}{link("login", "Login", KeyRound)}{link("subscription", "Assinatura", CreditCard)}{link("referrals", "Indicações", Share2)}
     </div></details>
+    {canAdmin && link("admin", "Administração", ShieldCheck)}
   </nav>;
   const account = <details className="workspace-account"><summary><span className="workspace-avatar">{displayName.slice(0, 1).toLocaleUpperCase("pt-BR")}</span><span className="workspace-account-copy"><strong>{displayName}</strong><span>{email}</span></span><ChevronsUpDown size={16} aria-hidden="true" /></summary><div className="workspace-account-actions"><Link href="/painel/conta/perfil">Meu perfil</Link><form action={signOut}><button type="submit"><LogOut size={17} aria-hidden="true" /> Sair da conta</button></form></div></details>;
-  return <div className="dashboard-shell workspace-shell"><aside className="workspace-sidebar">{companyPicker("desktop")}<div className="workspace-nav-scroll">{navigation}</div>{account}</aside>
-    <main id="conteudo" className="dashboard-main"><header className="dashboard-header"><span>{selected?.legal_name || "Seu espaço de trabalho"}</span><span className="user-email">{email}</span></header>
+  return <div className="dashboard-shell workspace-shell"><aside className="workspace-sidebar"><div className="rex-workspace-brand"><Brand href="/painel" /></div>{companyPicker("desktop")}<div className="workspace-nav-scroll">{navigation}</div>{account}</aside>
+    <main id="conteudo" className="dashboard-main"><header className="dashboard-header"><div className="rex-mobile-brand"><Brand href="/painel" /></div><span>{selected?.legal_name || "Seu espaço de trabalho"}</span><span className="user-email">{email}</span></header>
       <details className="workspace-mobile-navigation"><summary><Menu size={18} aria-hidden="true" /> Menu do painel<ChevronDown size={16} aria-hidden="true" /></summary><div className="workspace-mobile-content">
         {companyPicker("mobile")}{navigation}{account}
       </div></details>{children}</main></div>;

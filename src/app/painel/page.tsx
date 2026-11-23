@@ -29,16 +29,14 @@ export default async function Dashboard({
   return (
     <WorkspaceShell email={context.user.email} companyId={selected?.id}>
       <div className="dashboard-content">
-        <span className="eyebrow">Seu espaço de trabalho</span>
-        <h1>Suas emissões, em um só lugar.</h1>
-        <p>Importe seu relatório e acompanhe a revisão e o processamento das notas.</p>
+        <header className="rex-page-intro"><h1>Visão geral</h1><p>Importe suas comissões e acompanhe a emissão das notas.</p></header>
         {!totals.error && <dl className="report-totals"><div><dt>Empresas cadastradas</dt><dd>{count}</dd></div><div><dt>Operações na fila</dt><dd>{["queued", "blocked", "preparing", "sending", "uncertain", "reconciling"].reduce((sum, key) => sum + (totals.data?.[key] ?? 0), 0)}</dd></div><div><dt>Notas autorizadas</dt><dd>{totals.data?.authorized ?? 0}</dd></div></dl>}
         {status === "logout-error" && (
           <p className="field-error" role="alert">
             Não foi possível encerrar a sessão. Tente sair novamente.
           </p>
         )}
-        <section className="dashboard-welcome" aria-labelledby="next-steps">
+        <section className="dashboard-welcome rex-dashboard-hero" aria-labelledby="next-steps">
           <span className="welcome-icon">
             <Building2 size={36} strokeWidth={1.4} aria-hidden="true" />
           </span>

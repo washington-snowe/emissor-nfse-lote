@@ -1,0 +1,28 @@
+export const screens = {
+  inicio: { title: "Visão geral", description: "Importe suas comissões e acompanhe a emissão das notas.", group: "Painel" },
+  importar: { title: "Importar relatório da Shopee", description: "Escolha o CSV do mês e revise os dados antes de confirmar a emissão.", group: "Emissão" },
+  revisar: { title: "Revisar lote", description: "Confirme a competência, o tomador e os valores das notas.", group: "Emissão" },
+  lote: { title: "Lote de outubro", description: "Acompanhe o processamento de cada NFS-e.", group: "Emissão" },
+  notas: { title: "Notas", description: "Consulte as emissões e baixe os documentos autorizados.", group: "Emissão" },
+  nota: { title: "Detalhe da nota", description: "Veja os dados fiscais e os arquivos disponíveis para download.", group: "Emissão" },
+  historico: { title: "Importações salvas", description: "Abra os relatórios que você já importou.", group: "Emissão" },
+  relatorio: { title: "Relatório de outubro", description: "Confira a origem dos valores e a revisão salva.", group: "Emissão" },
+  empresas: { title: "Empresas", description: "Gerencie os CNPJs usados para emitir suas notas.", group: "Empresa" },
+  cadastrar: { title: "Cadastrar empresa", description: "Digite o CNPJ para consultar os dados cadastrais.", group: "Empresa" },
+  cadastro: { title: "Cadastro da empresa", description: "Confira os dados do seu CNPJ.", group: "Empresa" },
+  servico: { title: "Serviço", description: "Configure a descrição e o enquadramento do serviço.", group: "Empresa" },
+  avancado: { title: "Configuração avançada", description: "Consulte os parâmetros fiscais que a empresa usa para emitir.", group: "Empresa" },
+  certificado: { title: "Certificado A1", description: "Acompanhe a validade e a verificação de acesso à SEFIN.", group: "Empresa" },
+  perfil: { title: "Meu perfil", description: "Escolha o nome exibido na sua conta.", group: "Conta" },
+  login: { title: "Login e segurança", description: "Consulte o e-mail de acesso e gerencie sua senha.", group: "Conta" },
+  assinatura: { title: "Sua assinatura", description: "Veja os planos, o consumo do mês e os pagamentos.", group: "Conta" },
+  indicacoes: { title: "Indicações", description: "Compartilhe seu link e acompanhe quem você indicou.", group: "Conta" },
+  admin: { title: "Créditos de emissão", description: "Libere notas gratuitas, consulte saldos e acompanhe o histórico.", group: "Administração" },
+  codigo: { title: "Confirmar liberação", description: "Digite o código enviado ao e-mail de administrador.", group: "Administração" },
+  liberado: { title: "Créditos liberados", description: "A conta já pode usar o saldo nas próximas notas elegíveis.", group: "Administração" },
+  entrar: { title: "Acesse sua conta", description: "Entre para acessar seu espaço de trabalho.", group: "Acesso" },
+  criar: { title: "Crie sua conta", description: "Comece pelo seu e-mail e uma senha.", group: "Acesso" },
+  verificar: { title: "Confira seu e-mail", description: "Use o link de confirmação para acessar sua conta.", group: "Acesso" },
+} as const;
+
+export type Screen = keyof typeof screens;

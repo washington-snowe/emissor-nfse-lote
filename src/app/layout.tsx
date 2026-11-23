@@ -7,11 +7,12 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: {
-    default: "Emissor — NFS-e para afiliados",
-    template: "%s | Emissor",
+    default: "Rex Notas — NFS-e em lote para afiliados",
+    template: "%s | Rex Notas",
   },
   description:
-    "Projeto de emissão de NFS-e para afiliados PJ. Acompanhe a preparação do seu espaço de trabalho.",
+    "Importe seu relatório da Shopee, revise os dados e emita NFS-e em lote pelo Rex.",
+  icons: { icon: "/brand/rex-mascote.png" },
   robots: { index: false, follow: false },
   other: { "page-type": "software", "site-kind": "software" },
 };

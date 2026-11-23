@@ -15,7 +15,10 @@ type Subscription={id:string;plan_code:string;cadence:StoredCadence;status:strin
 type Payment={id:string;status:string;paid_cents:string;refunded_cents:string;created_at:string;hosted_url:string|null};
 export default async function SubscriptionPage({searchParams}:{searchParams:Promise<{retorno?:string}>}) {
  const {client}=await requireWorkspace(), config=stripeConfig(), {retorno}=await searchParams;
- const summary=await client.rpc("billing_account_summary",{p_live:config?.live??false});
+ const [summary, credits] = await Promise.all([
+  client.rpc("billing_account_summary", { p_live: config?.live ?? false }),
+  client.rpc("rex_note_credit_balance"),
+ ]);
  const data=summary.data as {subscriptions?:Subscription[];payments?:Payment[];homologation_authorizations?:number;billable_authorizations?:number;overage_notes?:number}|null;
  const active=data?.subscriptions?.find(item=>!["canceled","incomplete_expired"].includes(item.status));
  const current=active??data?.subscriptions?.[0];
@@ -27,7 +30,7 @@ export default async function SubscriptionPage({searchParams}:{searchParams:Prom
  {retorno==="cancelado" && <p className="save-notice">Você voltou do checkout. Confira o status da assinatura antes de iniciar outra contratação.</p>}
  <FiscalRefresh waiting={retorno === "sucesso" && (!current || current.status === "incomplete" || !data?.payments?.some(payment => payment.status === "paid"))} />
  {summary.error ? <p className="save-notice">O histórico de assinaturas está aguardando configuração.</p> : <section className="account-section"><h2>{plan?.name??(current ? "Assinatura anterior" : "Sem assinatura contratada")}</h2>{current && <><p>{labels[current.status]??"Em atualização"} · {cadenceLabels[current.cadence]}</p><p>{current.cancel_at_period_end ? "Cancelamento agendado para" : "Fim do período atual"}: {date(current.period_end)}</p><ManageSubscription request={randomUUID()} ready={ready} /></>}
- <dl className="report-totals"><div><dt>Notas faturáveis no mês da assinatura</dt><dd>{data?.billable_authorizations??0}{plan ? ` / ${plan.includedNotes.toLocaleString("pt-BR")}`:""}</dd></div><div><dt>Autorizações em homologação · não faturadas</dt><dd>{data?.homologation_authorizations??0}</dd></div></dl></section>}
+ <dl className="report-totals">{!credits.error && Number(credits.data) > 0 && <div><dt>Créditos de notas gratuitas</dt><dd>{Number(credits.data).toLocaleString("pt-BR")}</dd></div>}<div><dt>Notas faturáveis no mês da assinatura</dt><dd>{data?.billable_authorizations??0}{plan ? ` / ${plan.includedNotes.toLocaleString("pt-BR")}`:""}</dd></div><div><dt>Autorizações em homologação · não faturadas</dt><dd>{data?.homologation_authorizations??0}</dd></div></dl></section>}
  <SubscriptionPlans ready={ready} request={randomUUID()} currentPlan={active?.plan_code} currentCadence={active?.cadence} currentStatus={active?.status}/>
  <section className="account-section"><h2>Histórico de pagamentos</h2>{data?.payments?.length ? <div className="company-list">{data.payments.map(payment=><article className="company-card" key={payment.id}><div><h3>{money(payment.paid_cents)}</h3><p>{date(payment.created_at)} · {payment.status==="paid" ? "Pago" : payment.status==="open" ? "Em aberto" : payment.status==="void" ? "Anulado" : "Em atualização"}</p>{BigInt(payment.refunded_cents)>0n && <p>Estornado: {money(payment.refunded_cents)}</p>}</div>{stripeUrl(payment.hosted_url,"invoice") && <a className="text-link" href={payment.hosted_url!} target="_blank" rel="noopener noreferrer">Ver fatura na Stripe</a>}</article>)}</div>:<p>Nenhum pagamento registrado.</p>}</section>
  </div></WorkspaceShell>;

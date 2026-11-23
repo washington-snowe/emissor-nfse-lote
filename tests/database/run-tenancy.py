@@ -92,7 +92,7 @@ try:
     assert access_count and int(access_count[1]) >= 40, "Authenticated access assertions did not complete"
     print(f"Password-session access/isolation: {access_count[1]} assertions passed (Auth gateway claims simulated)")
 
-    for filename, marker, minimum in [("account-navigation.sql", "NAVIGATION_ASSERTIONS", 18), ("billing.sql", "BILLING_ASSERTIONS", 25), ("billing-usage.sql", "USAGE_ASSERTIONS", 15), ("automatic-certificate-checks.sql", "AUTOMATIC_ASSERTIONS", 25), ("invoice-emails.sql", "EMAIL_ASSERTIONS", 20), ("email-provider-tests.sql", "PROVIDER_TEST_ASSERTIONS", 30)]:
+    for filename, marker, minimum in [("account-navigation.sql", "NAVIGATION_ASSERTIONS", 18), ("billing.sql", "BILLING_ASSERTIONS", 25), ("billing-usage.sql", "USAGE_ASSERTIONS", 15), ("admin-credits.sql", "CREDIT_ASSERTIONS", 20), ("automatic-certificate-checks.sql", "AUTOMATIC_ASSERTIONS", 25), ("invoice-emails.sql", "EMAIL_ASSERTIONS", 20), ("email-provider-tests.sql", "PROVIDER_TEST_ASSERTIONS", 30)]:
         result = sql((ROOT / "tests/database" / filename).read_text())
         matched = re.search(r"^" + marker + r"=(\d+)$", result, re.M)
         assert matched and int(matched[1]) >= minimum, "Account/billing assertions did not complete"

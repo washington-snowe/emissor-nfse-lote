@@ -1,17 +1,9 @@
 import Link from "next/link";
-import { Layers2 } from "lucide-react";
 
-export function Brand({ inverse = false }: { inverse?: boolean }) {
+export function Brand({ inverse = false, href = "/" }: { inverse?: boolean; href?: string }) {
   return (
-    <Link
-      className={`brand${inverse ? " brand-inverse" : ""}`}
-      href="/"
-      aria-label="Emissor, início"
-    >
-      <span className="brand-mark">
-        <Layers2 size={22} strokeWidth={1.7} aria-hidden="true" />
-      </span>
-      emissor<span className="brand-period">.</span>
+    <Link className={`brand rex-brand${inverse ? " rex-brand--inverse" : ""}`} href={href} aria-label="Rex Notas, início">
+      <span aria-hidden="true" />
     </Link>
   );
 }

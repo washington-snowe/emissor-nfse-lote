@@ -38,7 +38,7 @@ async function inspectDirectory(directory) {
 }
 
 const assets = new Set();
-for (const route of ["/", "/entrar", "/criar-conta"]) {
+for (const route of ["/", "/entrar", "/criar-conta", "/prototipo?tela=admin"]) {
   const response = await fetch(new URL(route, origin), { redirect: "error", signal: AbortSignal.timeout(15000) });
   assert.equal(response.status, 200, route);
   const body = await response.text();
@@ -57,7 +57,7 @@ for (const asset of assets) {
   inspect(await response.text(), asset);
 }
 
-for (const route of ["/painel", "/painel/certificados", "/painel/importacoes", "/painel/notas",
+for (const route of ["/painel", "/painel/admin", "/painel/certificados", "/painel/importacoes", "/painel/notas",
   "/painel/notas/documentos/00000000-0000-4000-8000-000000000001",
   "/painel/notas/documentos/00000000-0000-4000-8000-000000000001/danfse"]) {
   const response = await fetch(new URL(route, origin), { redirect: "manual", signal: AbortSignal.timeout(15000) });
@@ -72,4 +72,4 @@ for (const [route, method] of [["/api/jobs", "GET"], ["/api/jobs", "POST"], ["/a
   inspect(await response.text(), route);
 }
 const localAssets = process.env.FRONTEND_AUDIT_STATIC_DIR ? await inspectDirectory(process.env.FRONTEND_AUDIT_STATIC_DIR) : 0;
-console.log(JSON.stringify({ publicPages: 3, publicAssets: assets.size, protectedRoutes: 6, workerRequestsDenied: 3, localAssets }));
+console.log(JSON.stringify({ publicPages: 4, publicAssets: assets.size, protectedRoutes: 7, workerRequestsDenied: 3, localAssets }));
