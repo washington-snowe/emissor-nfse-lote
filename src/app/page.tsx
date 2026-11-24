@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { ArrowDown, ArrowRight, ArrowUpRight, ChevronDown } from "lucide-react";
 import { Brand } from "@/components/brand";
+import { LandingEligibility } from "@/components/landing-eligibility";
 import { LandingHeader } from "@/components/landing-header";
 import { LandingPricing } from "@/components/landing-pricing";
 import "./landing.css";
@@ -24,6 +25,17 @@ const answers = [
   { question: "Posso enviar as notas por e-mail?", answer: "Ao revisar um lote em produção, confira os endereços e autorize o envio aos vendedores. O painel mostra o status de cada entrega." },
   { question: "Onde baixo as notas emitidas?", answer: "Em Notas, você acompanha cada emissão e baixa o XML e o DANFS-e das notas autorizadas." },
 ];
+
+function supportHref() {
+  const raw = process.env.REX_SUPPORT_URL?.trim();
+  if (!raw) return;
+  try {
+    const url = new URL(raw);
+    if (["https:", "mailto:"].includes(url.protocol) && !url.username && !url.password) return url.href;
+  } catch {
+    // Leave the support link unavailable when it has no valid destination.
+  }
+}
 
 export default function Home() {
   return <div className="landing">
@@ -85,6 +97,7 @@ export default function Home() {
         </div>
       </section>
 
+      <LandingEligibility supportHref={supportHref()} />
       <LandingPricing />
 
       <section className="landing-faq" aria-labelledby="faq-title">

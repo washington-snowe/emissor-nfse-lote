@@ -8,6 +8,7 @@ import {
   validateCompany,
 } from "../src/lib/companies.ts";
 import { fetchCnpj } from "../src/lib/cnpj-provider.ts";
+import { assessCnpjEligibility } from "../src/lib/cnpj-eligibility.ts";
 
 test("CNPJ valida dígitos numéricos e alfanuméricos sem descartar letras ou caracteres inválidos", () => {
   assert.equal(normalizeCnpj("12.abc.345/01de-35"), "12ABC34501DE35");
@@ -77,6 +78,26 @@ test("validação de gravação limita campos, datas, regime e atividades no bac
   assert.ok(
     !("tenant_id" in validateCompany({ ...input, tenant_id: "forjado" }).data!),
   );
+});
+
+test("consulta pública distingue perfil atendido, liberação assistida e cadastro inconclusivo", () => {
+  const registry = {
+    ...emptyCompany, city: "VÁRZEA DA PALMA", state: "MG",
+    registration_status: "ATIVA", company_size: "DEMAIS", mei_option: false, simples_option: false,
+  };
+  assert.deepEqual(assessCnpjEligibility({ ...registry, mei_option: true, simples_option: true }), {
+    status: "available", profile: "MEI", location: "VÁRZEA DA PALMA / MG",
+  });
+  assert.deepEqual(assessCnpjEligibility({ ...registry, simples_option: true }), {
+    status: "assisted", profile: "Simples Nacional", location: "VÁRZEA DA PALMA / MG",
+  });
+  assert.deepEqual(assessCnpjEligibility({ ...registry, company_size: "MICRO EMPRESA" }), {
+    status: "assisted", profile: "Microempresa (ME)", location: "VÁRZEA DA PALMA / MG",
+  });
+  assert.equal(assessCnpjEligibility(registry).status, "unsupported");
+  assert.equal(assessCnpjEligibility({ ...registry, simples_option: null }).status, "unconfirmed");
+  assert.equal(assessCnpjEligibility({ ...registry, registration_status: "", mei_option: true }).status, "unconfirmed");
+  assert.equal(assessCnpjEligibility({ ...registry, registration_status: "BAIXADA", mei_option: true }).status, "inactive");
 });
 
 test("provedor recusa respostas trocadas e falhas e não consulta CNPJ inválido", async () => {

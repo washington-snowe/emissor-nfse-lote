@@ -90,8 +90,8 @@ html:has(.landing) { scroll-behavior: smooth; scroll-padding-top: calc(72px + 20
 .landing-glasses { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
 .landing-glasses-sweep { opacity: 0; stroke: #f1f1f1; stroke-width: 9px; stroke-linecap: round; }
 
-.landing-flow, .landing-pricing, .landing-simulator, .landing-faq { padding-block: clamp(54px, 8vw, 114px); }
-.landing :is(.landing-flow, .landing-pricing, .landing-simulator, .landing-faq) h2 {
+.landing-flow, .landing-eligibility, .landing-pricing, .landing-tutorials, .landing-simulator, .landing-faq { padding-block: clamp(54px, 8vw, 114px); }
+.landing :is(.landing-eligibility, .landing-pricing, .landing-tutorials, .landing-simulator, .landing-faq) h2 {
   font-size: clamp(36px, 4.55vw, 65px);
   letter-spacing: -.054em;
   line-height: 1.04;
@@ -207,6 +207,53 @@ html:has(.landing) { scroll-behavior: smooth; scroll-padding-top: calc(72px + 20
 .landing-carousel-controls .icon-button:not(:disabled):hover { border-color: var(--ink); }
 .landing-carousel-controls .icon-button:disabled { opacity: .36; }
 
+.landing-eligibility { border-block-start: 1px solid var(--line); }
+.landing .landing-eligibility-grid {
+  width: min(1090px, calc(100% - 2 * var(--space-edge)));
+  display: grid;
+  grid-template-columns: minmax(0, .93fr) minmax(0, 1fr);
+  align-items: start;
+  gap: clamp(26px, 6vw, 92px);
+}
+.landing-eligibility-intro { max-width: 37ch; color: var(--muted); margin: 14px 0 0; text-wrap: pretty; }
+.landing-eligibility-panel { padding: clamp(18px, 2.6vw, 28px); background: var(--wash); border: 1px solid var(--line); border-radius: 24px; }
+.landing-eligibility-panel label { display: block; font-size: 14px; font-weight: 550; margin-bottom: 8px; }
+.landing-eligibility-fields { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; }
+.landing-eligibility-fields input {
+  width: 100%;
+  min-height: 48px;
+  padding: 0 13px;
+  border: 1px solid var(--edge);
+  border-radius: var(--r-btn);
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  font-size: 16px;
+}
+.landing-eligibility-fields input[aria-invalid="true"] { border-color: var(--landing-error); }
+.landing-eligibility-result { border-top: 1px solid var(--line); margin-top: 16px; padding-top: 14px; }
+.landing-eligibility-result p { margin: 0; }
+.landing-eligibility-result p + p { margin-top: 4px; color: var(--muted); font-size: 14px; }
+.landing-eligibility-status { font-size: 18px; font-weight: 550; line-height: 1.25; }
+[data-eligibility="available"] .landing-eligibility-status { color: var(--landing-accent); }
+[data-eligibility="invalid"] .landing-eligibility-status { color: var(--landing-error); }
+.landing-eligibility-result .landing-eligibility-profile { color: var(--ink); font-weight: 520; }
+.landing-eligibility-result > a { margin-top: 10px; }
+
+.landing-tutorials { border-bottom: 1px solid var(--line); }
+.landing-tutorials-content { text-align: center; }
+.landing-tutorials h2 span { display: block; color: var(--muted); font-size: .75em; font-weight: 500; margin-top: 8px; }
+.landing-tutorials-grid {
+  width: min(100%, 480px);
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: clamp(10px, 2vw, 24px);
+  margin: clamp(24px, 4vw, 42px) auto 0;
+}
+.landing-tutorials-grid figure { min-width: 0; margin: 0; }
+.landing-video-slot { aspect-ratio: 9 / 16; background: #fff; border: 1px solid var(--line); border-radius: 20px; }
+.landing-tutorials-grid figcaption { margin-top: 10px; font-size: clamp(14px, 2vw, 17px); font-weight: 520; text-wrap: balance; }
+
 .landing-simulator-content { display: grid; justify-items: center; gap: clamp(17px, 3vw, 30px); }
 .landing-simulator-head { text-align: center; }
 .landing-simulator-head p { max-width: 56ch; margin: 13px auto 0; color: var(--muted); text-wrap: balance; }
@@ -269,7 +316,7 @@ html:has(.landing) { scroll-behavior: smooth; scroll-padding-top: calc(72px + 20
   .landing-circled-word path { animation: rex-draw-ring .94s .13s var(--landing-ease) both; }
   .landing-mascot-art { animation: rex-mascot-arrive .58s var(--landing-ease) both; }
   .landing-glasses-sweep { animation: rex-glasses-shine .8s .52s ease-in-out both; }
-  .landing-estimate:not(.landing-estimate-skeleton), .landing-questions details[open] p { animation: rex-reveal .21s ease-out both; }
+  .landing-estimate:not(.landing-estimate-skeleton), .landing-questions details[open] p, .landing-eligibility-result { animation: rex-reveal .21s ease-out both; }
   .landing-estimate-skeleton > [aria-hidden] { animation: rex-skeleton 1.1s ease-in-out infinite alternate; }
 }
 @keyframes rex-draw-ring { from { stroke-dasharray: 1; stroke-dashoffset: 1; } to { stroke-dasharray: 1; stroke-dashoffset: 0; } }
@@ -298,10 +345,12 @@ html:has(.landing) { scroll-behavior: smooth; scroll-padding-top: calc(72px + 20
   .landing-actions .btn { min-height: 47px; padding-inline: 14px; gap: 7px; }
   .landing-steps { --step-gap: 31px; grid-template-columns: minmax(0, 1fr); }
   .landing-step-arrow { top: calc(100% + 4px); left: 50%; width: 28px; height: 22px; transform: translateX(-50%) rotate(90deg); }
+  .landing .landing-eligibility-grid { grid-template-columns: minmax(0, 1fr); }
 }
 @media (max-width: 543px) {
   .landing-plan-carousel { --plan-width: 86%; }
   .landing-carousel-controls .icon-button { width: 44px; }
+  .landing-eligibility-fields { grid-template-columns: minmax(0, 1fr); }
   .landing-estimate-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .landing-estimate-metrics > :last-child { grid-column: 1 / -1; }
 }

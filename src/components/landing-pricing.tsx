@@ -6,6 +6,7 @@ import { ArrowLeft, ArrowRight, Upload } from "lucide-react";
 import { plans } from "@/lib/billing/catalog";
 import { formatFiscalBrl } from "@/lib/nfse/status";
 import { PlanCard } from "@/components/plan-card";
+import { LandingTutorials } from "@/components/landing-tutorials";
 
 const largestPlan = plans[plans.length - 1];
 const maximumVolume = largestPlan.includedNotes;
@@ -152,6 +153,8 @@ export function LandingPricing() {
         </div>}
       </div>
     </section>
+
+    <LandingTutorials />
 
     <section className="landing-simulator" id="simulador" aria-labelledby="simulador-titulo">
       <div className="site-width landing-simulator-content">

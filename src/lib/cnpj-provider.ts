@@ -6,7 +6,7 @@ import {
 
 export type LookupResult =
   | { data: CompanyDraft; error?: never }
-  | { error: string; data?: never };
+  | { error: string; data?: never; code?: "not_found" | "rate_limited" };
 
 export async function fetchCnpj(
   cnpj: string,
@@ -24,11 +24,13 @@ export async function fetchCnpj(
     );
     if (response.status === 404)
       return {
+        code: "not_found",
         error:
           "CNPJ não encontrado na base consultada. Você pode preencher os dados manualmente.",
       };
     if (response.status === 429)
       return {
+        code: "rate_limited",
         error:
           "A consulta está com limite temporário. Aguarde ou preencha manualmente.",
       };
