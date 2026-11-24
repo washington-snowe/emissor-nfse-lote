@@ -10,13 +10,14 @@ export function PlanIntervalToggle({ annual, onChange }: { annual: boolean; onCh
   </label>;
 }
 
-export function PlanCard({ plan, cadence, action, showBadge = true, estimate, recommended }: {
-  plan: Plan; cadence: Cadence; action: ReactNode; showBadge?: boolean; estimate?: string; recommended?: boolean;
+export function PlanCard({ plan, cadence, action, showBadge = true, recommended }: {
+  plan: Plan; cadence: Cadence; action: ReactNode; showBadge?: boolean; recommended?: boolean;
 }) {
   const featured = recommended ?? plan.code === "afiliado-pro";
   const price = planPrice(plan, cadence);
   const annual = cadence === "annual";
-  return <article className={`billing-plan${featured ? " billing-plan--featured" : ""}`} data-recommended={recommended || undefined}>
+  return <article className={`billing-plan${featured ? " billing-plan--featured" : ""}`}
+    data-recommended={recommended || undefined} tabIndex={recommended === undefined ? undefined : 0}>
     <div className="plan-card-heading">
       <h3>{plan.name}</h3>
       {featured && showBadge && <span className="billing-plan-badge">Mais Escolhido</span>}
@@ -27,7 +28,6 @@ export function PlanCard({ plan, cadence, action, showBadge = true, estimate, re
       <li><Check size={15} aria-hidden="true" />{plan.includedNotes.toLocaleString("pt-BR")} notas por mês</li>
       <li><Check size={15} aria-hidden="true" />{overagePrice(plan.overageUnits)} por nota excedente</li>
     </ul>
-    {estimate && <p className="plan-card-estimate">{estimate}</p>}
     <div className="plan-card-action">{action}</div>
   </article>;
 }
