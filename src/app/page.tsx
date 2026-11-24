@@ -63,7 +63,7 @@ export default function Home() {
         <div className="wrap landing-hero-grid">
           <div className="landing-hero-copy">
             <h1 id="hero-heading">
-              Emisor de NFSe<br />em <span className="landing-circled-word">
+              Emissor de NFS-e<br />em <span className="landing-circled-word">
                 lote
                 <svg viewBox="0 0 262 124" preserveAspectRatio="none" aria-hidden="true">
                   <path pathLength={1} d="M208 14C175 3 117 4 72 13 27 22 5 41 8 64c4 31 49 49 111 52 64 3 121-18 133-45 13-30-28-54-74-61-17-3-48-5-71-2" />

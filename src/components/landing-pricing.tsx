@@ -97,7 +97,12 @@ export function LandingPricing() {
         const nonpositive = review.issues.filter(issue => issue.code === "nonpositive_amount").length;
         setEstimate({ state: "ready", count: total.rowCount - nonpositive, total: total.amount });
       } else {
-        setEstimate({ state: "error", message: "Não foi possível ler o CSV. Confira se é o relatório mensal por vendedor da Shopee." });
+        const message = result.error?.code === "empty_report"
+          ? "O relatório está vazio. Selecione um CSV com linhas de comissão."
+          : result.error?.code === "row_limit"
+            ? "O relatório passou de 10.000 linhas. Selecione um CSV menor."
+            : "Não foi possível ler o CSV. Confira se é o relatório mensal por vendedor da Shopee.";
+        setEstimate({ state: "error", message });
       }
     } catch {
       setEstimate({ state: "error", message: "A leitura falhou. Selecione o arquivo novamente." });
@@ -121,10 +126,9 @@ export function LandingPricing() {
             </label>
             <label>
               <input type="radio" name="landing-cadence" checked={annual} onChange={() => setAnnual(true)} />
-              <span>Anual <small>−20%</small></span>
+              <span>Anual <small className="landing-discount-tag">−20%</small></span>
             </label>
           </fieldset>
-          <p>CNPJs sem limite em todos os planos.</p>
         </div>
         <div className="landing-volume" data-landing-reveal="row">
           <div><label htmlFor="landing-volume">Quantas notas você emite por mês?</label><span>{number.format(volume)}</span></div>
@@ -150,8 +154,8 @@ export function LandingPricing() {
             }
           }} tabIndex={0}>
           {plans.map(plan =>
-            <PlanCard key={plan.code} plan={plan} cadence={cadence} showBadge={false} recommended={plan.code === recommended.code}
-              action={<Link href="/criar-conta" className="btn btn--secondary" aria-label={`Começar agora com o plano ${plan.name}`}>Começar agora <ArrowRight size={16} aria-hidden="true" /></Link>} />,
+            <PlanCard key={plan.code} plan={plan} cadence={cadence} variant="landing" showBadge={false} recommended={plan.code === recommended.code}
+              action={<Link href="/criar-conta" className="btn btn--primary" aria-label={`Começar agora — ${plan.name}`}>Começar agora <ArrowRight size={16} aria-hidden="true" /></Link>} />,
           )}
         </div>
         {!(edges.atStart && edges.atEnd) && <div className="landing-carousel-controls">
@@ -205,7 +209,7 @@ export function LandingPricing() {
             <div role="status">
               <dl className="landing-estimate-metrics">
                 <div><dt>Notas estimadas</dt><dd>{number.format(estimate.count)}</dd></div>
-                <div><dt>Total de comissões</dt><dd>{formatFiscalBrl(estimate.total)}</dd></div>
+                <div><dt>Total do relatório</dt><dd>{formatFiscalBrl(estimate.total)}</dd></div>
                 <div><dt>Plano recomendado</dt><dd className="landing-estimate-plan">{reportPlan?.name ?? "—"}</dd>
                   {reportPlan && <dd className="landing-estimate-limit">Até {number.format(reportPlan.includedNotes)} notas por mês</dd>}
                 </div>
