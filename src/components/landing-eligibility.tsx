@@ -84,13 +84,13 @@ export function LandingEligibility({ supportHref }: { supportHref?: string }) {
 
   return <section className="landing-eligibility" id="consultar-cnpj" aria-labelledby="eligibility-title">
     <div className="wrap landing-eligibility-grid">
-      <div>
+      <div data-landing-reveal="heading">
         <h2 id="eligibility-title">Seu <span className="landing-ink-word">CNPJ<svg className="landing-ink-underline" viewBox="0 0 140 14" preserveAspectRatio="none" aria-hidden="true">
-          <path d="M3 9C34 3 71 3 108 6c10 1 21 2 29 1M67 11c23-2 46-2 62 0" />
+          <path pathLength={1} d="M3 9C34 3 71 3 108 6c10 1 21 2 29 1M67 11c23-2 46-2 62 0" />
         </svg></span> pode emitir pelo Rex?</h2>
         <p className="landing-eligibility-intro">Consulte o município do cadastro e veja se o Rex atende o perfil da sua empresa.</p>
       </div>
-      <div className="landing-eligibility-panel">
+      <div className="landing-eligibility-panel" data-landing-reveal="panel">
         <form onSubmit={check} aria-busy={pending}>
           <label htmlFor="eligibility-cnpj">CNPJ da empresa</label>
           <div className="landing-eligibility-fields">

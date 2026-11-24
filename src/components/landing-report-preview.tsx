@@ -4,7 +4,7 @@ import { money } from "@/lib/billing/catalog";
 import { demoReport, demoReportTotal } from "@/lib/demo-report";
 
 export function LandingReportPreview() {
-  return <div className="landing-report-preview app-frame" aria-labelledby="preview-report-title">
+  return <div className="landing-report-preview app-frame" aria-labelledby="preview-report-title" data-landing-reveal="panel">
     <div className="landing-report-header">
       <h3 id="preview-report-title">Revisão do lote</h3>
       <span>Demonstração</span>

@@ -5,11 +5,13 @@ import { ArrowDown, ArrowUpRight, ChevronDown } from "lucide-react";
 import { LandingEligibility } from "@/components/landing-eligibility";
 import { LandingFooter } from "@/components/landing-footer";
 import { LandingHeader } from "@/components/landing-header";
+import { LandingMotion } from "@/components/landing-motion";
 import { LandingPricing } from "@/components/landing-pricing";
 import { LandingReportPreview } from "@/components/landing-report-preview";
 import { money, plans } from "@/lib/billing/catalog";
 import { getPublicContact } from "@/lib/public-contact";
 import "./landing.css";
+import "./landing-motion.css";
 
 const homeUrl = "https://www.rexnotas.com.br";
 const shareImage = `${homeUrl}/brand/rex-mascote.png`;
@@ -53,7 +55,8 @@ const answers = [
 ];
 
 export default function Home() {
-  return <div className="landing">
+  return <div className="landing" data-landing-motion>
+    <LandingMotion />
     <LandingHeader />
     <main id="conteudo">
       <section className="landing-hero" aria-labelledby="hero-heading">
@@ -99,13 +102,13 @@ export default function Home() {
 
       <section className="landing-flow" id="como-funciona" aria-labelledby="workflow-title">
         <div className="wrap">
-          <h2 id="workflow-title">Emissão em três passos</h2>
+          <h2 id="workflow-title" data-landing-reveal="heading">Emissão em três passos</h2>
           <ol className="landing-steps">
-            {steps.map(({ title, copy }, index) => <li key={title}>
+            {steps.map(({ title, copy }, index) => <li key={title} data-landing-reveal="card">
               <span className="landing-step-number" aria-hidden="true">{index + 1}</span>
               <h3>{title}</h3><p>{copy}</p>
               {arrows[index] && <svg className="landing-step-arrow" viewBox="0 0 58 26" aria-hidden="true">
-                <path d={arrows[index]} />
+                <path pathLength={1} d={arrows[index]} />
               </svg>}
             </li>)}
           </ol>
@@ -118,9 +121,9 @@ export default function Home() {
 
       <section className="landing-faq" id="perguntas-frequentes" aria-labelledby="faq-title">
         <div className="wrap landing-faq-grid">
-          <h2 id="faq-title">Dúvidas frequentes</h2>
+          <h2 id="faq-title" data-landing-reveal="heading">Dúvidas frequentes</h2>
           <div className="landing-questions">
-            {answers.map(({ question, answer }) => <details key={question} name="landing-faq">
+            {answers.map(({ question, answer }) => <details key={question} name="landing-faq" data-landing-reveal="row">
               <summary>{question}<ChevronDown size={17} aria-hidden="true" /></summary>
               <p>{answer}</p>
             </details>)}

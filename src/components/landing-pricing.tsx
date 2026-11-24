@@ -109,9 +109,9 @@ export function LandingPricing() {
   return <>
     <section className="landing-pricing" id="planos" aria-labelledby="planos-titulo">
       <div className="wrap">
-        <div className="landing-pricing-head">
+        <div className="landing-pricing-head" data-landing-reveal="heading">
           <h2 id="planos-titulo">Planos e <span className="landing-ink-word landing-ink-accent">preços<svg className="landing-ink-underline" viewBox="0 0 140 14" preserveAspectRatio="none" aria-hidden="true">
-            <path d="M3 10C32 6 59 3 92 4c18 0 34 1 45 2" />
+            <path pathLength={1} d="M3 10C32 6 59 3 92 4c18 0 34 1 45 2" />
           </svg></span></h2>
           <fieldset className="landing-cadence">
             <legend className="sr-only">Período da assinatura</legend>
@@ -126,7 +126,7 @@ export function LandingPricing() {
           </fieldset>
           <p>CNPJs sem limite em todos os planos.</p>
         </div>
-        <div className="landing-volume">
+        <div className="landing-volume" data-landing-reveal="row">
           <div><label htmlFor="landing-volume">Quantas notas você emite por mês?</label><span>{number.format(volume)}</span></div>
           <input id="landing-volume" type="range" min={1} max={maximumVolume} value={volume}
             aria-valuetext={`${number.format(volume)} notas por mês. Plano recomendado: ${recommended.name}`}
@@ -165,11 +165,11 @@ export function LandingPricing() {
 
     <section className="landing-simulator" id="simulador" aria-labelledby="simulador-titulo">
       <div className="wrap landing-simulator-content">
-        <div className="landing-simulator-head">
+        <div className="landing-simulator-head" data-landing-reveal="heading">
           <h2 id="simulador-titulo">Estime suas notas pelo CSV</h2>
           <p>Veja quantas notas seu relatório pode gerar, o total de comissões e qual plano cobre esse volume. O arquivo é lido no seu navegador.</p>
         </div>
-        <div className="landing-file-panel">
+        <div className="landing-file-panel" data-landing-reveal="panel">
           <label className="landing-file-zone" data-dragging={dragging} data-busy={estimate.state === "loading"}
             onDragOver={event => {
               event.preventDefault();

@@ -8,11 +8,11 @@ export function LandingFooter() {
 
   return <footer className="landing-footer">
     <div className="wrap landing-footer-grid">
-      <div className="landing-footer-about">
+      <div className="landing-footer-about" data-landing-reveal="row">
         <Brand inverse />
         <p>Emissão de NFS-e em lote para afiliados da Shopee, a partir do relatório mensal de comissões.</p>
       </div>
-      <nav className="landing-footer-navigation" aria-label="Navegação do rodapé">
+      <nav className="landing-footer-navigation" aria-label="Navegação do rodapé" data-landing-reveal="row">
         <h2>Navegação</h2>
         <Link href="/#como-funciona">Como funciona</Link>
         <Link href="/#consultar-cnpj">Consultar CNPJ</Link>
@@ -20,11 +20,11 @@ export function LandingFooter() {
         <Link href="/#simulador">Simulador CSV</Link>
         <Link href="/#perguntas-frequentes">Dúvidas frequentes</Link>
       </nav>
-      {contact && <div className="landing-footer-contact">
+      {contact && <div className="landing-footer-contact" data-landing-reveal="row">
         <h2>Contato</h2>
         <a href={contact.href}>{contact.label}<ArrowUpRight size={15} aria-hidden="true" /></a>
       </div>}
-      <nav className="landing-footer-legal" aria-label="Documentos legais">
+      <nav className="landing-footer-legal" aria-label="Documentos legais" data-landing-reveal="row">
         <h2>Legal</h2>
         <Link href="/termos-de-uso">Termos de uso</Link>
         <Link href="/politica-de-privacidade">Política de privacidade</Link>
