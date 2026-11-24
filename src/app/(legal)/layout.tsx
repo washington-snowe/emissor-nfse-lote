@@ -8,12 +8,12 @@ import "../landing.css";
 export default function LegalLayout({ children }: { children: ReactNode }) {
   return <div className="landing">
     <header className="site-masthead legal-masthead">
-      <div className="site-width site-masthead-inner">
+      <div className="wrap site-masthead-inner">
         <Brand />
         <Link href="/" className="text-link"><ArrowLeft size={16} aria-hidden="true" /> Voltar ao site</Link>
       </div>
     </header>
-    <main id="conteudo" className="site-width legal-content">{children}</main>
+    <main id="conteudo" className="wrap legal-content">{children}</main>
     <LandingFooter />
   </div>;
 }

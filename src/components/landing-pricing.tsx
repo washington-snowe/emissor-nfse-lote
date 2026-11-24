@@ -106,7 +106,7 @@ export function LandingPricing() {
 
   return <>
     <section className="landing-pricing" id="planos" aria-labelledby="planos-titulo">
-      <div className="site-width">
+      <div className="wrap">
         <div className="landing-pricing-head">
           <h2 id="planos-titulo">Planos e <span className="landing-ink-word landing-ink-accent">preços<svg className="landing-ink-underline" viewBox="0 0 140 14" preserveAspectRatio="none" aria-hidden="true">
             <path d="M3 10C32 6 59 3 92 4c18 0 34 1 45 2" />
@@ -162,7 +162,7 @@ export function LandingPricing() {
     <LandingTutorials />
 
     <section className="landing-simulator" id="simulador" aria-labelledby="simulador-titulo">
-      <div className="site-width landing-simulator-content">
+      <div className="wrap landing-simulator-content">
         <div className="landing-simulator-head">
           <h2 id="simulador-titulo">Estime suas notas pelo CSV</h2>
           <p>Veja quantas notas seu relatório pode gerar, o total de comissões e qual plano cobre esse volume. O arquivo é lido no seu navegador.</p>

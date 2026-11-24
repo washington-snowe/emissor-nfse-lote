@@ -4,7 +4,8 @@ import { useCallback, useEffect, useRef, useState, type ReactNode } from "react"
 import Link from "next/link";
 import { ArrowDownToLine, ArrowRight, ArrowUpRight, Building2, ChevronDown, CircleCheck, CreditCard, FileSpreadsheet, FileText, History, House, KeyRound, Mail, Menu, Settings2, ShieldCheck, Ticket, Upload, UserRound, Users, X } from "lucide-react";
 import { Brand } from "@/components/brand";
-import { plans } from "@/lib/billing/catalog";
+import { money, plans } from "@/lib/billing/catalog";
+import { demoReport, demoReportTotal } from "@/lib/demo-report";
 import { PlanCard, PlanIntervalToggle } from "@/components/plan-card";
 import { screens, type Screen } from "./screens";
 
@@ -37,9 +38,9 @@ function NoteRows({ navigate }: { navigate: Navigate }) {
   return <div className="rex-admin-table-wrap" tabIndex={0} role="region" aria-label="Notas de demonstração">
     <table className="rex-admin-table">
       <thead><tr><th scope="col">Tomador</th><th scope="col">Valor</th><th scope="col">Situação</th><th scope="col">Detalhe</th></tr></thead>
-      <tbody>{["R$ 18,42", "R$ 21,33", "R$ 9,81", "R$ 47,25"].map((value, index) =>
-        <tr key={value}><td><strong>Marketplace de exemplo</strong><span>Nota {index + 1} · competência 31/10/2026</span></td>
-          <td>{value}</td><td><span className="fiscal-status" data-status="authorized">Autorizada</span></td>
+      <tbody>{demoReport.amountsInCents.map((value, index) =>
+        <tr key={index}><td><strong>{demoReport.recipient}</strong><span>Nota {index + 1} · competência {demoReport.competence}</span></td>
+          <td>{money(value)}</td><td><span className="fiscal-status" data-status="authorized">Autorizada</span></td>
           <td><a href={prototypeHref("nota")} data-prototype-target="nota" onClick={(event) => { event.preventDefault(); navigate("nota"); }}>Ver nota</a></td></tr>
       )}</tbody>
     </table>
@@ -88,9 +89,9 @@ export function Prototype({ initial }: { initial: Screen }) {
   const next = (to: Screen, label: string, primary = false) => <Go to={to} navigate={go} primary={primary}>{label}</Go>;
   const saved = () => setFeedback("Alteração simulada.");
   const summary = <Stats items={[
-    { label: "Notas previstas", value: "32", Icon: FileText },
-    { label: "Competência", value: "31/10/2026", Icon: FileSpreadsheet },
-    { label: "Total do lote", value: "R$ 784,20", Icon: Ticket },
+    { label: "Notas previstas", value: String(demoReport.amountsInCents.length), Icon: FileText },
+    { label: "Competência", value: demoReport.competence, Icon: FileSpreadsheet },
+    { label: "Total do lote", value: money(demoReportTotal), Icon: Ticket },
   ]} />;
   const info = screens[screen];
   let content: ReactNode;
@@ -100,13 +101,13 @@ export function Prototype({ initial }: { initial: Screen }) {
         <Stats items={[
           { label: "Empresas cadastradas", value: "1", Icon: Building2 },
           { label: "Operações na fila", value: "0", Icon: History },
-          { label: "Notas autorizadas", value: "32", Icon: CircleCheck },
+          { label: "Notas autorizadas", value: String(demoReport.amountsInCents.length), Icon: CircleCheck },
         ]} />
         <section className="rex-surface rex-demo-hero">
           <FileSpreadsheet size={28} aria-hidden="true" /><h2>Pronto para emitir o próximo lote?</h2>
           <p>Selecione o relatório de comissões da Shopee e confira a prévia das notas.</p>{next("importar", "Importar relatório", true)}
         </section>
-        <section className="rex-surface"><h2>Último lote</h2><p>Outubro de 2026 · 32 notas autorizadas</p><div className="rex-demo-actions">{next("lote", "Acompanhar lote")}{next("notas", "Ver notas")}</div></section>
+        <section className="rex-surface"><h2>Último lote</h2><p>Outubro de 2026 · {demoReport.amountsInCents.length} notas autorizadas</p><div className="rex-demo-actions">{next("lote", "Acompanhar lote")}{next("notas", "Ver notas")}</div></section>
       </>; break;
     case "importar":
     case "revisar":
@@ -121,7 +122,7 @@ export function Prototype({ initial }: { initial: Screen }) {
         <div className="quick-review-dialog-header"><div><span className="rex-label">Revisão do lote</span><h2 id="demo-review-heading">Revise e emita seu lote.</h2></div>
           <button className="btn btn--secondary" type="button" aria-label="Fechar revisão" onClick={() => go("importar")} data-prototype-target="importar"><X size={18} /></button>
         </div>
-        <div className="quick-review-dialog-body">{summary}<div className="rex-demo-review-info"><strong>Marketplace de exemplo</strong><p>Comissões de afiliado Shopee · Uma nota por linha do relatório</p></div><NoteRows navigate={go} /></div>
+        <div className="quick-review-dialog-body">{summary}<div className="rex-demo-review-info"><strong>{demoReport.recipient}</strong><p>Comissões de afiliado Shopee · Uma nota por linha do relatório</p></div><NoteRows navigate={go} /></div>
         <div className="quick-review-confirm">
           <label className="fiscal-checkbox"><input type="checkbox" checked={reviewed} onChange={(event) => setReviewed(event.target.checked)} /> Revisei os valores, o tomador e a competência.</label>
           <button type="button" className="btn btn--primary" disabled={!reviewed} onClick={() => go("lote")} data-prototype-target="lote">Confirmar lote de exemplo <ArrowRight size={17} /></button>
@@ -131,11 +132,11 @@ export function Prototype({ initial }: { initial: Screen }) {
     case "notas":
       content = <>{screen === "lote" && summary}<section className="rex-surface"><h2>{screen === "lote" ? "Notas do lote" : "Emissões recentes"}</h2><NoteRows navigate={go} /></section></>; break;
     case "nota":
-      content = <section className="rex-surface"><span className="fiscal-status" data-status="authorized">Autorizada em produção</span><h2>Marketplace de exemplo</h2><p>Competência 31/10/2026 · R$ 18,42</p>
+      content = <section className="rex-surface"><span className="fiscal-status" data-status="authorized">Autorizada em produção</span><h2>{demoReport.recipient}</h2><p>Competência {demoReport.competence} · {money(demoReport.amountsInCents[0])}</p>
         <div className="rex-demo-actions">{["Baixar XML", "Baixar DANFS-e"].map((label) => <button key={label} className="btn btn--secondary" onClick={() => setFeedback("O download está disponível no painel de uma nota real.")}><ArrowDownToLine size={16} />{label}</button>)}{next("notas", "Voltar às notas")}</div></section>; break;
     case "historico":
     case "relatorio":
-      content = <section className="rex-surface"><h2>Comissões de outubro</h2><p>32 linhas · R$ 784,20 · Shopee</p>
+      content = <section className="rex-surface"><h2>Comissões de outubro</h2><p>{demoReport.amountsInCents.length} linhas · {money(demoReportTotal)} · Shopee</p>
         <div className="rex-demo-actions">{screen === "historico" ? next("relatorio", "Abrir relatório", true) : next("revisar", "Ver revisão", true)}{next("importar", "Importar outro relatório")}</div></section>; break;
     case "empresas":
       content = <section className="rex-surface"><h2>Estúdio Exemplo</h2><p>MEI · Empresa de demonstração</p><div className="rex-demo-actions">{next("cadastro", "Abrir cadastro", true)}{next("cadastrar", "Cadastrar empresa")}</div></section>; break;

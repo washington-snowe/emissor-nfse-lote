@@ -24,7 +24,7 @@ export function LandingHeader() {
   const scrolled = useSyncExternalStore(subscribe, getSnapshot, () => false);
 
   return <header className="site-masthead landing-header" data-scrolled={scrolled}>
-    <div className="site-width landing-header-inner">
+    <div className="wrap landing-header-inner">
       <div className="landing-header-brand" inert={!scrolled}><Brand /></div>
       <nav aria-label="Navegação do site" className="landing-nav">
         {sections.map(({ href, label }) => <a key={href} href={href}>{label}</a>)}

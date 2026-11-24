@@ -83,7 +83,7 @@ export function LandingEligibility({ supportHref }: { supportHref?: string }) {
   }
 
   return <section className="landing-eligibility" id="consultar-cnpj" aria-labelledby="eligibility-title">
-    <div className="site-width landing-eligibility-grid">
+    <div className="wrap landing-eligibility-grid">
       <div>
         <h2 id="eligibility-title">Seu <span className="landing-ink-word">CNPJ<svg className="landing-ink-underline" viewBox="0 0 140 14" preserveAspectRatio="none" aria-hidden="true">
           <path d="M3 9C34 3 71 3 108 6c10 1 21 2 29 1M67 11c23-2 46-2 62 0" />

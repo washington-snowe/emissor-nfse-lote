@@ -7,7 +7,7 @@ export function LandingFooter() {
   const contact = getPublicContact();
 
   return <footer className="landing-footer">
-    <div className="site-width landing-footer-grid">
+    <div className="wrap landing-footer-grid">
       <div className="landing-footer-about">
         <Brand inverse />
         <p>Emissão de NFS-e em lote para afiliados da Shopee, a partir do relatório mensal de comissões.</p>
@@ -30,6 +30,6 @@ export function LandingFooter() {
         <Link href="/politica-de-privacidade">Política de privacidade</Link>
       </nav>
     </div>
-    <div className="site-width landing-footer-bottom">© Rex Notas</div>
+    <div className="wrap landing-footer-bottom">© Rex Notas</div>
   </footer>;
 }

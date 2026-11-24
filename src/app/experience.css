@@ -390,7 +390,6 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--action); }
 @media (min-width: 585px) and (max-width: 1249px) { .workspace-experience .billing-plan-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 .rex-demo .workspace-nav-link { margin-inline: 8px; }
 .rex-demo .rex-demo-nav-footer { padding-inline: 8px; }
-.rex-demo .page-header h1:focus { outline: none; }
 .rex-demo-content > .page-header { margin-bottom: 0; }
 
 .invoice-metrics { grid-template-columns: repeat(4, minmax(0, 1fr)); }

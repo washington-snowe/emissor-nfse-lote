@@ -1,13 +1,30 @@
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowDown, ArrowRight, ArrowUpRight, ChevronDown } from "lucide-react";
+import type { Metadata } from "next";
+import { ArrowDown, ArrowUpRight, ChevronDown } from "lucide-react";
 import { LandingEligibility } from "@/components/landing-eligibility";
 import { LandingFooter } from "@/components/landing-footer";
 import { LandingHeader } from "@/components/landing-header";
 import { LandingPricing } from "@/components/landing-pricing";
+import { LandingReportPreview } from "@/components/landing-report-preview";
 import { money, plans } from "@/lib/billing/catalog";
 import { getPublicContact } from "@/lib/public-contact";
 import "./landing.css";
+
+const homeUrl = "https://www.rexnotas.com.br";
+const shareImage = `${homeUrl}/brand/rex-mascote.png`;
+export const metadata: Metadata = {
+  alternates: { canonical: homeUrl },
+  openGraph: {
+    type: "website",
+    url: homeUrl,
+    siteName: "Rex Notas",
+    title: "Rex Notas — NFS-e em lote para afiliados",
+    description: "Revise e emita NFS-e em lote a partir do relatório mensal de comissões da Shopee.",
+    images: [{ url: shareImage, alt: "Rex, o mascote do Rex Notas" }],
+  },
+  twitter: { card: "summary_large_image", images: [shareImage] },
+};
 
 const steps = [
   { title: "Importe seu relatório", copy: "Selecione o CSV mensal de comissões por vendedor da Shopee." },
@@ -40,7 +57,7 @@ export default function Home() {
     <LandingHeader />
     <main id="conteudo">
       <section className="landing-hero" aria-labelledby="hero-heading">
-        <div className="site-width landing-hero-grid">
+        <div className="wrap landing-hero-grid">
           <div className="landing-hero-copy">
             <h1 id="hero-heading">
               Emisor de NFSe<br />em <span className="landing-circled-word">
@@ -78,8 +95,9 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="landing-flow" id="como-funciona" aria-label="Como funciona">
-        <div className="site-width">
+      <section className="landing-flow" id="como-funciona" aria-labelledby="workflow-title">
+        <div className="wrap">
+          <h2 id="workflow-title">Emissão em três passos</h2>
           <ol className="landing-steps">
             {steps.map(({ title, copy }, index) => <li key={title}>
               <span className="landing-step-number" aria-hidden="true">{index + 1}</span>
@@ -89,9 +107,7 @@ export default function Home() {
               </svg>}
             </li>)}
           </ol>
-          <div className="landing-flow-action">
-            <Link href="/prototipo?tela=revisar" className="text-link">Testar uma revisão <ArrowRight size={16} aria-hidden="true" /></Link>
-          </div>
+          <LandingReportPreview />
         </div>
       </section>
 
@@ -99,7 +115,7 @@ export default function Home() {
       <LandingPricing />
 
       <section className="landing-faq" id="perguntas-frequentes" aria-labelledby="faq-title">
-        <div className="site-width landing-faq-grid">
+        <div className="wrap landing-faq-grid">
           <h2 id="faq-title">Dúvidas frequentes</h2>
           <div className="landing-questions">
             {answers.map(({ question, answer }) => <details key={question} name="landing-faq">
