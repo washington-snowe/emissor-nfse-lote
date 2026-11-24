@@ -10,10 +10,11 @@ const maximumVolume = 10_000;
 const maxCsvBytes = 512 * 1024;
 const number = new Intl.NumberFormat("pt-BR");
 
-function estimateMonthly(plan: Plan, cadence: Cadence, extraNotes: number) {
+function monthlyCost(plan: Plan, cadence: Cadence, volume: number) {
   const months = cadence === "annual" ? 12n : 1n;
-  const units = BigInt(planPrice(plan, cadence)) * 100n + BigInt(extraNotes) * BigInt(plan.overageUnits) * months;
-  return money(String((units + 50n * months) / (100n * months)));
+  const extras = Math.max(0, volume - plan.includedNotes);
+  const units = BigInt(planPrice(plan, cadence)) * 100n + BigInt(extras) * BigInt(plan.overageUnits) * months;
+  return { plan, units, extras, cents: (units + 50n * months) / (100n * months) };
 }
 
 type Estimate =
@@ -30,6 +31,23 @@ export function LandingPricing() {
   const carousel = useRef<HTMLDivElement>(null);
   const reading = useRef(false);
   const cadence = annual ? "annual" : "monthly";
+  const costs = plans.map(plan => monthlyCost(plan, cadence, volume));
+  const recommended = costs.reduce((best, cost) => cost.units < best.units ? cost : best).plan;
+
+  useEffect(() => {
+    // Wait for the slider to settle before bringing an offscreen recommendation into view.
+    const timer = window.setTimeout(() => {
+      const viewport = carousel.current;
+      const card = viewport?.querySelector<HTMLElement>("[data-recommended]");
+      if (!viewport || !card || viewport.scrollWidth <= viewport.clientWidth + 1) return;
+      const frame = viewport.getBoundingClientRect();
+      const bounds = card.getBoundingClientRect();
+      if (bounds.left < frame.left - 1 || bounds.right > frame.right + 1) {
+        viewport.scrollTo({ left: viewport.scrollLeft + bounds.left - frame.left });
+      }
+    }, 180);
+    return () => window.clearTimeout(timer);
+  }, [recommended.code]);
 
   useEffect(() => {
     const viewport = carousel.current;
@@ -90,11 +108,8 @@ export function LandingPricing() {
   return <>
     <section className="landing-pricing" id="planos" aria-labelledby="planos-titulo">
       <div className="site-width">
-        <div className="landing-section-head">
-          <div>
-            <h2 id="planos-titulo">Planos e preços</h2>
-            <p>CNPJs sem limite em todos os planos.</p>
-          </div>
+        <div className="landing-pricing-head">
+          <h2 id="planos-titulo">Planos e preços</h2>
           <fieldset className="landing-cadence">
             <legend className="sr-only">Período da assinatura</legend>
             <label>
@@ -106,6 +121,7 @@ export function LandingPricing() {
               <span>Anual <small>−20%</small></span>
             </label>
           </fieldset>
+          <p>CNPJs sem limite em todos os planos.</p>
         </div>
         <div className="landing-volume">
           <div><label htmlFor="landing-volume">Quantas notas você emite por mês?</label><span>{number.format(volume)}</span></div>
@@ -113,7 +129,10 @@ export function LandingPricing() {
             aria-valuetext={`${number.format(volume)} notas por mês`}
             style={{ "--volume-progress": `${100 * (volume - 1) / (maximumVolume - 1)}%` } as CSSProperties}
             onChange={event => setVolume(event.target.valueAsNumber)} />
-          <a href="#simulador" className="text-link">Estimar pelo CSV <ArrowRight size={15} aria-hidden="true" /></a>
+          <div className="landing-volume-feedback">
+            <p aria-live="polite"><strong>{recommended.name}</strong> tem o menor custo estimado.</p>
+            <a href="#simulador" className="text-link">Estimar pelo CSV <ArrowRight size={15} aria-hidden="true" /></a>
+          </div>
         </div>
         <div id="landing-plan-carousel" className="landing-plan-carousel" ref={carousel} role="region" aria-label="Comparação dos planos"
           onKeyDown={event => {
@@ -123,12 +142,11 @@ export function LandingPricing() {
               step(event.key === "ArrowLeft" ? -1 : 1);
             }
           }} tabIndex={0}>
-          {plans.map(plan => {
-            const extra = Math.max(0, volume - plan.includedNotes);
-            return <PlanCard key={plan.code} plan={plan} cadence={cadence} showBadge={false}
-              estimate={extra > 0 ? `${estimateMonthly(plan, cadence, extra)}/mês com excedentes` : undefined}
-              action={<Link href="/criar-conta" className="btn btn--secondary" aria-label={`Criar conta para o plano ${plan.name}`}>Criar conta</Link>} />;
-          })}
+          {costs.map(({ plan, extras, cents }) =>
+            <PlanCard key={plan.code} plan={plan} cadence={cadence} showBadge={false} recommended={plan.code === recommended.code}
+              estimate={extras > 0 ? `${money(String(cents))}/mês com excedentes` : undefined}
+              action={<Link href="/criar-conta" className="btn btn--secondary" aria-label={`Criar conta para o plano ${plan.name}`}>Criar conta</Link>} />,
+          )}
         </div>
         <div className="landing-carousel-footer">
           {volume > plans[0].includedNotes && <p>A estimativa considera o volume de notas informado acima.</p>}
@@ -141,10 +159,10 @@ export function LandingPricing() {
     </section>
 
     <section className="landing-simulator" id="simulador" aria-labelledby="simulador-titulo">
-      <div className="site-width landing-simulator-grid">
-        <div>
+      <div className="site-width landing-simulator-content">
+        <div className="landing-simulator-head">
           <h2 id="simulador-titulo">Estime suas notas pelo CSV</h2>
-          <p>Use o relatório mensal da Shopee para estimar seu volume. A leitura acontece no seu navegador.</p>
+          <p>Conte as linhas do relatório mensal da Shopee para comparar os planos. O arquivo é lido no seu navegador.</p>
         </div>
         <div className="landing-file-panel">
           <label className="landing-file-zone" data-dragging={dragging} data-busy={estimate.state === "loading"}

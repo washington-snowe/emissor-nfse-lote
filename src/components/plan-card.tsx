@@ -10,13 +10,13 @@ export function PlanIntervalToggle({ annual, onChange }: { annual: boolean; onCh
   </label>;
 }
 
-export function PlanCard({ plan, cadence, action, showBadge = true, estimate }: {
-  plan: Plan; cadence: Cadence; action: ReactNode; showBadge?: boolean; estimate?: string;
+export function PlanCard({ plan, cadence, action, showBadge = true, estimate, recommended }: {
+  plan: Plan; cadence: Cadence; action: ReactNode; showBadge?: boolean; estimate?: string; recommended?: boolean;
 }) {
-  const featured = plan.code === "afiliado-pro";
+  const featured = recommended ?? plan.code === "afiliado-pro";
   const price = planPrice(plan, cadence);
   const annual = cadence === "annual";
-  return <article className={`billing-plan${featured ? " billing-plan--featured" : ""}`}>
+  return <article className={`billing-plan${featured ? " billing-plan--featured" : ""}`} data-recommended={recommended || undefined}>
     <div className="plan-card-heading">
       <h3>{plan.name}</h3>
       {featured && showBadge && <span className="billing-plan-badge">Mais Escolhido</span>}
