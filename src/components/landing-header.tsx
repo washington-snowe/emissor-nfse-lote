@@ -13,17 +13,27 @@ const sections = [
 
 function subscribe(onChange: () => void) {
   window.addEventListener("scroll", onChange, { passive: true });
-  return () => window.removeEventListener("scroll", onChange);
+  window.addEventListener("resize", onChange);
+  return () => {
+    window.removeEventListener("scroll", onChange);
+    window.removeEventListener("resize", onChange);
+  };
 }
 
 function getSnapshot() {
-  return window.scrollY > 24;
+  if (window.scrollY <= 24) return "top";
+
+  const title = document.getElementById("hero-heading");
+  const header = document.getElementById("landing-header");
+  if (title && header && title.getBoundingClientRect().bottom <= header.offsetHeight) return "dark";
+  return "scrolled";
 }
 
 export function LandingHeader() {
-  const scrolled = useSyncExternalStore(subscribe, getSnapshot, () => false);
+  const position = useSyncExternalStore(subscribe, getSnapshot, () => "top");
+  const scrolled = position !== "top";
 
-  return <header className="site-masthead landing-header" data-scrolled={scrolled}>
+  return <header id="landing-header" className="site-masthead landing-header" data-scrolled={scrolled} data-theme={position === "dark" ? "dark" : "light"}>
     <div className="wrap landing-header-inner">
       <div className="landing-header-brand" inert={!scrolled}><Brand /></div>
       <nav aria-label="Navegação do site" className="landing-nav">

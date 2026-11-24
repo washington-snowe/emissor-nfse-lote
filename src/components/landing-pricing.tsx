@@ -110,7 +110,7 @@ export function LandingPricing() {
     <section className="landing-pricing" id="planos" aria-labelledby="planos-titulo">
       <div className="wrap">
         <div className="landing-pricing-head" data-landing-reveal="heading">
-          <h2 id="planos-titulo">Planos e <span className="landing-ink-word landing-ink-accent">preços<svg className="landing-ink-underline" viewBox="0 0 140 14" preserveAspectRatio="none" aria-hidden="true">
+          <h2 id="planos-titulo">Planos e <span className="landing-ink-word">preços<svg className="landing-ink-underline" viewBox="0 0 140 14" preserveAspectRatio="none" aria-hidden="true">
             <path pathLength={1} d="M3 10C32 6 59 3 92 4c18 0 34 1 45 2" />
           </svg></span></h2>
           <fieldset className="landing-cadence">

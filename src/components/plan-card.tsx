@@ -22,8 +22,10 @@ export function PlanCard({ plan, cadence, action, showBadge = true, recommended 
       <h3>{plan.name}</h3>
       {featured && showBadge && <span className="billing-plan-badge">Mais Escolhido</span>}
     </div>
-    <p className="billing-plan-price"><strong>{money(annual ? Math.round(price / 12) : price)}</strong><span>/mês</span></p>
-    {annual ? <p className="billing-plan-cycle">Cobrança anual de {money(price)}</p> : <p className="plan-monthly-caption">Cobrança mensal</p>}
+    <div className="plan-card-price">
+      <p className="billing-plan-price"><strong>{money(annual ? Math.round(price / 12) : price)}</strong><span>/mês</span></p>
+      {annual && <p className="billing-plan-cycle">Cobrança anual de {money(price)}</p>}
+    </div>
     <ul className="plan-features">
       <li><Check size={15} aria-hidden="true" />{plan.includedNotes.toLocaleString("pt-BR")} notas por mês</li>
       <li><Check size={15} aria-hidden="true" />{overagePrice(plan.overageUnits)} por nota excedente</li>

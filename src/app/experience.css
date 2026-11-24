@@ -87,14 +87,13 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--action); }
 .plan-interval input:checked + .plan-interval-track { background: var(--action); }
 .plan-interval input:checked + .plan-interval-track::before { transform: translateX(15px); }
 .billing-plan-grid { grid-template-columns: repeat(auto-fit, minmax(min(100%, 224px), 1fr)); gap: 12px; }
-.billing-plan { min-width: 0; display: grid; grid-template-rows: auto auto auto 1fr auto; gap: 6px; background: var(--surface); border-radius: var(--r-lg); padding: clamp(16px, 2vw, 23px); }
+.billing-plan { min-width: 0; display: grid; grid-template-rows: auto auto 1fr auto; gap: 6px; background: var(--surface); border-radius: var(--r-lg); padding: clamp(16px, 2vw, 23px); }
 .billing-plan--featured { border-color: #d55c31; box-shadow: inset 0 0 0 1px #d55c31; }
 .plan-card-heading { display: flex; flex-wrap: wrap; align-content: start; align-items: center; gap: 4px 8px; min-height: 48px; }
 .plan-card-heading h3 { font-size: 20px; font-weight: 540; }
 .billing-plan .billing-plan-price { margin: 0; padding: 0; }
 .billing-plan-price strong { font-size: clamp(23px, 2vw, 31px); font-weight: 550; letter-spacing: -.04em; }
-.plan-monthly-caption { font-size: 13px; color: var(--muted); }
-.plan-features { list-style: none; border-top: 1px solid var(--line); margin: 10px 0 0; padding: 12px 0 6px; }
+.plan-features { list-style: none; margin: 10px 0 0; padding: 0 0 6px; }
 .plan-features li { display: flex; align-items: start; gap: 7px; font-size: 14px; line-height: 1.35; margin-bottom: 9px; }
 .plan-features svg { margin-top: 2px; }
 .plan-card-action .btn { justify-content: space-between; }

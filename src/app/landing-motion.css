@@ -67,7 +67,8 @@
       position: absolute;
       inset: auto 0 -1px;
       height: 2px;
-      background: var(--landing-accent);
+      background: var(--masthead-control);
+      opacity: .35;
       pointer-events: none;
       transform-origin: left;
       animation: landing-scroll-progress linear both;
@@ -94,11 +95,11 @@
     transition: opacity 230ms var(--landing-ease), transform 280ms var(--landing-ease);
     @starting-style { opacity: .55; transform: translateY(9px); }
   }
-  .landing-plan-carousel :is(.billing-plan-cycle, .plan-monthly-caption) {
+  .landing-plan-carousel .billing-plan-cycle {
     transition: opacity 170ms var(--landing-ease), transform 170ms var(--landing-ease);
     @starting-style { opacity: .4; transform: translateY(3px); }
   }
-  .landing-pricing:has(.landing-cadence :focus-visible) :is(.billing-plan-cycle, .plan-monthly-caption) { transition: none; }
+  .landing-pricing:has(.landing-cadence :focus-visible) .billing-plan-cycle { transition: none; }
   .landing-volume input:active::-webkit-slider-thumb { scale: 1.2; }
 
   @media (hover: hover) and (pointer: fine) {
