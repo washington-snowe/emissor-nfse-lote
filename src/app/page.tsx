@@ -1,95 +1,97 @@
-import Link from "next/link";
 import Image from "next/image";
-import { ArrowDown, ArrowRight, ArrowUpRight, Check, ChevronRight, CircleCheck, FileSpreadsheet, FileText, House, ShieldCheck, Upload } from "lucide-react";
+import Link from "next/link";
+import { ArrowDown, ArrowRight, ArrowUpRight, ChevronDown } from "lucide-react";
 import { Brand } from "@/components/brand";
 import { LandingPricing } from "@/components/landing-pricing";
+import "./landing.css";
 
 const steps = [
-  { title: "Importe o relatório", copy: "Selecione o CSV mensal de comissões da Shopee. O Rex organiza os dados do lote.", Icon: FileSpreadsheet },
-  { title: "Confira a prévia", copy: "Revise o tomador, a competência e os valores das notas antes de confirmar.", Icon: ShieldCheck },
-  { title: "Acompanhe suas notas", copy: "Veja quais notas foram autorizadas e baixe o XML e o DANFS-e.", Icon: CircleCheck },
+  { title: "Importe o CSV", copy: "Use o relatório mensal de comissões por vendedor da Shopee." },
+  { title: "Revise o lote", copy: "Confira o tomador, a competência, os valores e o e-mail de entrega." },
+  { title: "Emita e acompanhe", copy: "Confirme a emissão e baixe o XML e o DANFS-e das notas autorizadas." },
+];
+
+const answers = [
+  { question: "Quem pode usar o Rex?", answer: "O Rex atende afiliados da Shopee que emitem NFS-e como MEI ou empresa do Simples Nacional." },
+  { question: "Qual arquivo devo usar?", answer: "Exporte o relatório mensal de comissões por vendedor da Shopee no formato CSV." },
+  { question: "Preciso de certificado digital?", answer: "Sim. Cadastre a empresa e adicione o certificado digital A1 para verificar o acesso à emissão." },
+  { question: "As notas são enviadas aos vendedores?", answer: "Na revisão de um lote em produção, confira os endereços e autorize a entrega. Você pode acompanhar o status do e-mail no painel." },
+  { question: "Onde encontro os documentos?", answer: "Na página Notas, você pode acompanhar a emissão e baixar o XML e o DANFS-e das notas autorizadas." },
 ];
 
 export default function Home() {
   return <div className="landing">
-    <header className="site-masthead">
-      <div className="site-width site-masthead-inner">
+    <header className="site-masthead landing-header">
+      <div className="site-width landing-header-inner">
         <Brand />
         <nav aria-label="Navegação do site" className="landing-nav">
           <a href="#como-funciona">Como funciona</a>
-          <a href="#planos">Planos</a>
+          <a href="#planos">Preços</a>
+          <a href="#simulador">Simulador</a>
         </nav>
-        <Link href="/entrar" className="btn btn--secondary">Entrar <ArrowUpRight size={16} aria-hidden="true" /></Link>
+        <Link href="/entrar" className="btn btn--primary">Entrar <ArrowUpRight size={16} aria-hidden="true" /></Link>
       </div>
     </header>
 
     <main id="conteudo">
-      <section className="landing-hero" aria-labelledby="hero-heading" data-enter>
-        <div className="site-width">
-          <div className="landing-hero-grid">
-            <div className="landing-hero-copy">
-              <p className="landing-kicker"><span aria-hidden="true" /> Para afiliados da Shopee</p>
-              <h1 id="hero-heading">Suas NFS-e.<br />Um só lote.</h1>
-              <p className="landing-lead">Importe as comissões da Shopee, revise a prévia e emita as notas de uma vez.</p>
-              <div className="landing-actions">
-                <Link href="/criar-conta" className="btn btn--primary">Criar conta <ArrowUpRight size={19} aria-hidden="true" /></Link>
-                <Link href="/prototipo" className="btn btn--secondary">Explorar o painel <ArrowRight size={17} aria-hidden="true" /></Link>
-              </div>
-              <p className="landing-eligibility"><ShieldCheck size={17} aria-hidden="true" /> Para MEI e empresas do Simples Nacional</p>
-            </div>
-
-            <div className="landing-product" data-enter-media>
-              <div className="landing-product-header">
-                <span>Prévia do painel</span>
-                <Image src="/brand/rex-mascote.png" width={76} height={76} alt="" unoptimized priority />
-              </div>
-              <div className="landing-product-window">
-                <div className="landing-product-nav" aria-hidden="true">
-                  <span><House size={17} /> Início</span>
-                  <span className="is-active"><Upload size={17} /> Notas em lote</span>
-                  <span><FileText size={17} /> Notas</span>
-                </div>
-                <div className="landing-product-content">
-                  <div className="landing-product-path"><FileSpreadsheet size={15} aria-hidden="true" /> Notas em lote <ChevronRight size={13} aria-hidden="true" /> Revisão</div>
-                  <h2>Comissões de outubro</h2>
-                  <dl className="landing-product-totals">
-                    <div><dt>Notas previstas</dt><dd>32</dd></div>
-                    <div><dt>Total do lote</dt><dd>R$ 784,20</dd></div>
-                  </dl>
-                  <div className="landing-product-file">
-                    <FileSpreadsheet size={20} aria-hidden="true" />
-                    <span><strong>comissoes-outubro.csv</strong><small>Relatório da Shopee</small></span>
-                    <span className="landing-product-ready"><Check size={13} aria-hidden="true" /> Lido</span>
-                  </div>
-                  <Link href="/prototipo?tela=revisar" className="btn btn--primary">Revisar lote de exemplo <ArrowRight size={16} aria-hidden="true" /></Link>
-                </div>
-              </div>
+      <section className="landing-hero" aria-labelledby="hero-heading">
+        <div className="site-width landing-hero-grid">
+          <div className="landing-hero-copy">
+            <h1 id="hero-heading">
+              Suas NFS-e.<br />Um só <span className="landing-circled-word">
+                lote
+                <svg viewBox="0 0 262 124" preserveAspectRatio="none" aria-hidden="true">
+                  <path pathLength={1} d="M208 14C175 3 117 4 72 13 27 22 5 41 8 64c4 31 49 49 111 52 64 3 121-18 133-45 13-30-28-54-74-61-17-3-48-5-71-2" />
+                </svg>
+              </span>.
+            </h1>
+            <p className="landing-lead">Importe suas comissões da Shopee, revise os dados e emita as notas de uma vez.</p>
+            <div className="landing-actions">
+              <Link href="/criar-conta" className="btn btn--primary">Criar conta <ArrowUpRight size={18} aria-hidden="true" /></Link>
+              <a href="#planos" className="btn btn--secondary">Explorar valores <ArrowDown size={17} aria-hidden="true" /></a>
             </div>
           </div>
-          <a href="#como-funciona" className="landing-scroll">Veja como funciona <ArrowDown size={17} aria-hidden="true" /></a>
+
+          <div className="landing-mascot">
+            <Image src="/brand/rex-mascote.png" width={1254} height={1254}
+              alt="Rex, o dinossauro de óculos escuros" sizes="(max-width: 720px) 84vw, 42vw" preload />
+          </div>
         </div>
       </section>
 
       <section className="landing-flow" id="como-funciona" aria-labelledby="workflow-heading">
         <div className="site-width">
-          <div className="section-intro"><h2 id="workflow-heading">Do relatório à nota fiscal</h2><p>Você revisa os dados antes de confirmar a emissão.</p></div>
+          <div className="landing-section-head">
+            <h2 id="workflow-heading">Do CSV à nota fiscal</h2>
+            <Link href="/prototipo?tela=revisar" className="text-link">Testar a revisão <ArrowRight size={16} aria-hidden="true" /></Link>
+          </div>
           <ol className="landing-steps">
-            {steps.map(({ title, copy, Icon }) => <li key={title}><Icon size={24} strokeWidth={1.7} aria-hidden="true" /><h3>{title}</h3><p>{copy}</p></li>)}
+            {steps.map(({ title, copy }) => <li key={title}>
+              <div><h3>{title}</h3><p>{copy}</p></div>
+            </li>)}
           </ol>
         </div>
       </section>
+
       <LandingPricing />
+
       <section className="landing-faq" aria-labelledby="faq-title">
         <div className="site-width landing-faq-grid">
-          <div className="section-intro"><h2 id="faq-title">Antes de começar</h2></div>
+          <h2 id="faq-title">Dúvidas<br className="landing-faq-break" /> frequentes</h2>
           <div className="landing-questions">
-            <details><summary>Qual relatório devo importar?</summary><p>Use o CSV mensal de comissões por vendedor da Shopee.</p></details>
-            <details><summary>O que preciso para emitir?</summary><p>Cadastre a empresa, adicione um certificado digital A1 e confira os dados fiscais antes da primeira emissão.</p></details>
-            <details><summary>Onde encontro as notas autorizadas?</summary><p>Abra Notas no painel para acompanhar o lote e baixar o XML e o DANFS-e.</p></details>
+            {answers.map(({ question, answer }) => <details key={question} name="landing-faq">
+              <summary>{question}<ChevronDown size={17} aria-hidden="true" /></summary>
+              <p>{answer}</p>
+            </details>)}
           </div>
         </div>
       </section>
     </main>
-    <footer className="landing-footer"><div className="site-width site-masthead-inner"><Brand /><p>NFS-e em lote para afiliados.</p><Link href="/entrar" className="text-link">Acessar minha conta <ArrowUpRight size={16} aria-hidden="true" /></Link></div></footer>
+    <footer className="landing-footer">
+      <div className="site-width site-masthead-inner">
+        <Brand />
+        <a href="#conteudo" className="text-link">Voltar ao topo</a>
+      </div>
+    </footer>
   </div>;
 }
