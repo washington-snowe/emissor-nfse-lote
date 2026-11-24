@@ -2,8 +2,14 @@
 
 import Link from "next/link";
 import { useSyncExternalStore } from "react";
-import { ArrowUpRight } from "lucide-react";
+import { ArrowUpRight, Menu } from "lucide-react";
 import { Brand } from "@/components/brand";
+
+const sections = [
+  { href: "#como-funciona", label: "Como funciona" },
+  { href: "#planos", label: "Preços" },
+  { href: "#simulador", label: "Simulador" },
+];
 
 function subscribe(onChange: () => void) {
   window.addEventListener("scroll", onChange, { passive: true });
@@ -21,11 +27,16 @@ export function LandingHeader() {
     <div className="site-width landing-header-inner">
       <div className="landing-header-brand" inert={!scrolled}><Brand /></div>
       <nav aria-label="Navegação do site" className="landing-nav">
-        <a href="#como-funciona">Como funciona</a>
-        <a href="#planos">Preços</a>
-        <a href="#simulador">Simulador</a>
+        {sections.map(({ href, label }) => <a key={href} href={href}>{label}</a>)}
       </nav>
       <Link href="/entrar" className="btn btn--primary">Entrar <ArrowUpRight size={16} aria-hidden="true" /></Link>
+      <button type="button" className="icon-button landing-menu-toggle" aria-label="Menu de navegação" popoverTarget="landing-mobile-nav">
+        <Menu size={20} aria-hidden="true" />
+      </button>
+      <nav popover="auto" id="landing-mobile-nav" aria-label="Navegação do site" className="landing-mobile-nav">
+        {sections.map(({ href, label }) => <a key={href} href={href}
+          onClick={event => event.currentTarget.closest<HTMLElement>("[popover]")?.hidePopover()}>{label}</a>)}
+      </nav>
     </div>
   </header>;
 }

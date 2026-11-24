@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type ChangeEvent, type FormEvent } from "react";
+import { useRef, useState, type ChangeEvent, type FormEvent } from "react";
 import { ArrowRight } from "lucide-react";
 import { consultEligibility } from "@/app/eligibility-actions";
 import type { EligibilityResult } from "@/lib/cnpj-eligibility";
@@ -27,6 +27,7 @@ export function LandingEligibility({ supportHref }: { supportHref?: string }) {
   const [cnpj, setCnpj] = useState("");
   const [pending, setPending] = useState(false);
   const [result, setResult] = useState<EligibilityResult | null>(null);
+  const field = useRef<HTMLInputElement>(null);
   const message = result && messages[result.status];
   const nextStep = result?.status === "eligible" ? result.nextStep : undefined;
   const detail = nextStep ? nextSteps[nextStep] : message?.[1];
@@ -67,6 +68,7 @@ export function LandingEligibility({ supportHref }: { supportHref?: string }) {
     if (pending) return;
     if (!validCnpj(cnpj)) {
       setResult({ status: "invalid" });
+      field.current?.focus();
       return;
     }
     setResult(null);
@@ -92,11 +94,12 @@ export function LandingEligibility({ supportHref }: { supportHref?: string }) {
         <form onSubmit={check} aria-busy={pending}>
           <label htmlFor="eligibility-cnpj">CNPJ da empresa</label>
           <div className="landing-eligibility-fields">
-            <input id="eligibility-cnpj" value={cnpj} type="text" maxLength={30} autoComplete="off"
+            <input ref={field} id="eligibility-cnpj" value={cnpj} type="text" maxLength={30} autoComplete="off"
               autoCapitalize="characters" spellCheck={false} placeholder="00.000.000/0000-00"
               readOnly={pending} aria-invalid={result?.status === "invalid" || undefined}
+              aria-describedby={result?.status === "invalid" ? "eligibility-feedback" : undefined}
               onChange={changeCnpj} />
-            <button type="submit" className="btn btn--primary" disabled={pending}>
+            <button type="submit" className="btn btn--primary" aria-disabled={pending}>
               {pending ? "Consultando…" : "Consultar CNPJ"}
             </button>
           </div>
@@ -107,7 +110,7 @@ export function LandingEligibility({ supportHref }: { supportHref?: string }) {
         </div>}
         {result && message && <div className="landing-eligibility-result" data-eligibility={result.status}>
           <div role={result.status === "invalid" ? "alert" : "status"}>
-            <p className="landing-eligibility-status">{message[0]}</p>
+            <p className="landing-eligibility-status" id="eligibility-feedback">{message[0]}</p>
             {"location" in result && (result.location || result.profile) && <p className="landing-eligibility-profile">
               {[result.profile, result.location].filter(Boolean).join(" · ")}
             </p>}

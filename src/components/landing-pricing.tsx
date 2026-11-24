@@ -35,21 +35,6 @@ export function LandingPricing() {
   const reportPlan = estimate.state === "ready" && estimate.count > 0 ? recommendedPlan(estimate.count) : null;
 
   useEffect(() => {
-    // Wait for the slider to settle before bringing an offscreen recommendation into view.
-    const timer = window.setTimeout(() => {
-      const viewport = carousel.current;
-      const card = viewport?.querySelector<HTMLElement>("[data-recommended]");
-      if (!viewport || !card || viewport.scrollWidth <= viewport.clientWidth + 1) return;
-      const frame = viewport.getBoundingClientRect();
-      const bounds = card.getBoundingClientRect();
-      if (bounds.left < frame.left - 1 || bounds.right > frame.right + 1) {
-        viewport.scrollTo({ left: viewport.scrollLeft + bounds.left - frame.left });
-      }
-    }, 180);
-    return () => window.clearTimeout(timer);
-  }, [recommended.code]);
-
-  useEffect(() => {
     const viewport = carousel.current;
     if (!viewport) return;
     const sync = () => {
@@ -69,14 +54,25 @@ export function LandingPricing() {
     };
   }, []);
 
-  function step(direction: -1 | 1) {
+  function revealRecommendation(value: number, behavior: ScrollBehavior) {
+    const viewport = carousel.current;
+    const card = viewport?.children.item(plans.indexOf(recommendedPlan(value)));
+    if (!viewport || !card || viewport.scrollWidth <= viewport.clientWidth + 1) return;
+    const frame = viewport.getBoundingClientRect();
+    const bounds = card.getBoundingClientRect();
+    if (bounds.left < frame.left - 1 || bounds.right > frame.right + 1) {
+      viewport.scrollTo({ left: viewport.scrollLeft + bounds.left - frame.left, behavior });
+    }
+  }
+
+  function step(direction: -1 | 1, behavior: ScrollBehavior) {
     const viewport = carousel.current;
     const firstCard = viewport?.firstElementChild;
     if (!viewport || !(firstCard instanceof HTMLElement)) return;
     const gap = Number.parseFloat(getComputedStyle(viewport).columnGap) || 0;
     const stepWidth = firstCard.offsetWidth + gap;
     const index = Math.round(viewport.scrollLeft / stepWidth);
-    viewport.scrollTo({ left: (index + direction) * stepWidth });
+    viewport.scrollTo({ left: (index + direction) * stepWidth, behavior });
   }
 
   async function readReport(file: File | undefined) {
@@ -133,7 +129,14 @@ export function LandingPricing() {
           <input id="landing-volume" type="range" min={1} max={maximumVolume} value={volume}
             aria-valuetext={`${number.format(volume)} notas por mês. Plano recomendado: ${recommended.name}`}
             style={{ "--volume-progress": `${100 * (volume - 1) / (maximumVolume - 1)}%` } as CSSProperties}
-            onChange={event => setVolume(event.target.valueAsNumber)} />
+            onChange={event => {
+              const input = event.currentTarget;
+              setVolume(input.valueAsNumber);
+              if (input.matches(":focus-visible")) revealRecommendation(input.valueAsNumber, "instant");
+            }}
+            onPointerUp={event => {
+              if (event.isPrimary) revealRecommendation(event.currentTarget.valueAsNumber, "auto");
+            }} />
           <a href="#simulador" className="landing-volume-link text-link">Estimar pelo CSV <ArrowRight size={15} aria-hidden="true" /></a>
         </div>
         <div id="landing-plan-carousel" className="landing-plan-carousel" ref={carousel} role="region" aria-label="Comparação dos planos"
@@ -141,7 +144,7 @@ export function LandingPricing() {
             if (event.target !== event.currentTarget) return;
             if (event.key === "ArrowLeft" || event.key === "ArrowRight") {
               event.preventDefault();
-              step(event.key === "ArrowLeft" ? -1 : 1);
+              step(event.key === "ArrowLeft" ? -1 : 1, "instant");
             }
           }} tabIndex={0}>
           {plans.map(plan =>
@@ -150,8 +153,8 @@ export function LandingPricing() {
           )}
         </div>
         {!(edges.atStart && edges.atEnd) && <div className="landing-carousel-controls">
-          <button type="button" className="icon-button" aria-label="Ver plano anterior" aria-controls="landing-plan-carousel" disabled={edges.atStart} onClick={() => step(-1)}><ArrowLeft size={18} aria-hidden="true" /></button>
-          <button type="button" className="icon-button" aria-label="Ver próximo plano" aria-controls="landing-plan-carousel" disabled={edges.atEnd} onClick={() => step(1)}><ArrowRight size={18} aria-hidden="true" /></button>
+          <button type="button" className="icon-button" aria-label="Ver plano anterior" aria-controls="landing-plan-carousel" disabled={edges.atStart} onClick={event => step(-1, event.detail === 0 ? "instant" : "auto")}><ArrowLeft size={18} aria-hidden="true" /></button>
+          <button type="button" className="icon-button" aria-label="Ver próximo plano" aria-controls="landing-plan-carousel" disabled={edges.atEnd} onClick={event => step(1, event.detail === 0 ? "instant" : "auto")}><ArrowRight size={18} aria-hidden="true" /></button>
         </div>}
       </div>
     </section>
@@ -170,7 +173,10 @@ export function LandingPricing() {
               event.preventDefault();
               if (event.dataTransfer.types.includes("Files") && !reading.current) setDragging(true);
             }}
-            onDragLeave={() => setDragging(false)}
+            onDragLeave={event => {
+              if (event.relatedTarget instanceof Node && event.currentTarget.contains(event.relatedTarget)) return;
+              setDragging(false);
+            }}
             onDrop={event => {
               event.preventDefault();
               setDragging(false);
@@ -203,7 +209,10 @@ export function LandingPricing() {
                 ? "A estimativa conta uma nota por linha com comissão positiva. A quantidade final depende da revisão e do agrupamento."
                 : "Este relatório não tem linhas com comissão positiva."}</p>
             </div>
-            {reportPlan && <a className="text-link" href="#planos" onClick={() => setVolume(estimate.count)}>Usar volume na comparação <ArrowRight size={16} aria-hidden="true" /></a>}
+            {reportPlan && <a className="text-link" href="#planos" onClick={event => {
+              setVolume(estimate.count);
+              revealRecommendation(estimate.count, event.detail === 0 ? "instant" : "auto");
+            }}>Usar volume na comparação <ArrowRight size={16} aria-hidden="true" /></a>}
           </div>}
         </div>
       </div>
