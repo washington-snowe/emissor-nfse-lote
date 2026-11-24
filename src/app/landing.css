@@ -1,26 +1,17 @@
 .landing {
-  --ink: #121212;
-  --bg: #f1f1f1;
-  --muted: #4f4f4f;
-  --action: #121212;
-  --action-ink: #f1f1f1;
-  --surface: #fcfcfc;
-  --landing-soft: #f7f7f7;
-  --landing-chrome: #121212;
-  --wash: #f1f1f1;
-  --line: #d7d7d7;
-  --edge: #bdbdbd;
+  --bg: var(--p-surface);
+  --action-ink: var(--bg);
+  --landing-soft: var(--p-bg);
+  --landing-chrome: var(--ink);
   --landing-discount-ink: #236344;
   --landing-discount-wash: #e7f2ea;
   --landing-error: #983b43;
-  --r-btn: 16px;
-  --landing-card-radius: 20px;
+  --landing-card-radius: var(--r-lg);
   --landing-content-gap: clamp(18px, 2.4vw, 32px);
-  --landing-heading-size: clamp(29px, 3.15vw, 44px);
   --landing-subheading-size: clamp(18px, 1.55vw, 22px);
   --landing-card-inset: clamp(4px, 1.1vw, 14px);
   --landing-card-track: min(1080px, calc(100% - 2 * var(--landing-card-inset)));
-  --landing-control-height: 46px;
+  --landing-plan-track: min(1132px, calc(100% - var(--landing-card-inset)));
   --space-edge: clamp(18px, 4.8vw, 76px);
   --landing-section-space: clamp(36px, 4.8vw, 68px);
   --landing-section-fade: clamp(28px, 4.4vw, 62px);
@@ -39,12 +30,7 @@ html:has(.landing) {
   scroll-padding-top: calc(var(--landing-header-height) + 20px);
 }
 html:has(.landing :focus-visible) { scroll-behavior: auto; }
-.landing ::selection { background: #d8d8d8; color: var(--ink); }
-.landing :focus-visible { outline-color: var(--ink); }
 .landing .wrap { width: min(1260px, calc(100% - 2 * var(--space-edge))); }
-.landing .btn, .landing .icon-button { border-radius: var(--r-btn); }
-.landing .btn { font-weight: 550; min-height: var(--landing-control-height); padding: 8px 16px; gap: 8px; }
-.landing .btn--secondary { background: var(--surface); border-color: var(--edge); }
 .landing .btn--primary:active { background: #292929; }
 .landing :is(.btn, .icon-button):not(:disabled) {
   transition: background-color 120ms var(--landing-ease), color 120ms var(--landing-ease), border-color 120ms var(--landing-ease), scale 110ms var(--landing-ease);
@@ -211,7 +197,7 @@ html:has(.landing :focus-visible) { scroll-behavior: auto; }
 
 .landing-flow, .landing-eligibility, .landing-pricing, .landing-tutorials, .landing-simulator, .landing-faq { padding-block: var(--landing-section-space); }
 .landing :is(.landing-flow, .landing-eligibility, .landing-pricing, .landing-tutorials, .landing-simulator, .landing-faq) h2 {
-  font-size: var(--landing-heading-size);
+  font-size: var(--section-title-size);
   letter-spacing: -.045em;
   line-height: 1.1;
   font-weight: 580;
@@ -219,7 +205,7 @@ html:has(.landing :focus-visible) { scroll-behavior: auto; }
 }
 .landing-flow { --landing-next-surface: var(--landing-soft); padding-block-start: clamp(34px, 3.6vw, 54px); background-color: var(--surface); }
 .landing-flow h2 { margin-bottom: var(--landing-content-gap); text-align: center; }
-.landing-steps, .landing-report-preview, .landing-plan-carousel, .landing-carousel-controls {
+.landing-steps, .landing-report-preview {
   width: var(--landing-card-track);
   margin-inline: auto;
 }
@@ -334,13 +320,18 @@ html:has(.landing :focus-visible) { scroll-behavior: auto; }
 .landing-volume input::-moz-range-progress { height: 4px; border-radius: 4px; background: var(--ink); }
 .landing-volume input::-moz-range-thumb { width: 14px; height: 14px; border: 2px solid var(--ink); border-radius: 50%; background: var(--surface); }
 .landing-volume .landing-volume-link { display: flex; width: fit-content; margin-inline-start: auto; font-size: 14px; gap: 6px; }
+.landing-plan-carousel, .landing-carousel-controls {
+  width: var(--landing-plan-track);
+  margin-inline: auto;
+}
 .landing-plan-carousel {
   /* Keep each plan readable when it snaps into view. */
-  --plan-width: calc((100% - 3 * 12px) / 4);
+  --plan-gap: 14px;
+  --plan-width: calc((100% - 3 * var(--plan-gap)) / 4);
   display: grid;
   grid-auto-flow: column;
   grid-auto-columns: var(--plan-width);
-  gap: 12px;
+  gap: var(--plan-gap);
   overflow-x: auto;
   overscroll-behavior-inline: contain;
   scroll-snap-type: x mandatory;
@@ -361,12 +352,12 @@ html:has(.landing :focus-visible) { scroll-behavior: auto; }
   border: 1px solid var(--line);
   border-radius: var(--landing-card-radius);
   scroll-snap-align: start;
-  padding: clamp(16px, 1.65vw, 24px);
+  padding: clamp(17px, 1.8vw, 26px);
   background: var(--surface);
   box-shadow: none;
   display: grid;
   grid-template-rows: auto auto auto 1fr;
-  gap: 14px;
+  gap: 16px;
   transition: border-color 120ms var(--landing-ease);
 }
 .landing-plan-carousel > .billing-plan::after {
@@ -383,7 +374,7 @@ html:has(.landing :focus-visible) { scroll-behavior: auto; }
 .landing-plan-carousel .billing-plan:not([data-recommended]):focus-within { border-color: var(--ink); }
 .landing-plan-carousel .plan-card-heading { min-height: 0; }
 .landing-plan-carousel .plan-card-heading h3 { font-size: 19px; font-weight: 590; letter-spacing: -.025em; }
-.landing-plan-carousel .plan-card-price { display: grid; align-content: start; gap: 5px; }
+.landing-plan-carousel .plan-card-price { display: grid; align-content: start; gap: 6px; }
 .landing-plan-discount { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 14px; }
 .landing-plan-carousel .billing-plan-price { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 6px; line-height: 1.06; white-space: normal; }
 .landing-plan-carousel .billing-plan-price strong { font-size: clamp(28px, 2.55vw, 36px); font-weight: 620; white-space: nowrap; }
@@ -391,7 +382,7 @@ html:has(.landing :focus-visible) { scroll-behavior: auto; }
 .landing-plan-carousel .billing-plan-cycle { line-height: 1.35; }
 .landing-plan-savings { padding-top: 2px; }
 .landing-plan-carousel .plan-card-action .btn { justify-content: center; }
-.landing-plan-carousel .plan-features { display: grid; gap: 9px; margin: 0; padding: 2px 0 0; }
+.landing-plan-carousel .plan-features { display: grid; gap: 10px; margin: 0; padding: 2px 0 0; }
 .landing-plan-carousel .plan-features li { margin: 0; gap: 8px; }
 .landing-plan-carousel .plan-features li svg { flex: 0 0 15px; }
 .landing-pricing:has(#landing-volume:focus-visible) :is(.billing-plan, .billing-plan .btn),
@@ -418,7 +409,7 @@ html:has(.landing :focus-visible) { scroll-behavior: auto; }
 }
 .landing-eligibility-fields input {
   width: 100%;
-  min-height: var(--landing-control-height);
+  min-height: var(--control-height);
   padding: 0 13px;
   border: 1px solid var(--edge);
   border-radius: var(--r-btn);
@@ -521,10 +512,10 @@ html:has(.landing :focus-visible) { scroll-behavior: auto; }
 .landing-footer a:focus-visible { outline-color: var(--bg); }
 .landing-footer-bottom { font-size: 13px; padding-block: 7px 15px; }
 
-.legal-masthead .site-masthead-inner { justify-content: space-between; }
+.legal-masthead .site-masthead-inner { justify-content: space-between; min-height: var(--landing-header-height); }
 .landing .legal-content { width: min(730px, calc(100% - 2 * var(--space-edge))); padding-block: var(--landing-section-space); }
-.legal-content h1 { font-size: clamp(39px, 5.4vw, 70px); font-weight: 570; line-height: 1.02; letter-spacing: -.055em; text-wrap: balance; }
-.legal-content header > p { margin: 16px 0 0; color: var(--muted); font-size: 18px; line-height: 1.55; }
+.legal-content h1 { font-size: var(--section-title-size); font-weight: 580; line-height: 1.1; letter-spacing: -.045em; text-wrap: balance; }
+.legal-content header > p { margin: 10px 0 0; color: var(--muted); font-size: 17px; line-height: 1.5; }
 .legal-content section { border-top: 1px solid var(--line); margin-top: 28px; padding-top: 22px; }
 .legal-content h2 { font-size: clamp(22px, 2.8vw, 27px); font-weight: 550; line-height: 1.24; letter-spacing: -.025em; }
 .legal-content :is(section p, li) { line-height: 1.65; color: var(--muted); }
@@ -588,8 +579,8 @@ html:has(.landing :focus-visible) { scroll-behavior: auto; }
 @keyframes rex-skeleton { to { opacity: .45; } }
 
 @media (min-width: 1131px) { .landing-carousel-controls { display: none; } }
-@media (max-width: 1130px) { .landing-plan-carousel { --plan-width: calc((100% - 2 * 12px) / 3); } }
-@media (max-width: 900px) { .landing-plan-carousel { --plan-width: calc((100% - 12px) / 2); } }
+@media (max-width: 1130px) { .landing-plan-carousel { --plan-width: calc((100% - 2 * var(--plan-gap)) / 3); } }
+@media (max-width: 900px) { .landing-plan-carousel { --plan-width: calc((100% - var(--plan-gap)) / 2); } }
 @media (max-width: 720px) {
   html:has(.landing) {
     --landing-header-height: 56px;

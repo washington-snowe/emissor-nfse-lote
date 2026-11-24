@@ -17,7 +17,7 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
   other: { "page-type": "software", "site-kind": "software" },
 };
-export const viewport: Viewport = { themeColor: "#f7f6f3" };
+export const viewport: Viewport = { themeColor: "#f7f7f7" };
 
 export default function RootLayout({
   children,
