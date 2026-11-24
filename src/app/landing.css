@@ -16,8 +16,10 @@
   --r-btn: 16px;
   --landing-card-radius: 20px;
   --landing-content-gap: clamp(18px, 2.4vw, 32px);
-  --landing-heading-size: clamp(27px, 3vw, 42px);
-  --landing-subheading-size: clamp(17px, 1.5vw, 21px);
+  --landing-heading-size: clamp(29px, 3.15vw, 44px);
+  --landing-subheading-size: clamp(18px, 1.55vw, 22px);
+  --landing-card-inset: clamp(4px, 1.1vw, 14px);
+  --landing-card-track: min(1080px, calc(100% - 2 * var(--landing-card-inset)));
   --landing-control-height: 46px;
   --space-edge: clamp(18px, 4.8vw, 76px);
   --landing-section-space: clamp(36px, 4.8vw, 68px);
@@ -100,7 +102,7 @@ html:has(.landing :focus-visible) { scroll-behavior: auto; }
   inset-inline-start: 0;
   display: flex;
   align-items: center;
-  gap: clamp(14px, 3vw, 44px);
+  gap: clamp(10px, 1.9vw, 27px);
   width: max-content;
   color: var(--masthead-text);
   font-size: 15px;
@@ -217,12 +219,16 @@ html:has(.landing :focus-visible) { scroll-behavior: auto; }
 }
 .landing-flow { --landing-next-surface: var(--landing-soft); padding-block-start: clamp(34px, 3.6vw, 54px); background-color: var(--surface); }
 .landing-flow h2 { margin-bottom: var(--landing-content-gap); text-align: center; }
+.landing-steps, .landing-report-preview, .landing-plan-carousel, .landing-carousel-controls {
+  width: var(--landing-card-track);
+  margin-inline: auto;
+}
 .landing-steps {
   --step-gap: clamp(23px, 2.6vw, 36px);
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: var(--step-gap);
-  margin: 0;
+  margin-block: 0;
   padding: 0;
   list-style: none;
 }
@@ -398,13 +404,13 @@ html:has(.landing :focus-visible) { scroll-behavior: auto; }
 .landing-eligibility { background-color: var(--landing-soft); }
 .landing .landing-eligibility-grid {
   display: grid;
-  grid-template-columns: minmax(0, .93fr) minmax(0, 1fr);
-  align-items: center;
-  gap: clamp(18px, 4vw, 56px);
+  justify-items: center;
+  gap: var(--landing-content-gap);
 }
-.landing-eligibility h2 { max-width: 19ch; }
-.landing-eligibility-intro { max-width: 44ch; color: var(--muted); margin: 10px 0 0; line-height: 1.45; text-wrap: pretty; }
-.landing-eligibility-panel { container-type: inline-size; padding: clamp(16px, 2.3vw, 26px); background: var(--wash); border: 1px solid var(--line); border-radius: var(--landing-card-radius); }
+.landing-eligibility-head { width: 100%; text-align: center; }
+.landing-eligibility h2 { max-width: 29ch; margin-inline: auto; }
+.landing-eligibility-intro { max-width: 53ch; color: var(--muted); margin: 10px auto 0; line-height: 1.45; text-wrap: balance; }
+.landing-eligibility-panel { width: min(clamp(304px, 44vw, 520px), calc(100% - 2 * var(--landing-card-inset))); container-type: inline-size; padding: clamp(16px, 2.3vw, 26px); background: var(--wash); border: 1px solid var(--line); border-radius: var(--landing-card-radius); }
 .landing-eligibility-panel label { display: block; font-size: 14px; font-weight: 550; margin-bottom: 6px; }
 .landing-eligibility-fields { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; }
 @container (max-width: 340px) {
@@ -435,9 +441,8 @@ html:has(.landing :focus-visible) { scroll-behavior: auto; }
 .landing-tutorials-content { text-align: center; }
 .landing-tutorials h2 { max-width: 23ch; margin-inline: auto; }
 .landing-tutorials .landing-ink-word { margin-inline: .12em; }
-.landing-tutorial-subtitle { display: block; color: var(--muted); font-size: clamp(15px, 1.5vw, 19px); font-weight: 500; line-height: 1.4; margin-top: 8px; }
 .landing-tutorials-grid {
-  width: min(100%, 410px);
+  width: min(100%, 500px);
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: clamp(10px, 2vw, 24px);
@@ -445,13 +450,13 @@ html:has(.landing :focus-visible) { scroll-behavior: auto; }
 }
 .landing-tutorials-grid > div { min-width: 0; display: grid; grid-template-rows: subgrid; grid-row: span 2; row-gap: 7px; }
 .landing-video-slot { aspect-ratio: 9 / 16; background: #fff; border: 1px solid var(--line); border-radius: var(--landing-card-radius); }
-.landing-tutorials-grid h3 { align-self: end; font-size: 16px; font-weight: 550; line-height: 1.35; text-wrap: balance; }
+.landing-tutorials-grid h3 { align-self: end; font-size: 17px; font-weight: 550; line-height: 1.35; text-wrap: balance; }
 
 .landing-simulator { background-color: var(--landing-soft); }
 .landing-simulator-content { display: grid; justify-items: center; gap: clamp(13px, 2.4vw, 24px); }
 .landing-simulator-head { text-align: center; }
 .landing-simulator-head p { max-width: 56ch; margin: 8px auto 0; color: var(--muted); line-height: 1.42; text-wrap: balance; }
-.landing-file-panel { width: min(100%, 690px); min-width: 0; }
+.landing-file-panel { width: min(610px, calc(100% - 2 * var(--landing-card-inset))); min-width: 0; }
 .landing-file-zone {
   display: flex;
   position: relative;
@@ -610,7 +615,7 @@ html:has(.landing :focus-visible) { scroll-behavior: auto; }
   .landing-report-summary dl { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
   .landing-report-summary dl > div { display: grid; align-content: start; gap: 6px; padding: 8px 0 0; }
   .landing-report-summary dd { font-size: clamp(14px, 4vw, 18px); }
-  .landing .landing-eligibility-grid { grid-template-columns: minmax(0, 1fr); }
+  .landing-tutorials { --space-edge: 14px; }
   .landing-footer-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     grid-template-areas: "about about" "navigation contact" "navigation legal";
