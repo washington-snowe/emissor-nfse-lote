@@ -112,7 +112,9 @@ export function LandingPricing() {
     <section className="landing-pricing" id="planos" aria-labelledby="planos-titulo">
       <div className="site-width">
         <div className="landing-pricing-head">
-          <h2 id="planos-titulo">Planos e preços</h2>
+          <h2 id="planos-titulo">Planos e <span className="landing-ink-word landing-ink-accent">preços<svg className="landing-ink-underline" viewBox="0 0 140 14" preserveAspectRatio="none" aria-hidden="true">
+            <path d="M3 10C32 6 59 3 92 4c18 0 34 1 45 2" />
+          </svg></span></h2>
           <fieldset className="landing-cadence">
             <legend className="sr-only">Período da assinatura</legend>
             <label>
@@ -144,7 +146,7 @@ export function LandingPricing() {
           }} tabIndex={0}>
           {plans.map(plan =>
             <PlanCard key={plan.code} plan={plan} cadence={cadence} showBadge={false} recommended={plan.code === recommended.code}
-              action={<Link href="/criar-conta" className="btn btn--primary" aria-label={`Começar agora com o plano ${plan.name}`}>Começar agora <ArrowRight size={16} aria-hidden="true" /></Link>} />,
+              action={<Link href="/criar-conta" className="btn btn--secondary" aria-label={`Começar agora com o plano ${plan.name}`}>Começar agora <ArrowRight size={16} aria-hidden="true" /></Link>} />,
           )}
         </div>
         {!(edges.atStart && edges.atEnd) && <div className="landing-carousel-controls">

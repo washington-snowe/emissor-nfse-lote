@@ -1,14 +1,13 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useState, type ChangeEvent, type FormEvent } from "react";
 import { ArrowRight } from "lucide-react";
 import { consultEligibility } from "@/app/eligibility-actions";
 import type { EligibilityResult } from "@/lib/cnpj-eligibility";
-import { validCnpj } from "@/lib/companies";
+import { formatCnpj, normalizeCnpj, validCnpj } from "@/lib/companies";
 
 const messages: Record<EligibilityResult["status"], [title: string, detail?: string]> = {
-  available: ["Seu perfil é atendido pelo Rex", "Cadastre a empresa e valide o certificado A1 para confirmar o acesso à emissão."],
-  assisted: ["Seu perfil é atendido com liberação assistida", "Fale com nosso time para verificar a liberação da emissão em produção."],
+  eligible: ["Sim, seu perfil pode emitir pelo Rex"],
   unsupported: ["Ainda não atendemos esse CNPJ", "Nosso time pode avaliar a liberação para o seu perfil."],
   inactive: ["O cadastro do CNPJ precisa de atenção", "Confira a situação cadastral antes de configurar a emissão."],
   unconfirmed: ["Não conseguimos confirmar o enquadramento", "A base consultada retornou dados insuficientes. Nosso time pode conferir o seu caso."],
@@ -18,12 +17,50 @@ const messages: Record<EligibilityResult["status"], [title: string, detail?: str
   unavailable: ["Consulta indisponível no momento", "Tente novamente em instantes."],
 };
 
+const nextSteps = {
+  setup: "Cadastre a empresa e valide seu certificado A1 para começar a emitir.",
+  assisted: "Para começar a emitir em produção, peça ao nosso time uma análise da liberação.",
+  regularize: "Regularize a situação cadastral do CNPJ antes de pedir a liberação da emissão.",
+};
+
 export function LandingEligibility({ supportHref }: { supportHref?: string }) {
   const [cnpj, setCnpj] = useState("");
   const [pending, setPending] = useState(false);
   const [result, setResult] = useState<EligibilityResult | null>(null);
   const message = result && messages[result.status];
-  const showSupport = result && ["assisted", "unsupported", "inactive", "unconfirmed"].includes(result.status);
+  const nextStep = result?.status === "eligible" ? result.nextStep : undefined;
+  const detail = nextStep ? nextSteps[nextStep] : message?.[1];
+  const showSupport = nextStep === "assisted" || nextStep === "regularize"
+    || (result && ["unsupported", "inactive", "unconfirmed"].includes(result.status));
+
+  function changeCnpj(event: ChangeEvent<HTMLInputElement>) {
+    const field = event.currentTarget;
+    const typed = field.value;
+    let position = (typed.slice(0, field.selectionStart ?? typed.length).match(/[a-z0-9]/gi) ?? []).length;
+    let formatted = formatCnpj(typed);
+    const inputType = (event.nativeEvent as InputEvent).inputType;
+
+    // Deleting an inserted separator should still remove the adjacent character.
+    if (formatted === cnpj && typed.length < cnpj.length
+      && (inputType === "deleteContentBackward" || inputType === "deleteContentForward")) {
+      const value = normalizeCnpj(cnpj);
+      const index = position - (inputType === "deleteContentBackward" ? 1 : 0);
+      if (index >= 0 && index < value.length) {
+        formatted = formatCnpj(value.slice(0, index) + value.slice(index + 1));
+        position = index;
+      }
+    }
+
+    let cursor = 0;
+    while (position > 0 && cursor < formatted.length) {
+      if (/[A-Z0-9]/.test(formatted[cursor])) position -= 1;
+      cursor += 1;
+    }
+    field.value = formatted;
+    field.setSelectionRange(cursor, cursor);
+    setCnpj(formatted);
+    setResult(null);
+  }
 
   async function check(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -46,7 +83,9 @@ export function LandingEligibility({ supportHref }: { supportHref?: string }) {
   return <section className="landing-eligibility" id="consultar-cnpj" aria-labelledby="eligibility-title">
     <div className="site-width landing-eligibility-grid">
       <div>
-        <h2 id="eligibility-title">Seu CNPJ pode emitir pelo Rex?</h2>
+        <h2 id="eligibility-title">Seu <span className="landing-ink-word">CNPJ<svg className="landing-ink-underline" viewBox="0 0 140 14" preserveAspectRatio="none" aria-hidden="true">
+          <path d="M3 9C34 3 71 3 108 6c10 1 21 2 29 1M67 11c23-2 46-2 62 0" />
+        </svg></span> pode emitir pelo Rex?</h2>
         <p className="landing-eligibility-intro">Consulte o município do cadastro e veja se o Rex atende o perfil da sua empresa.</p>
       </div>
       <div className="landing-eligibility-panel">
@@ -56,10 +95,7 @@ export function LandingEligibility({ supportHref }: { supportHref?: string }) {
             <input id="eligibility-cnpj" value={cnpj} type="text" maxLength={30} autoComplete="off"
               autoCapitalize="characters" spellCheck={false} placeholder="00.000.000/0000-00"
               readOnly={pending} aria-invalid={result?.status === "invalid" || undefined}
-              onChange={event => {
-                setCnpj(event.target.value);
-                setResult(null);
-              }} />
+              onChange={changeCnpj} />
             <button type="submit" className="btn btn--primary" disabled={pending}>
               {pending ? "Consultando…" : "Consultar CNPJ"}
             </button>
@@ -75,9 +111,9 @@ export function LandingEligibility({ supportHref }: { supportHref?: string }) {
             {"location" in result && (result.location || result.profile) && <p className="landing-eligibility-profile">
               {[result.profile, result.location].filter(Boolean).join(" · ")}
             </p>}
-            {message[1] && <p>{message[1]}</p>}
+            {detail && <p>{detail}</p>}
           </div>
-          {result.status === "available" && <a href="#planos" className="text-link">Ver planos <ArrowRight size={16} aria-hidden="true" /></a>}
+          {nextStep === "setup" && <a href="#planos" className="text-link">Ver planos <ArrowRight size={16} aria-hidden="true" /></a>}
           {showSupport && supportHref && <a href={supportHref} className="btn btn--secondary">Fale com nosso time <ArrowRight size={16} aria-hidden="true" /></a>}
         </div>}
       </div>

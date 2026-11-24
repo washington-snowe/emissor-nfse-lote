@@ -17,7 +17,7 @@ export function PlanCard({ plan, cadence, action, showBadge = true, recommended 
   const price = planPrice(plan, cadence);
   const annual = cadence === "annual";
   return <article className={`billing-plan${featured ? " billing-plan--featured" : ""}`}
-    data-recommended={recommended || undefined} tabIndex={recommended === undefined ? undefined : 0}>
+    data-recommended={recommended || undefined}>
     <div className="plan-card-heading">
       <h3>{plan.name}</h3>
       {featured && showBadge && <span className="billing-plan-badge">Mais Escolhido</span>}

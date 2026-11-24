@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
   emptyCompany,
+  formatCnpj,
   normalizeCnpj,
   validCnpj,
   normalizeRegistry,
@@ -23,6 +24,15 @@ test("CNPJ valida dígitos numéricos e alfanuméricos sem descartar letras ou c
     "１２ABC34501DE35",
   ])
     assert.equal(validCnpj(cnpj), false, cnpj);
+});
+
+test("máscara de CNPJ pontua da direita para a esquerda e preserva letras ao colar", () => {
+  for (const [typed, expected] of [
+    ["", ""], ["12", "12"], ["123", "1-23"], ["123456", "1234-56"],
+    ["1234567", "1/2345-67"], ["1234567890", "1.234/5678-90"],
+    [" 12.abc.345/01de-35 ", "12.ABC.345/01DE-35"],
+    ["11222333000181000", "11.222.333/0001-81"],
+  ]) assert.equal(formatCnpj(typed), expected);
 });
 
 test("normalização preenche dados disponíveis sem coletar sócios e sem inventar enquadramento", () => {
@@ -80,24 +90,30 @@ test("validação de gravação limita campos, datas, regime e atividades no bac
   );
 });
 
-test("consulta pública distingue perfil atendido, liberação assistida e cadastro inconclusivo", () => {
+test("consulta confirma cobertura de MEI, ME e Simples e mantém a situação cadastral como próxima etapa", () => {
   const registry = {
     ...emptyCompany, city: "VÁRZEA DA PALMA", state: "MG",
     registration_status: "ATIVA", company_size: "DEMAIS", mei_option: false, simples_option: false,
   };
   assert.deepEqual(assessCnpjEligibility({ ...registry, mei_option: true, simples_option: true }), {
-    status: "available", profile: "MEI", location: "VÁRZEA DA PALMA / MG",
+    status: "eligible", profile: "MEI", location: "VÁRZEA DA PALMA / MG", nextStep: "setup",
   });
   assert.deepEqual(assessCnpjEligibility({ ...registry, simples_option: true }), {
-    status: "assisted", profile: "Simples Nacional", location: "VÁRZEA DA PALMA / MG",
+    status: "eligible", profile: "Simples Nacional", location: "VÁRZEA DA PALMA / MG", nextStep: "assisted",
   });
   assert.deepEqual(assessCnpjEligibility({ ...registry, company_size: "MICRO EMPRESA" }), {
-    status: "assisted", profile: "Microempresa (ME)", location: "VÁRZEA DA PALMA / MG",
+    status: "eligible", profile: "Microempresa (ME)", location: "VÁRZEA DA PALMA / MG", nextStep: "assisted",
   });
+  const microenterprise = normalizeRegistry({ cnpj: "11222333000181", razao_social: "Empresa de teste", codigo_porte: 1 }, "11222333000181");
+  assert.ok(microenterprise);
+  assert.equal(assessCnpjEligibility(microenterprise).status, "eligible");
   assert.equal(assessCnpjEligibility(registry).status, "unsupported");
   assert.equal(assessCnpjEligibility({ ...registry, simples_option: null }).status, "unconfirmed");
-  assert.equal(assessCnpjEligibility({ ...registry, registration_status: "", mei_option: true }).status, "unconfirmed");
-  assert.equal(assessCnpjEligibility({ ...registry, registration_status: "BAIXADA", mei_option: true }).status, "inactive");
+  assert.equal(assessCnpjEligibility({ ...registry, registration_status: "", mei_option: true }).status, "eligible");
+  assert.deepEqual(assessCnpjEligibility({ ...registry, registration_status: "BAIXADA", mei_option: true }), {
+    status: "eligible", profile: "MEI", location: "VÁRZEA DA PALMA / MG", nextStep: "regularize",
+  });
+  assert.equal(assessCnpjEligibility({ ...registry, registration_status: "BAIXADA" }).status, "inactive");
 });
 
 test("provedor recusa respostas trocadas e falhas e não consulta CNPJ inválido", async () => {

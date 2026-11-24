@@ -56,6 +56,13 @@ export function normalizeCnpj(value: string) {
   return value.replace(/[.\/\-\s]/g, "").toUpperCase();
 }
 
+export function formatCnpj(value: string) {
+  const cnpj = value.replace(/[^a-z0-9]/gi, "").toUpperCase().slice(0, 14);
+  const root = cnpj.slice(0, -6).replace(/\B(?=(?:[A-Z0-9]{3})+$)/g, ".");
+  const branch = cnpj.slice(-6, -2);
+  return [root, branch].filter(Boolean).join("/") + (branch ? "-" : "") + cnpj.slice(-2);
+}
+
 export function validCnpj(value: string) {
   const cnpj = normalizeCnpj(value);
   if (!/^[A-Z0-9]{12}\d{2}$/.test(cnpj) || /^(\d)\1{13}$/.test(cnpj))
@@ -129,7 +136,7 @@ export function normalizeRegistry(
         })
       : [],
     legal_nature: text(p.natureza_juridica, 150),
-    company_size: text(p.porte, 100),
+    company_size: text(p.porte, 100) || (code(p.codigo_porte, 2) === "01" ? "MICRO EMPRESA" : ""),
     registration_status: text(p.descricao_situacao_cadastral, 100),
     opened_on: /^\d{4}-\d{2}-\d{2}$/.test(String(p.data_inicio_atividade))
       ? String(p.data_inicio_atividade)
