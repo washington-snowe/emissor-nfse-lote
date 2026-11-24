@@ -113,8 +113,10 @@ export function LandingEligibility({ supportHref }: { supportHref?: string }) {
             </p>}
             {detail && <p>{detail}</p>}
           </div>
-          {nextStep === "setup" && <a href="#planos" className="text-link">Ver planos <ArrowRight size={16} aria-hidden="true" /></a>}
-          {showSupport && supportHref && <a href={supportHref} className="btn btn--secondary">Fale com nosso time <ArrowRight size={16} aria-hidden="true" /></a>}
+          {(result.status === "eligible" || (showSupport && supportHref)) && <div className="landing-eligibility-actions">
+            {result.status === "eligible" && <a href="#planos" className="btn btn--primary">Ver planos <ArrowRight size={16} aria-hidden="true" /></a>}
+            {showSupport && supportHref && <a href={supportHref} className="btn btn--secondary">Fale com nosso time <ArrowRight size={16} aria-hidden="true" /></a>}
+          </div>}
         </div>}
       </div>
     </div>

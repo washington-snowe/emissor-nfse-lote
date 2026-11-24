@@ -1,10 +1,12 @@
 import Image from "next/image";
 import Link from "next/link";
 import { ArrowDown, ArrowRight, ArrowUpRight, ChevronDown } from "lucide-react";
-import { Brand } from "@/components/brand";
 import { LandingEligibility } from "@/components/landing-eligibility";
+import { LandingFooter } from "@/components/landing-footer";
 import { LandingHeader } from "@/components/landing-header";
 import { LandingPricing } from "@/components/landing-pricing";
+import { money, plans } from "@/lib/billing/catalog";
+import { getPublicContact } from "@/lib/public-contact";
 import "./landing.css";
 
 const steps = [
@@ -19,23 +21,19 @@ const arrows = [
 ];
 
 const answers = [
-  { question: "Quem pode usar o Rex?", answer: "O Rex atende afiliados da Shopee que emitem NFS-e como MEI ou empresa do Simples Nacional." },
-  { question: "Qual relatório preciso importar?", answer: "Exporte o relatório mensal de comissões por vendedor da Shopee no formato CSV." },
-  { question: "Preciso de certificado digital?", answer: "Sim. Cadastre a empresa e adicione o certificado digital A1 para verificar o acesso à emissão." },
-  { question: "Posso enviar as notas por e-mail?", answer: "Ao revisar um lote em produção, confira os endereços e autorize o envio aos vendedores. O painel mostra o status de cada entrega." },
+  { question: "Quem o Rex Notas atende?", answer: <>Afiliados da Shopee que precisam emitir NFS-e com um CNPJ. <a href="#consultar-cnpj">Consulte seu CNPJ</a> para ver o enquadramento e as etapas de liberação.</> },
+  { question: "Sou afiliado pessoa física, posso usar?", answer: "Você pode consultar os planos e usar o simulador. Para emitir pelo Rex, é preciso cadastrar uma empresa com CNPJ e o certificado A1 dela." },
+  { question: "Preciso de certificado digital A1 para emissão em lote?", answer: "Sim. O A1 precisa estar válido e vinculado ao CNPJ que vai emitir. O Rex usa o certificado para assinar as declarações e se conectar ao serviço fiscal." },
+  { question: "Preciso digitar nota por nota?", answer: "Importe o CSV mensal de comissões por vendedor. O Rex prepara a prévia do lote para você revisar os valores, os dados fiscais e os e-mails antes de confirmar." },
+  { question: "E a nota da comissão que a própria Shopee me paga?", answer: "Quando a Shopee for a tomadora, confira os dados e as instruções da plataforma para essa nota. A emissão em produção pelo Rex parte do relatório mensal de comissões por vendedor. Para emitir uma nota individual desse outro pagamento, siga as orientações da Shopee e use o emissor aplicável à sua empresa." },
+  { question: "As notas são enviadas automaticamente no e-mail do vendedor?", answer: "Sim. Depois que a nota é autorizada e você confirma os destinatários na revisão, o Rex coloca o XML e o DANFS-e na fila de envio. O painel mostra o status de cada e-mail." },
+  { question: "Quanto custa o Rex Notas?", answer: <>O Start custa {money(plans[0].monthlyCents)} por mês no plano mensal e inclui {plans[0].includedNotes} notas por mês. O anual tem 20% de desconto e cobrança anual. <a href="#planos">Compare as franquias e os excedentes</a>.</> },
+  { question: "Posso fazer tudo pelo celular?", answer: "O painel funciona no navegador do celular. Tenha o CSV, o arquivo do A1 e a senha do certificado no dispositivo para concluir a configuração e importar o relatório." },
+  { question: "Qual relatório preciso importar?", answer: <>Exporte o relatório mensal de comissões por vendedor da Shopee no formato CSV. Você pode experimentar com ele no <a href="#simulador">simulador de notas</a>.</> },
+  { question: "A consulta do CNPJ já libera a emissão?", answer: "A consulta mostra se o Rex atende o perfil da empresa. A emissão depende do cadastro, do A1, da configuração fiscal e da liberação para o ambiente de produção." },
   { question: "Onde baixo as notas emitidas?", answer: "Em Notas, você acompanha cada emissão e baixa o XML e o DANFS-e das notas autorizadas." },
+  { question: "Posso usar mais de um CNPJ na mesma conta?", answer: "Sim. Todos os planos permitem cadastrar mais de uma empresa. Os documentos e o certificado ficam associados a cada CNPJ, e a franquia de notas é do plano contratado." },
 ];
-
-function supportHref() {
-  const raw = process.env.REX_SUPPORT_URL?.trim();
-  if (!raw) return;
-  try {
-    const url = new URL(raw);
-    if (["https:", "mailto:"].includes(url.protocol) && !url.username && !url.password) return url.href;
-  } catch {
-    // Leave the support link unavailable when it has no valid destination.
-  }
-}
 
 export default function Home() {
   return <div className="landing">
@@ -97,10 +95,10 @@ export default function Home() {
         </div>
       </section>
 
-      <LandingEligibility supportHref={supportHref()} />
+      <LandingEligibility supportHref={getPublicContact()?.href} />
       <LandingPricing />
 
-      <section className="landing-faq" aria-labelledby="faq-title">
+      <section className="landing-faq" id="perguntas-frequentes" aria-labelledby="faq-title">
         <div className="site-width landing-faq-grid">
           <h2 id="faq-title">Dúvidas frequentes</h2>
           <div className="landing-questions">
@@ -112,11 +110,6 @@ export default function Home() {
         </div>
       </section>
     </main>
-    <footer className="landing-footer">
-      <div className="site-width site-masthead-inner">
-        <Brand />
-        <a href="#conteudo" className="text-link">Voltar ao topo</a>
-      </div>
-    </footer>
+    <LandingFooter />
   </div>;
 }
