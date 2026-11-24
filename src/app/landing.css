@@ -21,7 +21,6 @@
   --landing-section-space: clamp(37px, 5.2vw, 72px);
   --landing-section-fade: clamp(28px, 4.4vw, 62px);
   --landing-next-surface: var(--surface);
-  --landing-header-height: 72px;
   --landing-ease: cubic-bezier(.23, 1, .32, 1);
   --landing-move: cubic-bezier(.77, 0, .175, 1);
   background: var(--surface);
@@ -30,7 +29,11 @@
   accent-color: var(--ink);
 }
 
-html:has(.landing) { scroll-behavior: smooth; scroll-padding-top: calc(72px + 20px); }
+html:has(.landing) {
+  --landing-header-height: 68px;
+  scroll-behavior: smooth;
+  scroll-padding-top: calc(var(--landing-header-height) + 20px);
+}
 html:has(.landing :focus-visible) { scroll-behavior: auto; }
 .landing ::selection { background: #d8d8d8; color: var(--ink); }
 .landing :focus-visible { outline-color: var(--ink); }
@@ -500,7 +503,7 @@ html:has(.landing :focus-visible) { scroll-behavior: auto; }
   grid-template-columns: minmax(0, 1.4fr) repeat(3, minmax(0, 1fr));
   grid-template-areas: "about navigation contact legal";
   gap: clamp(14px, 3.25vw, 44px);
-  padding-block: clamp(25px, 3.8vw, 50px) 17px;
+  padding-block: clamp(22px, 3.4vw, 44px) 14px;
 }
 .landing-footer-about { grid-area: about; }
 .landing-footer-navigation { grid-area: navigation; }
@@ -512,7 +515,7 @@ html:has(.landing :focus-visible) { scroll-behavior: auto; }
 @media (pointer: coarse) { .landing-footer a:not(.brand) { min-height: 44px; } }
 .landing-footer a:not(.brand):focus-visible { color: var(--bg); text-decoration: underline; text-underline-offset: 4px; }
 .landing-footer a:focus-visible { outline-color: var(--bg); }
-.landing-footer-bottom { font-size: 13px; padding-block: 8px 18px; }
+.landing-footer-bottom { font-size: 13px; padding-block: 7px 15px; }
 
 .legal-masthead .site-masthead-inner { justify-content: space-between; }
 .landing .legal-content { width: min(730px, calc(100% - 2 * var(--space-edge))); padding-block: var(--landing-section-space); }
@@ -587,8 +590,10 @@ html:has(.landing :focus-visible) { scroll-behavior: auto; }
 @media (max-width: 1130px) { .landing-plan-carousel { --plan-width: calc((100% - 2 * 12px) / 3); } }
 @media (max-width: 900px) { .landing-plan-carousel { --plan-width: calc((100% - 12px) / 2); } }
 @media (max-width: 720px) {
-  .landing { --landing-header-height: 64px; }
-  html:has(.landing) { scroll-padding-top: 79px; }
+  html:has(.landing) {
+    --landing-header-height: 60px;
+    scroll-padding-top: calc(var(--landing-header-height) + 15px);
+  }
   .landing-header-inner { gap: 10px; }
   .landing-nav { display: none; }
   @supports selector(:popover-open) {
@@ -612,6 +617,7 @@ html:has(.landing :focus-visible) { scroll-behavior: auto; }
     grid-template-columns: repeat(2, minmax(0, 1fr));
     grid-template-areas: "about about" "navigation contact" "navigation legal";
     align-items: start;
+    row-gap: 12px;
   }
 }
 @media (max-width: 543px) {
