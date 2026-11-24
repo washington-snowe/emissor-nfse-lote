@@ -333,13 +333,14 @@ html:has(.landing :focus-visible) { scroll-behavior: auto; }
   grid-auto-columns: var(--plan-width);
   gap: var(--plan-gap);
   overflow-x: auto;
+  overflow-y: hidden;
   overscroll-behavior-inline: contain;
   scroll-snap-type: x mandatory;
   scroll-behavior: smooth;
-  scrollbar-width: thin;
-  scrollbar-color: #aaa transparent;
+  scrollbar-width: none;
   padding: 9px 0 10px;
 }
+.landing-plan-carousel::-webkit-scrollbar { display: none; }
 .landing-plan-carousel[data-carousel-motion] { scroll-behavior: auto; scroll-snap-type: none; }
 .landing-plan-carousel[data-carousel-motion="dragging"],
 .landing-plan-carousel[data-carousel-motion="dragging"] * { cursor: grabbing; user-select: none; }

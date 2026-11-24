@@ -6,6 +6,7 @@
   }
   [data-landing-reveal="panel"] { --reveal-distance: 27px; --reveal-duration: 630ms; }
   [data-landing-reveal="row"] { --reveal-distance: 12px; --reveal-duration: 420ms; }
+  .landing-plan-carousel > .billing-plan { --reveal-distance: 8px; }
   [data-landing-reveal-state="pending"] { opacity: .4; transform: translateY(var(--reveal-distance)); }
   [data-landing-reveal-state="visible"] {
     animation: landing-reveal var(--reveal-duration) var(--reveal-delay) var(--landing-ease) both;
