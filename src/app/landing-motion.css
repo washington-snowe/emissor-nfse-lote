@@ -69,6 +69,7 @@
       height: 2px;
       background: var(--masthead-control);
       opacity: .35;
+      transition: background-color var(--masthead-tone);
       pointer-events: none;
       transform-origin: left;
       animation: landing-scroll-progress linear both;
