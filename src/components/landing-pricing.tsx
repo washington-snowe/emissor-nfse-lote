@@ -7,6 +7,7 @@ import { plans } from "@/lib/billing/catalog";
 import { formatFiscalBrl } from "@/lib/nfse/status";
 import { PlanCard } from "@/components/plan-card";
 import { LandingTutorials } from "@/components/landing-tutorials";
+import { usePlanCarouselDrag } from "@/components/use-plan-carousel-drag";
 
 const largestPlan = plans[plans.length - 1];
 const maximumVolume = largestPlan.includedNotes;
@@ -29,6 +30,7 @@ export function LandingPricing() {
   const [dragging, setDragging] = useState(false);
   const [edges, setEdges] = useState({ atStart: true, atEnd: false });
   const carousel = useRef<HTMLDivElement>(null);
+  usePlanCarouselDrag(carousel);
   const reading = useRef(false);
   const cadence = annual ? "annual" : "monthly";
   const recommended = recommendedPlan(volume);
@@ -171,7 +173,10 @@ export function LandingPricing() {
           <label className="landing-file-zone" data-dragging={dragging} data-busy={estimate.state === "loading"}
             onDragOver={event => {
               event.preventDefault();
-              if (event.dataTransfer.types.includes("Files") && !reading.current) setDragging(true);
+              if (event.dataTransfer.types.includes("Files") && !reading.current) {
+                event.dataTransfer.dropEffect = "copy";
+                setDragging(true);
+              }
             }}
             onDragLeave={event => {
               if (event.relatedTarget instanceof Node && event.currentTarget.contains(event.relatedTarget)) return;
@@ -183,7 +188,7 @@ export function LandingPricing() {
               void readReport(event.dataTransfer.files[0]);
             }}>
             <Upload size={22} aria-hidden="true" />
-            <span><strong>Selecionar ou soltar o CSV</strong><small>Relatório mensal por vendedor · até 512 KB</small></span>
+            <span><strong>{dragging ? "Solte o CSV para estimar" : "Selecionar ou soltar o CSV"}</strong><small>Relatório mensal por vendedor · até 512 KB</small></span>
             <input type="file" accept=".csv,text/csv" aria-label="Relatório mensal da Shopee" disabled={estimate.state === "loading"}
               onChange={event => {
                 const file = event.currentTarget.files?.[0];

@@ -67,8 +67,10 @@ export default function Home() {
                 </svg>
               </span>
             </h1>
-            <p className="landing-hero-promise">Para afiliados Shopee. Fácil e completo, para focar no que realmente importa.</p>
-            <Image className="landing-shopee" src="/brand/shopee.svg" width={104} height={33} alt="Shopee" />
+            <div className="landing-hero-context">
+              <p className="landing-hero-promise">Para afiliados Shopee. Fácil e completo, para focar no que realmente importa.</p>
+              <Image className="landing-shopee" src="/brand/shopee.svg" width={104} height={33} alt="Shopee" />
+            </div>
             <div className="landing-actions">
               <Link href="/criar-conta" className="btn btn--primary">Criar conta <ArrowUpRight size={18} aria-hidden="true" /></Link>
               <a href="#planos" className="btn btn--secondary">Explorar valores <ArrowDown size={17} aria-hidden="true" /></a>

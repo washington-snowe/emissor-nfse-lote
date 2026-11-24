@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useSyncExternalStore } from "react";
-import { ArrowUpRight, Menu } from "lucide-react";
+import { ArrowUpRight, Menu, X } from "lucide-react";
 import { Brand } from "@/components/brand";
 
 const sections = [
@@ -32,6 +32,7 @@ export function LandingHeader() {
       <Link href="/entrar" className="btn btn--primary">Entrar <ArrowUpRight size={16} aria-hidden="true" /></Link>
       <button type="button" className="icon-button landing-menu-toggle" aria-label="Menu de navegação" popoverTarget="landing-mobile-nav">
         <Menu size={20} aria-hidden="true" />
+        <X size={20} aria-hidden="true" />
       </button>
       <nav popover="auto" id="landing-mobile-nav" aria-label="Navegação do site" className="landing-mobile-nav">
         {sections.map(({ href, label }) => <a key={href} href={href}

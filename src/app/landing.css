@@ -35,12 +35,18 @@ html:has(.landing :focus-visible) { scroll-behavior: auto; }
 .landing .btn--secondary { background: var(--surface); border-color: var(--edge); }
 .landing .btn--primary:active { background: #292929; }
 .landing :is(.btn, .icon-button):not(:disabled) {
-  transition: background-color 140ms ease, color 140ms ease, border-color 140ms ease, scale 140ms var(--landing-ease);
+  transition: background-color 120ms var(--landing-ease), color 120ms var(--landing-ease), border-color 120ms var(--landing-ease), scale 110ms var(--landing-ease);
 }
 .landing :is(.btn, .icon-button):not(:disabled):is(:hover, :active) { transform: none; }
 .landing :is(.btn, .icon-button):focus-visible { transition: none; }
 
 .landing-header { position: sticky; top: 0; z-index: 12; }
+@supports (backdrop-filter: blur(1px)) {
+  .landing-header[data-scrolled="true"] { background: rgb(252 252 252 / .91); backdrop-filter: blur(14px); }
+}
+@media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
+  .landing-header[data-scrolled="true"] { background: var(--surface); backdrop-filter: none; }
+}
 .landing-header-inner { position: relative; container-type: inline-size; min-height: var(--landing-header-height); display: flex; justify-content: space-between; align-items: center; gap: 16px; }
 .landing-header-inner > .btn { margin-inline-start: auto; }
 .landing-header-brand {
@@ -48,13 +54,13 @@ html:has(.landing :focus-visible) { scroll-behavior: auto; }
   opacity: 0;
   visibility: hidden;
   transform: translateY(-4px);
-  transition: opacity 120ms var(--landing-ease), transform 160ms var(--landing-ease), visibility 0s 120ms;
+  transition: opacity 120ms var(--landing-ease), transform 150ms var(--landing-ease), visibility 0s 150ms;
 }
 .landing-header[data-scrolled="true"] .landing-header-brand {
   opacity: 1;
   visibility: visible;
   transform: none;
-  transition-delay: 120ms, 120ms, 0s;
+  transition-delay: 55ms, 55ms, 0s;
 }
 .landing-nav {
   position: absolute;
@@ -67,12 +73,17 @@ html:has(.landing :focus-visible) { scroll-behavior: auto; }
   color: var(--muted);
   font-size: 15px;
   transform: translateX(0);
-  transition: transform 240ms var(--landing-move) 65ms;
+  transition: transform 215ms var(--landing-move);
 }
-.landing-header[data-scrolled="true"] .landing-nav { transform: translateX(calc(50cqi - 50%)); transition-delay: 0s; }
+.landing-header[data-scrolled="true"] .landing-nav { transform: translateX(calc(50cqi - 50%)); }
+.landing-nav:focus-within { transition: none; }
 .landing-nav a { display: inline-flex; min-height: 44px; align-items: center; white-space: nowrap; }
 .landing-nav a:focus-visible { color: var(--ink); text-decoration: underline; text-underline-offset: 6px; }
 .landing-menu-toggle, .landing-mobile-nav { display: none; }
+.landing-menu-toggle { position: relative; }
+.landing-menu-toggle svg:last-child { position: absolute; opacity: 0; }
+.landing-header-inner:has(.landing-mobile-nav:popover-open) .landing-menu-toggle svg:first-child { opacity: 0; }
+.landing-header-inner:has(.landing-mobile-nav:popover-open) .landing-menu-toggle svg:last-child { opacity: 1; }
 .landing-mobile-nav {
   position: fixed;
   inset: calc(var(--landing-header-height) + 6px) var(--space-edge) auto auto;
@@ -141,7 +152,7 @@ html:has(.landing :focus-visible) { scroll-behavior: auto; }
   text-wrap: balance;
 }
 .landing-flow { padding-block-start: clamp(44px, 4.7vw, 74px); }
-.landing-flow h2 { margin-bottom: var(--landing-content-gap); }
+.landing-flow h2 { margin-bottom: var(--landing-content-gap); text-align: center; }
 .landing-steps {
   --step-gap: clamp(24px, 3.7vw, 58px);
   display: grid;
@@ -218,20 +229,19 @@ html:has(.landing :focus-visible) { scroll-behavior: auto; }
   inset: var(--cadence-inset) auto var(--cadence-inset) var(--cadence-inset);
   width: calc(50% - var(--cadence-inset) - 1px);
   border-radius: var(--r-btn);
-  background: var(--ink);
+  background: var(--surface);
+  border: 1px solid var(--edge);
   z-index: -1;
   transition: transform 175ms var(--landing-move);
 }
 .landing-cadence:has(label:last-child input:checked)::before { transform: translateX(calc(100% + 2px)); }
 .landing-cadence label { position: relative; cursor: pointer; }
 .landing-cadence input { position: absolute; inset: 0; opacity: 0; width: 100%; height: 100%; margin: 0; cursor: inherit; }
-.landing-cadence label > span { display: flex; align-items: center; justify-content: center; gap: 7px; min-height: 47px; padding: 0 15px; border-radius: var(--r-btn); font-size: 15px; font-weight: 550; transition: color 140ms ease; }
-.landing-cadence input:checked + span { color: var(--bg); }
+.landing-cadence label > span { display: flex; align-items: center; justify-content: center; gap: 7px; min-height: 47px; padding: 0 15px; border-radius: var(--r-btn); font-size: 15px; font-weight: 550; }
+.landing-cadence input:checked + span { font-weight: 620; }
 .landing-cadence input:focus-visible + span { outline: 2px solid var(--ink); outline-offset: 2px; }
-.landing-cadence:has(input:focus-visible)::before,
-.landing-cadence:has(input:focus-visible) label > span { transition: none; }
+.landing-cadence:has(input:focus-visible)::before { transition: none; }
 .landing-cadence small { font-size: 13px; font-weight: 550; color: var(--landing-accent); }
-.landing-cadence input:checked + span small { color: #a1e6b9; }
 .landing-volume { width: min(100%, 630px); margin: 0 auto clamp(12px, 2vw, 22px); }
 .landing-volume > div { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; font-size: 16px; font-weight: 520; }
 .landing-volume > div span { min-width: 5ch; text-align: end; white-space: nowrap; }
@@ -271,7 +281,14 @@ html:has(.landing :focus-visible) { scroll-behavior: auto; }
   scrollbar-color: #aaa transparent;
   padding: 4px 0 10px;
 }
+.landing-plan-carousel[data-carousel-motion] { scroll-behavior: auto; scroll-snap-type: none; }
+.landing-plan-carousel[data-carousel-motion="dragging"],
+.landing-plan-carousel[data-carousel-motion="dragging"] * { cursor: grabbing; user-select: none; }
+@media (hover: hover) and (pointer: fine) and (max-width: 1130px) {
+  .landing-plan-carousel { cursor: grab; }
+}
 .landing-plan-carousel > .billing-plan {
+  position: relative;
   min-width: 0;
   border: 1px solid var(--line);
   border-radius: var(--landing-card-radius);
@@ -282,9 +299,19 @@ html:has(.landing :focus-visible) { scroll-behavior: auto; }
   display: grid;
   grid-template-rows: auto auto auto 1fr auto;
   gap: 10px;
-  transition: border-color 180ms var(--landing-ease), box-shadow 180ms var(--landing-ease);
+  transition: border-color 120ms var(--landing-ease);
 }
-.landing-plan-carousel > .billing-plan[data-recommended] { border-color: var(--landing-accent); box-shadow: inset 0 0 0 1px var(--landing-accent); }
+.landing-plan-carousel > .billing-plan::after {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border: 2px solid var(--landing-accent);
+  border-radius: inherit;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 150ms var(--landing-ease);
+}
+.landing-plan-carousel > .billing-plan[data-recommended]::after { opacity: 1; }
 .landing-plan-carousel .billing-plan:not([data-recommended]):focus-within { border-color: var(--ink); }
 .landing-plan-carousel .plan-card-heading { min-height: 0; margin-bottom: 3px; }
 .landing-plan-carousel .plan-card-heading h3 { letter-spacing: -.02em; }
@@ -298,7 +325,8 @@ html:has(.landing :focus-visible) { scroll-behavior: auto; }
 .landing .landing-plan-carousel .plan-card-action .btn {
   justify-content: space-between;
 }
-.landing-pricing:has(#landing-volume:focus-visible) :is(.billing-plan, .billing-plan .btn) { transition: none; }
+.landing-pricing:has(#landing-volume:focus-visible) :is(.billing-plan, .billing-plan .btn),
+.landing-pricing:has(#landing-volume:focus-visible) .billing-plan::after { transition: none; }
 .landing-plan-carousel [data-recommended] .plan-card-action .btn,
 .landing-plan-carousel .plan-card-action .btn:focus-visible {
   color: var(--action-ink);
@@ -405,8 +433,8 @@ html:has(.landing :focus-visible) { scroll-behavior: auto; }
 .landing-questions details:last-child { border-bottom: 1px solid var(--line); }
 .landing-questions summary { min-height: 57px; padding-block: 12px; padding-inline: 2px; display: flex; align-items: center; justify-content: space-between; gap: 10px; list-style: none; cursor: pointer; font-size: 17px; font-weight: 520; }
 .landing-questions summary::-webkit-details-marker { display: none; }
-.landing-questions summary svg { flex: none; transition: rotate 160ms var(--landing-ease); }
-.landing-questions summary:focus-visible svg { transition: none; }
+.landing-questions summary svg { flex: none; transition: rotate 155ms var(--landing-ease); }
+.landing-questions details:has(:focus-visible) :is(summary svg, p) { transition: none; }
 .landing-questions details[open] summary svg { rotate: 180deg; }
 .landing-questions p { max-width: 72ch; margin: 0; padding: 0 18px 16px 2px; color: var(--muted); }
 .landing-questions p a { color: var(--ink); text-decoration: underline; text-underline-offset: 3px; }
@@ -452,27 +480,55 @@ html:has(.landing :focus-visible) { scroll-behavior: auto; }
     background: var(--action);
     border-color: var(--action);
   }
-  .landing-mascot:hover .landing-mascot-art { rotate: -1.2deg; }
-  .landing-mascot-art { transition: rotate 230ms var(--landing-ease); }
 }
 @media (prefers-reduced-motion: no-preference) {
-  .landing :is(.btn, .icon-button):active:not(:disabled, :focus-visible, [aria-disabled="true"]) { scale: .97; }
-  .landing-circled-word path { animation: rex-draw-ring .94s .13s var(--landing-ease) both; }
-  .landing-mascot-art { animation: rex-mascot-arrive .58s var(--landing-ease) both; }
-  .landing-glasses-sweep { animation: rex-glasses-shine .8s .52s ease-in-out both; }
-  .landing-estimate:not(.landing-estimate-skeleton), .landing-eligibility-result {
-    transition: opacity 160ms var(--landing-ease);
-    @starting-style { opacity: .45; }
+  .landing :is(.btn, .icon-button):active:not(:disabled, :focus-visible, [aria-disabled="true"]) { scale: .97; transition-duration: 80ms; }
+  .landing-hero h1 { --arrival: 12px; animation: rex-arrive 440ms var(--landing-ease) both; }
+  .landing-hero-context { --arrival: 8px; animation: rex-arrive 360ms 55ms var(--landing-ease) both; }
+  .landing-actions { --arrival: 5px; animation: rex-arrive 300ms 95ms var(--landing-ease) both; }
+  .landing-actions:focus-within { animation: none; }
+  .landing-mascot-art { --arrival: 10px; animation: rex-arrive 480ms 25ms var(--landing-ease) both; }
+  .landing-circled-word path { animation: rex-draw-ring 500ms 95ms var(--landing-ease) both; }
+  .landing-glasses-sweep { animation: rex-glasses-shine 455ms 190ms var(--landing-move) both; }
+  .landing-estimate-skeleton > [aria-hidden] { animation: rex-skeleton 1.1s var(--landing-move) infinite alternate; }
+  .landing-file-zone > svg { transition: transform 120ms var(--landing-ease); }
+  .landing-file-zone[data-dragging="true"] > svg { transform: translateY(-3px); }
+  .landing-menu-toggle svg { transition: opacity 120ms var(--landing-ease); }
+  .landing-mobile-nav {
+    opacity: 0;
+    transform: translateY(-4px) scale(.97);
+    transition: opacity 125ms var(--landing-ease), transform 125ms var(--landing-ease), display 125ms allow-discrete, overlay 125ms allow-discrete;
   }
-  .landing-estimate-skeleton > [aria-hidden] { animation: rex-skeleton 1.1s ease-in-out infinite alternate; }
   .landing-mobile-nav:popover-open {
-    transition: opacity 150ms var(--landing-ease), transform 150ms var(--landing-ease);
-    @starting-style { opacity: 0; transform: translateY(-3px) scale(.98); }
+    opacity: 1;
+    transform: none;
+    transition-duration: 175ms;
+    @starting-style { opacity: 0; transform: translateY(-4px) scale(.97); }
   }
-  .landing-header-inner:has(.landing-menu-toggle:focus-visible) .landing-mobile-nav { transition: none; }
+  .landing-header-inner:has(.landing-menu-toggle:focus-visible, .landing-mobile-nav :focus-visible) :is(.landing-mobile-nav, .landing-menu-toggle svg) { transition: none; }
+  .landing-questions details[open] > p {
+    transition: opacity 145ms var(--landing-ease), transform 145ms var(--landing-ease);
+    @starting-style { opacity: .45; transform: translateY(-3px); }
+  }
+  @supports (animation-timeline: view()) {
+    .landing-steps li {
+      --arrival: 7px;
+      animation: rex-arrive var(--landing-ease) both;
+      animation-timeline: view();
+      animation-range: entry 0% entry 65%;
+    }
+    @media (min-width: 721px) {
+      .landing-steps li:nth-child(2) { animation-range: entry 8% entry 71%; }
+      .landing-steps li:nth-child(3) { animation-range: entry 13% entry 78%; }
+    }
+  }
 }
+.landing-estimate:not(.landing-estimate-skeleton), .landing-eligibility-result {
+  transition: opacity 150ms var(--landing-ease);
+  @starting-style { opacity: .55; }
+}
+@keyframes rex-arrive { from { opacity: .72; transform: translateY(var(--arrival)); } }
 @keyframes rex-draw-ring { from { stroke-dasharray: 1; stroke-dashoffset: 1; } to { stroke-dasharray: 1; stroke-dashoffset: 0; } }
-@keyframes rex-mascot-arrive { from { opacity: 0; transform: translateY(14px) rotate(-3deg); } to { opacity: 1; transform: none; } }
 @keyframes rex-glasses-shine {
   0% { opacity: 0; transform: translateX(-110px); }
   24%, 70% { opacity: .52; }
@@ -528,9 +584,10 @@ html:has(.landing :focus-visible) { scroll-behavior: auto; }
 }
 @media (prefers-reduced-motion: reduce) {
   html:has(.landing), .landing-plan-carousel { scroll-behavior: auto; }
-  .landing :is(.landing-mascot-art, .landing-questions summary svg, .billing-plan, .landing-file-zone, .landing-header-brand, .landing-nav, #landing-volume) { transition: none; rotate: none; translate: none; }
-  .landing-header-brand { transform: none; }
+  .landing :is(.landing-questions summary svg, .billing-plan, .landing-file-zone, .landing-nav) { transition: none; }
+  .landing-header-brand { transform: none; transition: opacity 100ms var(--landing-ease), visibility 0s 100ms; }
+  .landing-header[data-scrolled="true"] .landing-header-brand { transition-delay: 0s; }
   .landing-volume input::-webkit-slider-thumb { transition: none; }
-  .landing-cadence::before, .landing-cadence label > span { transition: none; }
+  .landing-cadence::before { transition: none; }
   .landing :is(.btn, .icon-button):not(:disabled) { transition: none; }
 }
