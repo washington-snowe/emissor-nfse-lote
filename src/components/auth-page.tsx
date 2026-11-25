@@ -3,7 +3,6 @@ import Image from "next/image";
 import { ArrowLeft, ArrowRight, ShieldCheck } from "lucide-react";
 import { Brand } from "@/components/brand";
 import { AuthForm } from "@/components/auth-form";
-import { DimensionFrame } from "@/components/dimension-drawings";
 import { cadenceLabels, money, planPrice } from "@/lib/billing/catalog";
 import type { PlanSelection } from "@/lib/billing/plan-selection";
 
@@ -33,10 +32,7 @@ export function AuthPage({ signup, ready, confirmationError = false, referral, s
         </div>}
       </section>
       <aside className="entry-art">
-        <div className="entry-art-visual">
-          <DimensionFrame className="entry-art-frame" />
-          <Image src="/brand/rex-mascote.png" width={360} height={360} alt="" unoptimized />
-        </div>
+        <Image src="/brand/rex-mascote.png" width={360} height={360} alt="" unoptimized />
         <div>
           <ShieldCheck size={22} aria-hidden="true" />
           <p>Do relatório às suas NFS-e, com revisão antes de emitir.</p>

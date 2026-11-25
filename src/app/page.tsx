@@ -8,7 +8,6 @@ import { LandingHeader } from "@/components/landing-header";
 import { LandingMotion } from "@/components/landing-motion";
 import { LandingPricing } from "@/components/landing-pricing";
 import { LandingReportPreview } from "@/components/landing-report-preview";
-import { DimensionFrame, WorkflowDrawing } from "@/components/dimension-drawings";
 import { money, plans } from "@/lib/billing/catalog";
 import { getPublicContact } from "@/lib/public-contact";
 import "./landing.css";
@@ -36,8 +35,8 @@ const steps = [
 ];
 
 const arrows = [
-  "M3 18C14 7 34 6 53 15M45 5C48 8 52 12 54 15L41 19",
-  "M3 9C17 19 34 21 52 10M40 6L53 10C51 14 47 17 44 20",
+  "M3 17C16 7 33 8 51 13M42 5Q48 8 52 13Q47 17 40 19",
+  "M3 10C16 18 32 19 51 12M40 7Q47 8 52 12Q48 17 42 20",
 ];
 
 const answers = [
@@ -82,7 +81,6 @@ export default function Home() {
           </div>
 
           <div className="landing-mascot">
-            <DimensionFrame className="landing-mascot-frame" />
             <div className="landing-mascot-art">
               <Image src="/brand/rex-mascote.png" width={1254} height={1254}
                 alt="Rex, o dinossauro de óculos escuros" sizes="(max-width: 720px) 94vw, (max-width: 1200px) 50vw, 710px" preload />
@@ -107,10 +105,12 @@ export default function Home() {
           <h2 id="workflow-title" data-landing-reveal="heading">Emissão em três passos</h2>
           <ol className="landing-steps">
             {steps.map(({ title, copy }, index) => <li key={title} data-landing-reveal="card">
-              <div className="landing-step-figure">
-                <span className="landing-step-number" aria-hidden="true">{index + 1}</span>
-                <WorkflowDrawing index={index} />
-              </div>
+              <span className="landing-step-number" aria-hidden="true">
+                {index + 1}
+                <svg viewBox="0 0 36 36" aria-hidden="true">
+                  <path d="M27 6C20 0 8 4 5 11C1 18 4 29 12 32C20 35 30 31 33 23C36 14 30 5 21 4" />
+                </svg>
+              </span>
               <h3>{title}</h3><p>{copy}</p>
               {arrows[index] && <svg className="landing-step-arrow" viewBox="0 0 58 26" aria-hidden="true">
                 <path pathLength={1} d={arrows[index]} />
