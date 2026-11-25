@@ -6,9 +6,11 @@ export function getPublicContact() {
   try {
     const url = new URL(raw);
     if (["https:", "mailto:"].includes(url.protocol) && !url.username && !url.password) {
+      const isWhatsApp = url.protocol === "https:" && url.hostname === "wa.me";
       return {
         href: url.href,
-        label: url.hostname === "wa.me" ? "Fale pelo WhatsApp" : "Fale com nossa equipe",
+        label: isWhatsApp ? "Fale pelo WhatsApp" : "Fale com nossa equipe",
+        isWhatsApp,
       };
     }
   } catch {

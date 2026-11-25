@@ -55,6 +55,8 @@ const answers = [
 ];
 
 export default function Home() {
+  const contact = getPublicContact();
+
   return <div className="landing" data-landing-motion>
     <LandingMotion />
     <LandingHeader />
@@ -78,6 +80,7 @@ export default function Home() {
               <Link href="/criar-conta" className="btn btn--primary">Criar conta <ArrowUpRight size={18} aria-hidden="true" /></Link>
               <a href="#planos" className="btn btn--secondary">Explorar valores <ArrowDown size={17} aria-hidden="true" /></a>
             </div>
+            <a href="#simulador" className="text-link landing-hero-estimate">Ver quantas notas preciso emitir <ArrowDown size={16} aria-hidden="true" /></a>
           </div>
 
           <div className="landing-mascot">
@@ -121,7 +124,7 @@ export default function Home() {
         </div>
       </section>
 
-      <LandingEligibility supportHref={getPublicContact()?.href} />
+      <LandingEligibility supportHref={contact?.href} />
       <LandingPricing />
 
       <section className="landing-faq" id="perguntas-frequentes" aria-labelledby="faq-title">
@@ -137,5 +140,12 @@ export default function Home() {
       </section>
     </main>
     <LandingFooter />
+    {contact?.isWhatsApp && <a className="landing-whatsapp" href={contact.href} target="_blank" rel="noreferrer"
+      aria-label="Fale pelo WhatsApp (abre em nova aba)">
+      <svg viewBox="0 0 24 24" width={28} height={28} aria-hidden="true">
+        <path d="M4.6 16.6A9 9 0 1 1 8 19.9L3 21Z" fill="none" stroke="currentColor" strokeWidth={1.65} strokeLinejoin="round" />
+        <path d="M8.5 7.2c-.3-.2-1-.05-1.4.48-.9 1.27.06 3.35 1.77 5.16 1.68 1.78 4.11 3.02 5.85 3.03.83.01 1.72-.58 1.86-1.4.05-.3-.05-.49-.34-.63l-1.95-.95c-.26-.12-.47-.09-.65.12l-.67.81c-.15.17-.35.17-.62.05a7.2 7.2 0 0 1-3.02-2.72c-.14-.23-.11-.39.06-.59l.45-.53c.2-.23.22-.44.09-.71l-.88-1.82a.67.67 0 0 0-.55-.3Z" fill="currentColor" />
+      </svg>
+    </a>}
   </div>;
 }

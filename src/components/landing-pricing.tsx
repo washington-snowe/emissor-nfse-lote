@@ -176,7 +176,6 @@ export function LandingPricing() {
               : ""}.</p>
             <a href="#simulador" className="text-link">Estimar pelo CSV <ArrowRight size={15} aria-hidden="true" /></a>
           </div>
-          {annual && <p className="landing-volume-note">A média mensal inclui a assinatura anual dividida em 12 meses.</p>}
         </div>
         <div className="landing-carousel-controls" data-landing-reveal="row">
           <span>{visible.first === visible.last ? visible.first : `${visible.first}–${visible.last}`} de {plans.length}</span>
@@ -197,7 +196,7 @@ export function LandingPricing() {
           }} tabIndex={0}>
           {plans.map(plan =>
             <PlanCard key={plan.code} plan={plan} cadence={cadence} variant="landing" showBadge={false} recommended={plan.code === recommended.plan.code}
-              action={<Link href={planSelectionHref("/criar-conta", { plan, cadence })} className="btn btn--primary" aria-label={`Começar agora — ${plan.name}`}>Começar agora <ArrowRight size={16} aria-hidden="true" /></Link>} />,
+              action={<Link href={planSelectionHref("/criar-conta", { plan, cadence })} className="btn" aria-label={`Começar agora — ${plan.name}`}>Começar agora <ArrowRight size={16} aria-hidden="true" /></Link>} />,
           )}
         </div>
       </div>

@@ -32,7 +32,9 @@ export function PlanCard({ plan, cadence, action, showBadge = true, recommended,
     {landing && callToAction}
     <ul className="plan-features">
       <li><Check size={15} aria-hidden="true" />{plan.includedNotes.toLocaleString("pt-BR")} notas por mês</li>
-      <li><Check size={15} aria-hidden="true" />{overagePrice(plan.overageUnits)} por nota excedente</li>
+      <li><Check size={15} aria-hidden="true" />{landing
+        ? <span title={`Tarifa exata de ${overagePrice(plan.overageUnits)}`}>≈ {money(Math.round(plan.overageUnits / 100))} por nota excedente</span>
+        : `${overagePrice(plan.overageUnits)} por nota excedente`}</li>
       {landing && <>
         <li><Check size={15} aria-hidden="true" />Envio automático por e-mail</li>
         <li><Check size={15} aria-hidden="true" />CNPJs ilimitados</li>

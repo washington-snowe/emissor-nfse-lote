@@ -1,10 +1,11 @@
 @media (prefers-reduced-motion: no-preference) {
-  .landing-hero-copy > :is(h1, .landing-hero-context, .landing-actions) {
+  .landing-hero-copy > :is(h1, .landing-hero-context, .landing-actions, .landing-hero-estimate) {
     animation: marketing-arrival 420ms var(--landing-glide) both;
   }
   .landing-hero-copy > .landing-hero-context { animation-delay: 100ms; }
   .landing-hero-copy > .landing-actions { animation-delay: 185ms; }
-  .landing-hero-copy > .landing-actions:focus-within { animation: none; }
+  .landing-hero-copy > .landing-hero-estimate { animation-delay: 250ms; }
+  .landing-hero-copy > :is(.landing-actions, .landing-hero-estimate):focus-within { animation: none; }
 
   .landing [data-landing-reveal-state] {
     --reveal-distance: 14px;
@@ -111,7 +112,7 @@
     .landing :is(.btn, .icon-button, .text-link, .landing-footer a):hover:not(:disabled, :focus-visible) > .lucide-arrow-right { translate: 3px 0; }
     .landing .icon-button:hover:not(:disabled, :focus-visible) > .lucide-arrow-left { translate: -3px 0; }
     .landing :is(.btn, .landing-footer a):hover:not(:focus-visible) > .lucide-arrow-up-right { translate: 2px -2px; }
-    .landing .btn:hover:not(:focus-visible) > .lucide-arrow-down { translate: 0 3px; }
+    .landing :is(.btn, .landing-hero-estimate):hover:not(:focus-visible) > .lucide-arrow-down { translate: 0 3px; }
     .landing-file-zone:hover:not([data-busy="true"]) > svg { transform: translateY(-4px); }
   }
 }
