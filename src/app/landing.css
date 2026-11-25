@@ -13,13 +13,13 @@
   --landing-discount-wash: #e7f2ea;
   --landing-error: #983b43;
   --landing-card-radius: var(--r-lg);
-  --landing-content-gap: clamp(18px, 2.4vw, 32px);
+  --landing-content-gap: var(--rex-content-gap);
   --landing-subheading-size: clamp(18px, 1.55vw, 22px);
   --landing-card-inset: clamp(4px, 1.1vw, 14px);
   --landing-card-track: min(1080px, calc(100% - 2 * var(--landing-card-inset)));
   --landing-plan-track: min(1132px, calc(100% - var(--landing-card-inset)));
-  --space-edge: clamp(18px, 4.8vw, 76px);
-  --landing-section-space: clamp(36px, 4.8vw, 68px);
+  --space-edge: var(--rex-content-edge);
+  --landing-section-space: var(--rex-section-space);
   --landing-section-fade: clamp(28px, 4.4vw, 62px);
   --landing-next-surface: var(--surface);
   --landing-ease: cubic-bezier(.23, 1, .32, 1);
@@ -37,7 +37,7 @@ html:has(.landing) {
   scroll-padding-top: calc(var(--landing-header-height) + 20px);
 }
 html:has(.landing :focus-visible) { scroll-behavior: auto; }
-.landing .wrap { width: min(1260px, calc(100% - 2 * var(--space-edge))); }
+.landing .wrap { width: min(var(--rex-content-width), calc(100% - 2 * var(--space-edge))); }
 .landing-whatsapp {
   position: fixed;
   z-index: 10;
@@ -109,7 +109,7 @@ html:has(.landing :focus-visible) { scroll-behavior: auto; }
   .site-masthead.landing-header::after { opacity: var(--masthead-tone); }
   .landing-header[data-theme] .landing-header-brand .rex-brand > span {
     background: var(--masthead-text);
-    mask: url("/brand/rex-logo.png") center / contain no-repeat;
+    mask: url("/brand/rex-logo-small.webp") center / contain no-repeat;
     filter: none;
   }
   @media (prefers-reduced-motion: no-preference) {

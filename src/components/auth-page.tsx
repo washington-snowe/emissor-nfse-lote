@@ -42,7 +42,7 @@ export async function AuthPage({ mode, ready, status, referral, selection }: {
         </div>}
       </section>
       <aside className="entry-art">
-        <Image src="/brand/rex-mascote.png" width={360} height={360} alt="" unoptimized />
+        <Image src="/brand/rex-mascote.png" width={360} height={360} sizes="310px" alt="" />
         <p>Do relatório às suas NFS-e, com revisão antes de emitir.</p>
       </aside>
     </main>

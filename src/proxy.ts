@@ -5,8 +5,11 @@ import { isSessionCookie, sessionCookieOptions, sessionCookiePolicyMarker } from
 
 export async function proxy(request: NextRequest) {
   const config = getSupabaseConfig(process.env);
-  if (!config) return NextResponse.next();
   let response = NextResponse.next({ request });
+  if (!config || ["/entrar", "/criar-conta", "/verificar-acesso"].includes(request.nextUrl.pathname)) {
+    response.headers.set("Cache-Control", "private, no-store");
+    return response;
+  }
   let sessionWritten = false;
   const supabase = createServerClient(config.url, config.key, {
     cookieOptions: sessionCookieOptions,
@@ -23,9 +26,10 @@ export async function proxy(request: NextRequest) {
     },
   });
   try {
-    const { data, error } = await supabase.auth.getUser();
-    if (!error && data.user && !request.cookies.has(sessionCookiePolicyMarker)) {
-      // Upgrade existing sessions on their next authenticated request.
+    // Refresh expiring tokens here. Protected routes verify identity with getUser before reading data.
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session && !request.cookies.has(sessionCookiePolicyMarker)) {
+      // Reapply secure cookie attributes without using the cookie as authorization.
       const maxAge = 400 * 24 * 60 * 60;
       if (!sessionWritten) {
         for (const { name, value } of request.cookies.getAll()) {

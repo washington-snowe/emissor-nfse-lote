@@ -3,6 +3,10 @@ export const fiscalStatusLabels: Record<string, string> = {
   uncertain: "Resultado incerto · somente consulta", reconciling: "Consultando resultado", authorized: "Autorizada",
   rejected: "Rejeitada", intervention: "Precisa de atenção", cancelled: "Preparação cancelada",
 };
+export function operationStatus({ status, environment }: { status: string; environment?: "homologation" | "production" }) {
+  if (status === "authorized") return environment === "production" ? "Autorizada em produção" : "Autorizada em homologação";
+  return fiscalStatusLabels[status] ?? "Estado indisponível";
+}
 export const fiscalReasonLabels: Record<string, string> = {
   transmission_disabled: "A transmissão está desativada para o ambiente desta operação.", contract_missing: "O contrato oficial da API ainda precisa ser verificado.",
   production_not_ready:'O acesso à produção ainda precisa ser conferido. A operação permanece sem envio.',

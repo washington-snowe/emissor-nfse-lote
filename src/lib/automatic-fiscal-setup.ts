@@ -7,11 +7,13 @@ import { todayInBrazil } from "@/lib/nfse/standalone";
 import { validateFiscalSchema } from "@/lib/nfse/schema";
 import { requireWorkspace } from "@/lib/tenancy-server";
 
-export async function ensureAutomaticFiscalSetup(companyId: string) {
-  const { client, context } = await requireWorkspace();
-  const company = await client.from("companies").select("cnpj,tax_regime,address,opened_on").eq("id", companyId).eq("tenant_id", context.tenantId).maybeSingle();
+export async function ensureAutomaticFiscalSetup(companyId: string, workspace?: Awaited<ReturnType<typeof requireWorkspace>>) {
+  const { client, context } = workspace ?? await requireWorkspace();
+  const [company, current] = await Promise.all([
+    client.from("companies").select("cnpj,tax_regime,address,opened_on").eq("id", companyId).eq("tenant_id", context.tenantId).maybeSingle(),
+    client.from("company_fiscal_profiles").select("version,configuration").eq("company_id", companyId).eq("tenant_id", context.tenantId).order("version", { ascending: false }).limit(1).maybeSingle(),
+  ]);
   if (company.error || !company.data) return { reason: "company_unavailable" };
-  const current = await client.from("company_fiscal_profiles").select("version,configuration").eq("company_id", companyId).eq("tenant_id", context.tenantId).order("version", { ascending: false }).limit(1).maybeSingle();
   if (current.error) return { reason: "storage_pending" };
   if (current.data) return { reason: parseFiscalProfile(current.data.configuration, company.data.cnpj, company.data.tax_regime) ? "configured" : "profile_changed" };
   const draft = automaticAffiliateDraft(company.data, todayInBrazil());

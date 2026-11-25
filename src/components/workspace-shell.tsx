@@ -43,7 +43,7 @@ export function WorkspaceShell({ email, name, active = "overview", companies = [
   const displayName = name || email?.split("@")[0] || "Minha conta";
   const navigate = (area: WorkspaceArea, label: string, Icon: typeof House) => {
     const current = active === area || (active === "emailTest" && area === "invoices");
-    return <Link key={area} href={workspaceDestination(area, selected?.id)}
+    return <Link key={area} href={workspaceDestination(area, selected?.id)} prefetch={false}
       className={`workspace-nav-link${current ? " is-current" : ""}`} aria-current={current ? "page" : undefined}>
       <Icon size={18} strokeWidth={1.8} aria-hidden="true" /><span>{label}</span>
     </Link>;
@@ -67,7 +67,7 @@ export function WorkspaceShell({ email, name, active = "overview", companies = [
       <ChevronDown size={16} aria-hidden="true" />
     </summary>
     <div className="workspace-account-actions">
-      <Link href="/painel/conta/perfil"><UserRound size={16} aria-hidden="true" /> Meu perfil</Link>
+      <Link prefetch={false} href="/painel/conta/perfil"><UserRound size={16} aria-hidden="true" /> Meu perfil</Link>
       <form action={signOut}><button type="submit"><LogOut size={16} aria-hidden="true" /> Sair da conta</button></form>
     </div>
   </details>;
@@ -110,9 +110,9 @@ export function WorkspaceShell({ email, name, active = "overview", companies = [
                 <ChevronDown size={15} aria-hidden="true" />
               </div>
               <span className="workspace-document mono">{formatCompanyDocument(selected.cnpj)}</span>
-            </> : <Link className="workspace-context-link" href="/painel/empresas/nova"><Plus size={16} aria-hidden="true" /> Cadastrar empresa</Link>}
+            </> : <Link prefetch={false} className="workspace-context-link" href="/painel/empresas/nova"><Plus size={16} aria-hidden="true" /> Cadastrar empresa</Link>}
           </div>
-          <Link className="workspace-companies-link" href="/painel/empresas" aria-label="Gerenciar empresas" title="Gerenciar empresas"><span>Empresas</span><ArrowRight size={16} aria-hidden="true" /></Link>
+          <Link prefetch={false} className="workspace-companies-link" href="/painel/empresas" aria-label="Gerenciar empresas" title="Gerenciar empresas"><span>Empresas</span><ArrowRight size={16} aria-hidden="true" /></Link>
           <div className="workspace-bar-account">{account}</div>
         </div>
         {error && <p className="field-error workspace-switch-error" role="alert">{error}</p>}
@@ -130,7 +130,7 @@ export function WorkspaceShell({ email, name, active = "overview", companies = [
             <button type="button" className="icon-button" aria-label="Fechar menu" onClick={() => drawer.current?.close()} autoFocus><X size={21} aria-hidden="true" /></button>
           </header>
           <div className="workspace-nav-scroll">{navigation}</div>
-          <Link className="workspace-drawer-company" href="/painel/empresas"><Building2 size={18} aria-hidden="true" /> Gerenciar empresas <ArrowRight size={16} aria-hidden="true" /></Link>
+          <Link prefetch={false} className="workspace-drawer-company" href="/painel/empresas"><Building2 size={18} aria-hidden="true" /> Gerenciar empresas <ArrowRight size={16} aria-hidden="true" /></Link>
           {account}
         </div>
       </dialog>

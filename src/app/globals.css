@@ -1708,7 +1708,7 @@ strong {
 .auth-card > p, .auth-switch, .auth-switch .text-link, .dashboard-content > p { color: var(--muted); }
 .auth-card h1, .dashboard-content h1 { font-weight: 560; line-height: 1.1; }
 .rex-brand { width: 98px; height: 46px; display: inline-block; flex: none; }
-.rex-brand > span { width: 100%; height: 100%; display: block; background: url("/brand/rex-logo.png") center / contain no-repeat; }
+.rex-brand > span { width: 100%; height: 100%; display: block; background: url("/brand/rex-logo-small.webp") center / contain no-repeat; }
 .rex-brand--inverse > span { filter: invert(1); }
 .workspace-sidebar { background: #fff; padding-top: 17px; }
 .rex-workspace-brand { margin-bottom: 16px; padding-inline: 4px; }
