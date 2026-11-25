@@ -1729,9 +1729,9 @@ strong {
 .fiscal-status[data-status="uncertain"], .fiscal-status[data-status="intervention"] { background: var(--rex-orange-soft); color: var(--rex-orange-ink); }
 .quick-review-dialog::backdrop { background: #171715a8; }
 .quick-review-dialog .quick-review-confirm { background: #f6f6f3; }
-.quick-review-dialog[open] { animation: rex-panel-in 210ms var(--rex-out) both; }
-.quick-review-dialog[open]::backdrop { animation: rex-backdrop-in 170ms ease-out both; }
-@keyframes rex-panel-in { from { opacity: .5; transform: translateY(10px) scale(.99); } to { opacity: 1; transform: none; } }
+.quick-review-dialog[open] { animation: rex-panel-in 230ms var(--rex-settle) both; }
+.quick-review-dialog[open]::backdrop { animation: rex-backdrop-in 175ms var(--rex-settle) both; }
+@keyframes rex-panel-in { from { opacity: .76; transform: translateY(8px); } to { opacity: 1; transform: none; } }
 @keyframes rex-backdrop-in { from { opacity: 0; } to { opacity: 1; } }
 
 .rex-admin { display: grid; gap: 22px; }

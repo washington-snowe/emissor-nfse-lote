@@ -82,8 +82,8 @@ try {
     assert.equal(await page.getByText('Mais Escolhido',{exact:true}).count(),1);
     await page.locator('.billing-plan--featured').getByRole('heading',{name:'Afiliado Pro'}).waitFor();
     assert.deepEqual(await page.locator('.billing-plan-price strong').allTextContents(), ['R$ 11,92','R$ 27,92','R$ 55,92','R$ 111,92']);
-    await page.getByText('Cobrança anual de R$ 143,04',{exact:true}).waitFor();
-    await page.getByText('Cobrança anual de R$ 1.343,04',{exact:true}).waitFor();
+    await page.getByText('R$ 143,04 cobrados por ano',{exact:true}).waitFor();
+    await page.getByText('R$ 1.343,04 cobrados por ano',{exact:true}).waitFor();
     await annual.uncheck();
     await page.getByText('R$ 14,90',{exact:true}).waitFor();
     await page.getByText('R$ 139,90',{exact:true}).waitFor();

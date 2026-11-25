@@ -8,7 +8,7 @@ export function LandingMotion() {
 
     const landing = document.querySelector("[data-landing-motion]");
     const elements = Array.from(landing?.querySelectorAll<HTMLElement>(
-      "[data-landing-reveal], .landing-plan-carousel > .billing-plan",
+      "[data-landing-reveal]:has(.landing-ink-word), .landing-steps > li, .landing-report-preview, .landing-tutorials-grid > div",
     ) ?? []);
     const belowFold = elements.filter(element => element.getBoundingClientRect().top >= window.innerHeight - 16);
     const observer = new IntersectionObserver(entries => {

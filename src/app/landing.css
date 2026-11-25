@@ -190,7 +190,9 @@ html:has(.landing :focus-visible) { scroll-behavior: auto; }
 .landing-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; margin-top: clamp(16px, 2vw, 24px); }
 .landing .landing-actions .btn { min-height: 50px; padding-inline: 18px; }
 .landing-mascot { position: relative; width: min(127%, 710px); aspect-ratio: 1 / .88; justify-self: center; align-self: end; }
-.landing-mascot-art { position: absolute; top: -3%; left: 0; width: 100%; aspect-ratio: 1; transform-origin: 50% 76%; }
+.landing-mascot-frame { position: absolute; inset: 0; width: 100%; height: 100%; color: #767676; opacity: .54; pointer-events: none; }
+.landing-mascot-frame .dimension-guides { opacity: .52; }
+.landing-mascot-art { position: absolute; top: -3%; left: 0; width: 100%; aspect-ratio: 1; transform-origin: 48% 28%; }
 .landing-mascot img { display: block; width: 100%; height: auto; }
 .landing-glasses { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
 .landing-glasses-sweep { opacity: 0; stroke: #f1f1f1; stroke-width: 9px; stroke-linecap: round; }
@@ -219,7 +221,11 @@ html:has(.landing :focus-visible) { scroll-behavior: auto; }
   list-style: none;
 }
 .landing-steps li { position: relative; padding: clamp(16px, 2vw, 25px); border: 1px solid var(--line); border-radius: var(--landing-card-radius); background: var(--surface); }
-.landing-step-number { display: grid; place-items: center; width: 32px; height: 32px; margin-bottom: 10px; border: 1px solid var(--line); border-radius: 50%; background: var(--bg); font-weight: 550; }
+.landing-step-figure { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
+.landing-step-number { display: grid; flex: 0 0 32px; place-items: center; width: 32px; height: 32px; border: 1px solid var(--line); border-radius: 50%; background: var(--bg); font-weight: 550; }
+.landing-step-drawing { display: block; width: min(72%, 172px); height: auto; margin: -5px -4px 0 0; color: var(--ink); }
+.landing-step-drawing .dimension-guides { color: #9b9b9b; stroke-width: .85px; }
+.landing-step-drawing .dimension-line { stroke-width: 1.25px; }
 .landing-step-arrow { position: absolute; width: calc(var(--step-gap) - 7px); height: 26px; top: 44%; left: calc(100% + 4px); overflow: visible; pointer-events: none; }
 .landing-step-arrow path { stroke-width: 1.7px; }
 .landing-steps h3 { font-size: var(--landing-subheading-size); line-height: 1.2; margin-bottom: 8px; font-weight: 540; text-wrap: balance; }
@@ -556,13 +562,11 @@ html:has(.landing :focus-visible) { scroll-behavior: auto; }
     transition: background-color var(--masthead-tone), color var(--masthead-tone), border-color var(--masthead-tone), scale 110ms var(--landing-ease);
   }
   .landing :is(.btn, .icon-button):active:not(:disabled, :focus-visible, [aria-disabled="true"]) { scale: .97; transition-duration: 80ms; }
-  .landing-hero h1 { --arrival: 19px; animation: rex-arrive 590ms var(--landing-ease) both; }
-  .landing-hero-context { --arrival: 13px; animation: rex-arrive 510ms 75ms var(--landing-ease) both; }
-  .landing-actions { --arrival: 9px; animation: rex-arrive 430ms 130ms var(--landing-ease) both; }
-  .landing-actions:focus-within { animation: none; }
-  .landing-mascot-art { --arrival: 19px; animation: rex-arrive 650ms 35ms var(--landing-ease) both; }
-  .landing-circled-word path { animation: rex-draw-ring 620ms 125ms var(--landing-ease) both; }
-  .landing-glasses-sweep { animation: rex-glasses-shine 560ms 220ms var(--landing-move) both; }
+  .landing-circled-word path { animation: rex-draw-ring 540ms var(--rex-trace) both; }
+  .landing-mascot-frame .dimension-line { animation: trace-dimension 690ms 240ms var(--rex-trace) both; }
+  .landing-mascot-frame .dimension-guides { animation: dimension-guide-in 420ms 760ms var(--rex-settle) both; }
+  .landing-mascot-art { animation: rex-camera-out 850ms 140ms var(--rex-settle) both; }
+  .landing-glasses-sweep { animation: rex-glasses-shine 430ms 720ms var(--rex-trace) both; }
   .landing-estimate-skeleton > [aria-hidden] { animation: rex-skeleton 1.1s var(--landing-move) infinite alternate; }
   .landing-file-zone > svg { transition: transform 120ms var(--landing-ease); }
   .landing-file-zone[data-dragging="true"] > svg { transform: translateY(-3px); }
@@ -583,11 +587,7 @@ html:has(.landing :focus-visible) { scroll-behavior: auto; }
   }
   .landing-header-inner:has(.landing-menu-toggle:focus-visible, .landing-mobile-nav :focus-visible) :is(.landing-mobile-nav, .landing-menu-toggle svg) { transition: none; }
 }
-.landing-estimate:not(.landing-estimate-skeleton), .landing-eligibility-result {
-  transition: opacity 150ms var(--landing-ease);
-  @starting-style { opacity: .55; }
-}
-@keyframes rex-arrive { from { opacity: .72; transform: translateY(var(--arrival)); } }
+@keyframes rex-camera-out { from { transform: scale(1.055) translateY(5px); } }
 @keyframes rex-draw-ring { from { stroke-dasharray: 1; stroke-dashoffset: 1; } to { stroke-dasharray: 1; stroke-dashoffset: 0; } }
 @keyframes rex-glasses-shine {
   0% { opacity: 0; transform: translateX(-110px); }

@@ -8,6 +8,7 @@ import { LandingHeader } from "@/components/landing-header";
 import { LandingMotion } from "@/components/landing-motion";
 import { LandingPricing } from "@/components/landing-pricing";
 import { LandingReportPreview } from "@/components/landing-report-preview";
+import { DimensionFrame, WorkflowDrawing } from "@/components/dimension-drawings";
 import { money, plans } from "@/lib/billing/catalog";
 import { getPublicContact } from "@/lib/public-contact";
 import "./landing.css";
@@ -81,6 +82,7 @@ export default function Home() {
           </div>
 
           <div className="landing-mascot">
+            <DimensionFrame className="landing-mascot-frame" />
             <div className="landing-mascot-art">
               <Image src="/brand/rex-mascote.png" width={1254} height={1254}
                 alt="Rex, o dinossauro de óculos escuros" sizes="(max-width: 720px) 94vw, (max-width: 1200px) 50vw, 710px" preload />
@@ -105,7 +107,10 @@ export default function Home() {
           <h2 id="workflow-title" data-landing-reveal="heading">Emissão em três passos</h2>
           <ol className="landing-steps">
             {steps.map(({ title, copy }, index) => <li key={title} data-landing-reveal="card">
-              <span className="landing-step-number" aria-hidden="true">{index + 1}</span>
+              <div className="landing-step-figure">
+                <span className="landing-step-number" aria-hidden="true">{index + 1}</span>
+                <WorkflowDrawing index={index} />
+              </div>
               <h3>{title}</h3><p>{copy}</p>
               {arrows[index] && <svg className="landing-step-arrow" viewBox="0 0 58 26" aria-hidden="true">
                 <path pathLength={1} d={arrows[index]} />

@@ -1,48 +1,39 @@
 @media (prefers-reduced-motion: no-preference) {
-  [data-landing-reveal-state] {
-    --reveal-distance: 22px;
-    --reveal-duration: 570ms;
-    --reveal-delay: 0ms;
-  }
-  [data-landing-reveal="panel"] { --reveal-distance: 27px; --reveal-duration: 630ms; }
-  [data-landing-reveal="row"] { --reveal-distance: 12px; --reveal-duration: 420ms; }
-  .landing-plan-carousel > .billing-plan { --reveal-distance: 8px; }
-  [data-landing-reveal-state="pending"] { opacity: .4; transform: translateY(var(--reveal-distance)); }
-  [data-landing-reveal-state="visible"] {
-    animation: landing-reveal var(--reveal-duration) var(--reveal-delay) var(--landing-ease) both;
-  }
-  [data-landing-reveal-state]:focus-within { opacity: 1; transform: none; animation: none; }
+  .landing-step-drawing .dimension-line { --draw-order: 0; }
+  .landing-step-drawing .dimension-line:nth-child(3) { --draw-order: 1; }
+  .landing-step-drawing .dimension-line:nth-child(4) { --draw-order: 2; }
+  .landing-step-drawing .dimension-line:nth-child(5) { --draw-order: 3; }
 
-  .landing-steps li:nth-child(2),
-  .landing-tutorials-grid > :nth-child(2),
-  .landing-questions details:nth-child(3n + 2) { --reveal-delay: 60ms; }
-  .landing-steps li:nth-child(3),
-  .landing-questions details:nth-child(3n) { --reveal-delay: 95ms; }
-
-  @media (min-width: 721px) {
-    .landing-eligibility-panel { --reveal-delay: 80ms; }
-    .landing-footer-grid > :nth-child(2) { --reveal-delay: 50ms; }
-    .landing-footer-grid > :nth-child(3) { --reveal-delay: 85ms; }
-    .landing-footer-grid > :nth-child(4) { --reveal-delay: 110ms; }
+  :is([data-landing-reveal-state="pending"], [data-landing-reveal-state="visible"]) {
+    --draw-delay: 0ms;
   }
-  @media (min-width: 1131px) {
-    .landing-plan-carousel > :nth-child(2) { --reveal-delay: 55ms; }
-    .landing-plan-carousel > :nth-child(3) { --reveal-delay: 90ms; }
-    .landing-plan-carousel > :nth-child(4) { --reveal-delay: 118ms; }
-  }
+  .landing-steps li:nth-child(2) { --draw-delay: 85ms; }
+  .landing-steps li:nth-child(3) { --draw-delay: 145ms; }
 
-  [data-landing-reveal-state="pending"] :is(.landing-step-arrow, .landing-ink-word) path {
-    stroke-dasharray: 1;
+  [data-landing-reveal-state="pending"] :is(.dimension-line, .landing-step-arrow path) {
+    stroke-dasharray: 1 2;
     stroke-dashoffset: 1;
   }
-  [data-landing-reveal-state="visible"] :is(.landing-step-arrow, .landing-ink-word) path {
-    animation: rex-draw-ring 620ms calc(var(--reveal-delay) + 125ms) var(--landing-ease) both;
+  [data-landing-reveal-state="pending"] .landing-step-drawing .dimension-guides { opacity: 0; }
+  [data-landing-reveal-state="visible"] .landing-step-drawing .dimension-line {
+    animation: trace-dimension 410ms calc(var(--draw-delay) + var(--draw-order) * 100ms) var(--rex-trace) both;
   }
-  [data-landing-reveal-state]:focus-within :is(.landing-step-arrow, .landing-ink-word) path {
-    stroke-dashoffset: 0;
-    animation: none;
+  [data-landing-reveal-state="visible"] .landing-step-drawing .dimension-guides {
+    animation: dimension-guide-in 360ms calc(var(--draw-delay) + 390ms) var(--rex-settle) both;
+  }
+  [data-landing-reveal-state="visible"] .landing-step-arrow path {
+    animation: trace-dimension 420ms calc(var(--draw-delay) + 230ms) var(--rex-trace) both;
   }
 
+  [data-landing-reveal-state="pending"] .landing-ink-word path { stroke-dasharray: 1 2; stroke-dashoffset: 1; }
+  [data-landing-reveal-state="visible"] .landing-ink-word path {
+    animation: trace-dimension 540ms 120ms var(--rex-trace) both;
+  }
+  [data-landing-reveal-state]:focus-within .landing-ink-word path { stroke-dashoffset: 0; animation: none; }
+
+  .landing-report-preview[data-landing-reveal-state="visible"] .landing-report-summary > p svg {
+    animation: report-icon-in 420ms var(--rex-settle) both;
+  }
   @supports (animation-timeline: view()) {
     .landing-hero { view-timeline: --rex-hero block; }
     .landing-hero::after {
@@ -50,33 +41,11 @@
       animation-timeline: --rex-hero;
       animation-range: exit 0% exit 82%;
     }
-    .landing-mascot {
-      animation: landing-mascot-scroll linear both;
-      animation-timeline: --rex-hero;
-      animation-range: exit 0% exit 100%;
-    }
-    .landing-flow h2:not([data-landing-reveal-state]) {
-      --reveal-distance: 22px;
-      animation: landing-reveal var(--landing-ease) both;
-      animation-timeline: view();
-      animation-range: entry 0% entry 100%;
-    }
   }
-  @supports (animation-timeline: scroll()) {
-    .landing-header::after {
-      content: "";
-      position: absolute;
-      inset: auto 0 -1px;
-      height: 2px;
-      background: var(--masthead-control);
-      opacity: .35;
-      transition: background-color var(--masthead-tone);
-      pointer-events: none;
-      transform-origin: left;
-      animation: landing-scroll-progress linear both;
-      animation-timeline: scroll(root block);
-    }
-  }
+
+  .landing-tutorials [data-landing-reveal-state="pending"] { opacity: .4; transform: translateY(22px); }
+  .landing-tutorials [data-landing-reveal-state="visible"] { animation: tutorial-reveal 570ms var(--landing-ease) both; }
+  .landing-tutorials-grid > :nth-child(2)[data-landing-reveal-state="visible"] { animation-delay: 60ms; }
 
   .landing-questions details[open] > p { animation: landing-answer 220ms var(--landing-ease) both; }
   .landing-questions details:has(:focus-visible) > p { animation: none; }
@@ -94,8 +63,8 @@
   }
 
   [data-landing-motion] :is(.landing-estimate:not(.landing-estimate-skeleton), .landing-eligibility-result) {
-    transition: opacity 230ms var(--landing-ease), transform 280ms var(--landing-ease);
-    @starting-style { opacity: .55; transform: translateY(9px); }
+    transition: opacity 185ms var(--rex-settle), transform 220ms var(--rex-settle);
+    @starting-style { opacity: .78; transform: translateY(4px); }
   }
   .landing-plan-carousel .billing-plan-cycle {
     transition: opacity 170ms var(--landing-ease), transform 170ms var(--landing-ease);
@@ -105,11 +74,6 @@
   .landing-volume input:active::-webkit-slider-thumb { scale: 1.2; }
 
   @media (hover: hover) and (pointer: fine) {
-    .landing-mascot-art {
-      transition: rotate 430ms var(--landing-ease), scale 430ms var(--landing-ease);
-    }
-    .landing-mascot:hover .landing-mascot-art { rotate: -2deg; scale: 1.025; }
-
     .landing-nav a { position: relative; }
     .landing-nav a::after {
       content: "";
@@ -125,18 +89,8 @@
     .landing-nav a:hover:not(:focus-visible) { text-decoration: none; }
     .landing-nav a:hover:not(:focus-visible)::after { opacity: 1; transform: scaleX(1); }
 
-    .landing-steps li,
-    .landing-plan-carousel > .billing-plan,
-    .landing-tutorials-grid > div,
-    .landing-report-preview {
-      transition: translate 220ms var(--landing-ease), border-color 150ms var(--landing-ease), box-shadow 220ms var(--landing-ease);
-    }
-    .landing-steps li:hover,
-    .landing-tutorials-grid > div:hover,
-    .landing-plan-carousel:not([data-carousel-motion]) > .billing-plan:hover { translate: 0 -5px; }
-    .landing-steps li:hover,
-    .landing-report-preview:hover,
-    .landing-plan-carousel:not([data-carousel-motion]) > .billing-plan:hover { box-shadow: 0 6px 18px rgb(18 18 18 / .08); }
+    .landing-tutorials-grid > div { transition: translate 220ms var(--landing-ease); }
+    .landing-tutorials-grid > div:hover { translate: 0 -5px; }
 
     .landing :is(.btn, .icon-button, .text-link, .landing-footer a) > svg {
       transition: translate 185ms var(--landing-ease);
@@ -149,11 +103,7 @@
   }
 }
 
-@keyframes landing-reveal {
-  from { opacity: .4; transform: translateY(var(--reveal-distance)); }
-  to { opacity: 1; transform: none; }
-}
-@keyframes landing-blend-spread { to { transform: scaleY(1.38); } }
-@keyframes landing-mascot-scroll { to { translate: 0 32px; } }
-@keyframes landing-scroll-progress { from { transform: scaleX(0); } to { transform: scaleX(1); } }
-@keyframes landing-answer { from { opacity: .45; transform: translateY(-5px); } }
+@keyframes tutorial-reveal { from { opacity: .4; transform: translateY(22px); } }
+@keyframes landing-blend-spread { to { transform: scaleY(1.23); } }
+@keyframes landing-answer { from { opacity: .75; transform: translateY(-3px); } }
+@keyframes report-icon-in { from { opacity: .5; transform: scale(.86); } }
