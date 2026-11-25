@@ -178,7 +178,7 @@ export function LandingPricing() {
           </div>
           {annual && <p className="landing-volume-note">A média mensal inclui a assinatura anual dividida em 12 meses.</p>}
         </div>
-        <div className="landing-carousel-controls">
+        <div className="landing-carousel-controls" data-landing-reveal="row">
           <span>{visible.first === visible.last ? visible.first : `${visible.first}–${visible.last}`} de {plans.length}</span>
           <button type="button" className="icon-button" aria-label="Ver plano anterior" aria-controls="landing-plan-carousel" aria-disabled={visible.first === 1} onClick={event => {
             if (visible.first > 1) step(-1, event.detail === 0 ? "instant" : "auto");

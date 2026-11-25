@@ -35,8 +35,8 @@ const steps = [
 ];
 
 const arrows = [
-  "M3 17C16 7 33 8 51 13M42 5Q48 8 52 13Q47 17 40 19",
-  "M3 10C16 18 32 19 51 12M40 7Q47 8 52 12Q48 17 42 20",
+  ["M3 17C16 7 33 8 51 13", "M42 5Q48 8 52 13Q47 17 40 19"],
+  ["M3 10C16 18 32 19 51 12", "M40 7Q47 8 52 12Q48 17 42 20"],
 ];
 
 const answers = [
@@ -108,12 +108,12 @@ export default function Home() {
               <span className="landing-step-number" aria-hidden="true">
                 {index + 1}
                 <svg viewBox="0 0 36 36" aria-hidden="true">
-                  <path d="M27 6C20 0 8 4 5 11C1 18 4 29 12 32C20 35 30 31 33 23C36 14 30 5 21 4" />
+                  <path pathLength={1} d="M27 6C20 0 8 4 5 11C1 18 4 29 12 32C20 35 30 31 33 23C36 14 30 5 21 4" />
                 </svg>
               </span>
               <h3>{title}</h3><p>{copy}</p>
               {arrows[index] && <svg className="landing-step-arrow" viewBox="0 0 58 26" aria-hidden="true">
-                <path pathLength={1} d={arrows[index]} />
+                {arrows[index].map(path => <path key={path} pathLength={1} d={path} />)}
               </svg>}
             </li>)}
           </ol>
