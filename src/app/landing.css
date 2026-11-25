@@ -47,10 +47,10 @@ html:has(.landing :focus-visible) { scroll-behavior: auto; }
   place-items: center;
   width: clamp(48px, 5vw, 56px);
   aspect-ratio: 1;
-  border: 1px solid var(--line);
+  border: 1px solid var(--ink);
   border-radius: 50%;
-  background: var(--surface);
-  color: var(--ink);
+  background: var(--ink);
+  color: var(--surface);
   box-shadow: 0 3px 12px rgb(18 18 18 / .12);
 }
 .landing .btn--primary:active { background: #292929; }
@@ -627,7 +627,7 @@ html:has(.landing :focus-visible) { scroll-behavior: auto; }
 .legal-content a { color: var(--ink); text-decoration: underline; text-underline-offset: 3px; }
 
 @media (hover: hover) and (pointer: fine) {
-  .landing-whatsapp:hover { border-color: var(--ink); background: var(--landing-soft); }
+  .landing-whatsapp:hover { background: #292929; }
   .landing-nav a:hover { color: var(--masthead-control); text-decoration: underline; text-underline-offset: 6px; }
   .landing-questions summary:hover { background: rgb(18 18 18 / .045); }
   .landing-file-zone:hover:not([data-dragging="true"], [data-busy="true"]) { background: var(--bg); border-color: var(--ink); }

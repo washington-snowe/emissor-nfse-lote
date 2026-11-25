@@ -1,4 +1,4 @@
-type AuthUser = { id: string; email?: string; email_confirmed_at?: string };
+type AuthUser = { id: string; email?: string; email_confirmed_at?: string; user_metadata?: Record<string, unknown> };
 
 type TenantGateway = {
   auth: {

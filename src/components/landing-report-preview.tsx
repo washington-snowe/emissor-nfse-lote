@@ -29,7 +29,7 @@ export function LandingReportPreview() {
       </div>
     </div>
     <div className="landing-report-actions">
-      <Link href="/prototipo?tela=revisar" className="btn btn--secondary">Testar uma revisão <ArrowRight size={16} aria-hidden="true" /></Link>
+      <Link href="/criar-conta" className="btn btn--secondary">Criar conta para emitir <ArrowRight size={16} aria-hidden="true" /></Link>
     </div>
   </div>;
 }

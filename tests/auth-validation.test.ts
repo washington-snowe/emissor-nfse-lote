@@ -1,6 +1,15 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { validateCredentials } from "../src/lib/auth-validation.ts";
+import { validateCredentials, validateSignupPhone } from "../src/lib/auth-validation.ts";
+
+test("cadastro exige telefone com DDD e normaliza números para o perfil", () => {
+  assert.equal(validateSignupPhone("(11) 99999-9999"), "+5511999999999");
+  assert.equal(validateSignupPhone("11 2345-6789"), "+551123456789");
+  assert.equal(validateSignupPhone("+1 (212) 555-0123"), "+12125550123");
+  for (const value of [null, "", "99999-9999", "telefone", "(00) 99999-9999", "12345678901234567890"]) {
+    assert.equal(validateSignupPhone(value), null);
+  }
+});
 
 test("valida tipos e campos ausentes na fronteira do formulário", () => {
   assert.equal(validateCredentials(null, null).valid, false);

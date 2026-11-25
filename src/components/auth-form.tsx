@@ -2,111 +2,89 @@
 
 import Link from "next/link";
 import { useActionState, useEffect, useState } from "react";
-import { ArrowRight, Eye, EyeOff, LoaderCircle } from "lucide-react";
-import { signIn, signUp } from "@/app/auth/actions";
+import { ArrowRight, Eye, EyeOff } from "lucide-react";
+import { requestPasswordRecovery, resetPassword, signIn, signUp } from "@/app/auth/actions";
 import type { AuthState } from "@/lib/auth-validation";
 import { planSelectionHref, type PlanSelection } from "@/lib/billing/plan-selection";
 
-export function AuthForm({ signup = false, referral, selection }: { signup?: boolean; referral?: string; selection?: PlanSelection }) {
-  const [state, action, pending] = useActionState<AuthState, FormData>(
-    signup ? signUp : signIn,
-    {},
-  );
+const actions = {
+  login: { submit: signIn, label: "Entrar", loading: "Entrando no Rex…" },
+  signup: { submit: signUp, label: "Criar conta", loading: "Criando sua conta…" },
+  recover: { submit: requestPasswordRecovery, label: "Enviar link de recuperação", loading: "Solicitando link de recuperação…" },
+  reset: { submit: resetPassword, label: "Salvar nova senha", loading: "Salvando a nova senha…" },
+};
+
+export type AuthMode = keyof typeof actions;
+
+export function AuthForm({ mode, referral, selection }: { mode: AuthMode; referral?: string; selection?: PlanSelection }) {
+  const { submit, label, loading } = actions[mode];
+  const [state, action, pending] = useActionState<AuthState, FormData>(submit, {});
   const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
   const [visible, setVisible] = useState(false);
+  const newPassword = mode === "signup" || mode === "reset";
+
   useEffect(() => {
-    const first = state.fields?.email
-      ? "email"
-      : state.fields?.password
-        ? "password"
-        : null;
+    const first = Object.keys(state.fields ?? {})[0];
     if (first) document.getElementById(first)?.focus();
   }, [state]);
-  return (
-    <form action={action} className="auth-form" onSubmit={() => setVisible(false)}>
-      {signup && referral && <input type="hidden" name="referral" value={referral} />}
-      {selection && <>
-        <input type="hidden" name="plano" value={selection.plan.code} />
-        <input type="hidden" name="ciclo" value={selection.cadence} />
-      </>}
-      <div className="field">
+
+  return <form action={action} className="auth-form" onSubmit={() => setVisible(false)}>
+    {mode === "signup" && referral && <input type="hidden" name="referral" value={referral} />}
+    {selection && <>
+      <input type="hidden" name="plano" value={selection.plan.code} />
+      <input type="hidden" name="ciclo" value={selection.cadence} />
+    </>}
+    <fieldset className="auth-fields" disabled={pending} aria-busy={pending}>
+      {mode !== "reset" && <div className="field">
         <label htmlFor="email">E-mail</label>
-        <input
-          id="email"
-          name="email"
-          type="email"
-          value={email}
-          onChange={event => setEmail(event.target.value)}
-          autoComplete="email"
-          maxLength={254}
-          required
-          aria-invalid={!!state.fields?.email}
-          aria-describedby={state.fields?.email ? "email-error" : undefined}
-        />
-        {state.fields?.email && (
-          <p id="email-error" className="field-error">
-            {state.fields.email}
-          </p>
-        )}
-      </div>
-      <div className="field">
-        <label htmlFor="password">Senha</label>
-        <div className="password-input"><input
-          id="password"
-          name="password"
-          type={visible ? "text" : "password"}
-          autoComplete={signup ? "new-password" : "current-password"}
-          minLength={signup ? 12 : undefined}
-          maxLength={128}
-          required
-          aria-invalid={!!state.fields?.password}
-          aria-describedby={
-            signup ? "password-help password-error" : "password-error"
-          }
-        />
+        <input id="email" name="email" type="email" value={email} onChange={event => setEmail(event.target.value)}
+          placeholder="email@exemplo.com" autoComplete="email" maxLength={254} required
+          aria-invalid={!!state.fields?.email} aria-describedby={state.fields?.email ? "email-error" : undefined} />
+        {state.fields?.email && <p id="email-error" className="field-error">{state.fields.email}</p>}
+      </div>}
+      {mode === "signup" && <div className="field">
+        <label htmlFor="phone">Telefone com DDD</label>
+        <input id="phone" name="phone" type="tel" value={phone} onChange={event => setPhone(event.target.value)}
+          placeholder="(11) 99999-9999" autoComplete="tel" maxLength={25} required
+          aria-invalid={!!state.fields?.phone} aria-describedby={state.fields?.phone ? "phone-error" : undefined} />
+        {state.fields?.phone && <p id="phone-error" className="field-error">{state.fields.phone}</p>}
+      </div>}
+      {mode !== "recover" && <div className="field">
+        <label htmlFor="password">{mode === "reset" ? "Nova senha" : "Senha"}</label>
+        <div className="password-input">
+          <input id="password" name="password" type={visible ? "text" : "password"}
+            placeholder={newPassword ? "Pelo menos 12 caracteres" : "Sua senha"}
+            autoComplete={newPassword ? "new-password" : "current-password"} minLength={newPassword ? 12 : undefined}
+            maxLength={128} required aria-invalid={!!state.fields?.password}
+            aria-describedby={state.fields?.password ? "password-error" : undefined} />
           <button type="button" className="icon-button" aria-label={visible ? "Ocultar senha" : "Mostrar senha"} onClick={() => setVisible(!visible)}>
             {visible ? <EyeOff size={18} aria-hidden="true" /> : <Eye size={18} aria-hidden="true" />}
           </button>
         </div>
-        {signup && (
-          <p className="field-hint" id="password-help">
-            Use pelo menos 12 caracteres.
-          </p>
-        )}
-        <p id="password-error" className="field-error">
-          {state.fields?.password}
-        </p>
-      </div>
-      <button
-        className="btn btn--primary auth-submit"
-        type="submit"
-        disabled={pending || !!state.success}
-      >
-        {pending ? (
-          <>
-            <LoaderCircle size={18} className="spinner" aria-hidden="true" />
-            Aguarde…
-          </>
-        ) : (
-          <>
-            {signup ? "Criar conta" : "Entrar"}
-            <ArrowRight size={18} aria-hidden="true" />
-          </>
-        )}
-      </button>
-      <p
-        className={state.success ? "form-success" : "field-error"}
-        role="status"
-        aria-live="polite"
-      >
-        {state.error || state.success}
-      </p>
-      <p className="auth-switch">
-        {signup ? "Já tem uma conta?" : "Primeiro acesso?"}{" "}
-        <Link className="text-link" href={planSelectionHref(signup ? "/entrar" : "/criar-conta", selection)}>
-          {signup ? "Entrar na conta" : "Criar minha conta"}
-        </Link>
-      </p>
-    </form>
-  );
+        {state.fields?.password && <p id="password-error" className="field-error">{state.fields.password}</p>}
+      </div>}
+      {mode === "reset" && <div className="field">
+        <label htmlFor="confirmation">Confirme a nova senha</label>
+        <input id="confirmation" name="confirmation" type="password" placeholder="Repita a nova senha" autoComplete="new-password"
+          minLength={12} maxLength={128} required aria-invalid={!!state.fields?.confirmation}
+          aria-describedby={state.fields?.confirmation ? "confirmation-error" : undefined} />
+        {state.fields?.confirmation && <p id="confirmation-error" className="field-error">{state.fields.confirmation}</p>}
+      </div>}
+    </fieldset>
+    {mode === "login" && <Link className="text-link auth-recover" href="/recuperar-senha">Esqueci minha senha</Link>}
+    <button className="btn btn--primary auth-submit" type="submit" disabled={pending || !!state.success} aria-busy={pending}>
+      {pending ? <><span className="skeleton auth-submit-skeleton" aria-hidden="true" /><span className="sr-only">{label}</span></>
+        : <>{label}<ArrowRight size={18} aria-hidden="true" /></>}
+    </button>
+    <p className={pending ? "sr-only" : state.success ? "form-success" : "field-error"} role="status">
+      {pending ? loading : state.error || state.success}
+    </p>
+    <p className="auth-switch">
+      {mode === "login" ? "Primeiro acesso? " : mode === "signup" ? "Já tem uma conta? " : ""}
+      <Link className="text-link" href={planSelectionHref(mode === "login" ? "/criar-conta" : "/entrar", selection)}>
+        {mode === "login" ? "Criar minha conta" : mode === "signup" ? "Entrar na conta" : "Voltar para entrar"}
+      </Link>
+    </p>
+  </form>;
 }

@@ -64,12 +64,31 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--action); }
 .entry-plan p + p { color: var(--muted); font-size: 14px; }
 .entry-panel .auth-form { margin-top: 24px; }
 .entry-panel .auth-switch { margin-top: 12px; }
+.auth-fields { border: 0; padding: 0; margin: 0; min-inline-size: 0; }
+.auth-recover { margin: -12px 0 6px; text-decoration: underline; }
+.auth-submit[aria-busy="true"] { opacity: 1; }
+.skeleton { display: block; background: #e7e7e7; border-radius: 8px; }
+.auth-submit-skeleton { width: 42%; height: 12px; background: rgb(255 255 255 / .35); }
 .entry-art { min-height: 480px; display: grid; align-content: center; justify-items: center; gap: clamp(14px, 3vw, 32px); padding: var(--surface-padding); border: 1px solid var(--line); border-radius: var(--r-lg); background: var(--wash); }
 .entry-art img { display: block; width: min(100%, 310px); height: auto; aspect-ratio: 1; }
-.entry-art > div:last-child { display: grid; gap: 8px; max-width: 32ch; }
-.entry-art p { font-size: clamp(19px, 1.9vw, 25px); font-weight: 520; line-height: 1.25; text-wrap: balance; }
-.entry-art a { display: inline-flex; align-items: center; gap: 8px; width: fit-content; min-height: 44px; color: var(--muted); font-size: 14px; text-underline-offset: 4px; }
-.entry-art a:hover { text-decoration: underline; }
+.entry-art p { max-width: 32ch; font-size: clamp(19px, 1.9vw, 25px); font-weight: 520; line-height: 1.25; text-align: center; text-wrap: balance; }
+
+.workspace-loading { display: grid; grid-template-columns: 288px minmax(0, 1fr); min-height: 100svh; }
+.workspace-loading-nav { display: grid; align-content: start; gap: 18px; padding: 24px; border-inline-end: 1px solid var(--line); }
+.workspace-loading-bar { display: flex; align-items: center; min-height: var(--bar-height); padding-inline: var(--surface-padding); border-bottom: 1px solid var(--line); }
+.workspace-loading-content { display: grid; gap: 12px; }
+.skeleton--title { width: min(190px, 65%); height: 29px; }
+.skeleton--line { width: min(245px, 78%); height: 14px; }
+.skeleton--control { height: 44px; border-radius: var(--r-btn); }
+.workspace-loading-surface { height: 150px; margin-top: 14px; border-radius: var(--r-lg); }
+@media (max-width: 900px) {
+  .workspace-loading { grid-template-columns: minmax(0, 1fr); }
+  .workspace-loading-nav { display: none; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .skeleton { animation: skeleton-pulse 1.25s var(--rex-settle) infinite alternate; }
+}
+@keyframes skeleton-pulse { to { opacity: .55; } }
 
 .plan-interval {
   position: relative;

@@ -18,7 +18,7 @@ Preencher em configurações seguras do ambiente:
 - `SUPABASE_PUBLISHABLE_KEY`: publishable key; legacy anon também aceita. Nunca secret ou service_role.
 - `SITE_URL`: origem exata da aplicação. Localmente `http://localhost:3000`; na Vercel, domínio HTTPS real. Sem caminho, credenciais, query ou fragmento.
 
-No Supabase, configurar Site URL e Redirect URLs para o domínio real e o callback `/auth/callback`. Desenvolvimento local requer também o callback local permitido. Manter confirmação de e-mail habilitada, configurar provedor/remetente apropriado, limites de Auth e política de senha compatível com o mínimo de 12 caracteres. Fluxo PKCE atual requer abrir confirmação no navegador que iniciou o cadastro; cross-device e recuperação de senha são próximos itens, não suporte já implementado. Não usar usuários ou certificados reais para testes sem autorização.
+No Supabase, use a origem pública em Site URL. Em Redirect URLs, permita `/auth/callback` e `/recuperar-senha/callback` na mesma origem. Use um SMTP personalizado para entregar confirmação e recuperação a clientes fora da equipe do projeto. Mantenha a confirmação de e-mail habilitada e a política de senha compatível com o mínimo de 12 caracteres. Abra o link de confirmação ou recuperação no navegador que fez a solicitação. Para desenvolvimento local, autorize os callbacks locais no projeto de desenvolvimento.
 
 Comandos disponíveis:
 

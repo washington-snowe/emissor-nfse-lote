@@ -11,7 +11,7 @@ export default async function SignUpPage({ searchParams }: { searchParams: Promi
   const { ref, plano, ciclo } = await searchParams;
   return (
     <AuthPage
-      signup
+      mode="signup"
       referral={validReferralCode(ref) ? ref : undefined}
       selection={readPlanSelection(plano, ciclo)}
       ready={!!getSupabaseConfig(process.env) && !!getSiteOrigin(process.env)}

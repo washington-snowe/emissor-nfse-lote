@@ -4,9 +4,9 @@ import { cookies } from "next/headers";
 import { REFERRAL_COOKIE, validReferralCode } from "@/lib/account";
 import { completeReferral } from "@/lib/referral-attribution";
 import { redirect } from "next/navigation";
-import { createSupabaseClient } from "@/lib/supabase/server";
+import { clearRecoverySession, createSupabaseClient } from "@/lib/supabase/server";
 import { getSiteOrigin } from "@/lib/config";
-import { validateCredentials, type AuthState } from "@/lib/auth-validation";
+import { accountPhoneMetadata, validateCredentials, validateEmail, validateNewPassword, validateSignupPhone, type AuthState } from "@/lib/auth-validation";
 import { planSelectionCookie, planSelectionHref, readPlanSelection } from "@/lib/billing/plan-selection";
 
 export async function signIn(
@@ -52,7 +52,9 @@ export async function signUp(
     form.get("password"),
     true,
   );
-  if (!input.valid)
+  const phone = validateSignupPhone(form.get("phone"));
+  if (!phone) input.fields.phone = "Informe um telefone válido com DDD.";
+  if (!input.valid || !phone)
     return { fields: input.fields, error: "Confira os campos indicados." };
   const selection = readPlanSelection(form.get("plano"), form.get("ciclo"));
   try {
@@ -71,7 +73,7 @@ export async function signUp(
     const { data, error } = await supabase.auth.signUp({
       email: input.email,
       password: input.password,
-      options: { emailRedirectTo: `${origin}/auth/callback` },
+      options: { emailRedirectTo: `${origin}/auth/callback`, data: { [accountPhoneMetadata]: phone } },
     });
     if (error)
       return {
@@ -101,6 +103,43 @@ export async function signUp(
     };
   }
   redirect(selection ? planSelectionHref("/painel/conta/assinatura", selection) : "/painel");
+}
+
+export async function requestPasswordRecovery(_previous: AuthState, form: FormData): Promise<AuthState> {
+  const email = validateEmail(form.get("email"));
+  if (!email) return { fields: { email: "Informe um e-mail válido." } };
+  const unavailable = { error: "A recuperação está indisponível. Tente novamente em instantes." };
+  try {
+    const supabase = await createSupabaseClient("recovery");
+    const origin = getSiteOrigin(process.env);
+    if (!supabase || !origin) return unavailable;
+    const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: `${origin}/recuperar-senha/callback` });
+    if (error && (!error.status || error.status >= 500)) return unavailable;
+    return { success: "Se houver uma conta com esse e-mail, você receberá um link para redefinir sua senha. Abra o link neste mesmo navegador." };
+  } catch {
+    return unavailable;
+  }
+}
+
+export async function resetPassword(_previous: AuthState, form: FormData): Promise<AuthState> {
+  const password = form.get("password");
+  if (typeof password !== "string" || !validateNewPassword(password)) return { fields: { password: "Use uma senha entre 12 e 128 caracteres." } };
+  if (form.get("confirmation") !== password) return { fields: { confirmation: "As senhas precisam ser iguais." } };
+  const expired = { error: "O acesso para redefinir a senha expirou. Solicite um novo link." };
+  try {
+    const supabase = await createSupabaseClient("recovery");
+    if (!supabase) return expired;
+    const { data, error } = await supabase.auth.getUser();
+    if (error || !data.user) return expired;
+    const updated = await supabase.auth.updateUser({ password });
+    if (updated.error?.code === "same_password") return { fields: { password: "Escolha uma senha diferente da atual." } };
+    if (updated.error) return { error: "Não foi possível redefinir a senha. Tente novamente em instantes." };
+    await supabase.auth.signOut().catch(() => {});
+    await clearRecoverySession();
+  } catch {
+    return { error: "O serviço de acesso está indisponível. Tente novamente em instantes." };
+  }
+  redirect("/entrar?status=password-reset");
 }
 
 export async function signOut() {

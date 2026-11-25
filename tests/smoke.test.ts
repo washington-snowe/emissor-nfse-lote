@@ -11,16 +11,21 @@ test(
     assert.equal(home.headers.get("x-content-type-options"), "nosniff");
     assert.equal(home.headers.get("x-frame-options"), "DENY");
     assert.match(await home.text(), /Explorar valores/);
-    for (const path of ["/entrar", "/criar-conta"]) {
+    for (const path of ["/entrar", "/criar-conta", "/recuperar-senha"]) {
       const response = await fetch(`${origin}${path}`);
       assert.equal(response.status, 200);
       const html = await response.text();
       assert.match(html, /Acesso em preparação/);
       assert.doesNotMatch(html, /name="password"/);
     }
-    const panel = await fetch(`${origin}/painel`, { redirect: "manual" });
-    assert.equal(panel.status, 307);
-    assert.equal(panel.headers.get("location"), "/entrar");
+    for (const path of ["/painel", "/prototipo?tela=admin"]) {
+      const panel = await fetch(`${origin}${path}`, { redirect: "manual" });
+      assert.equal(panel.status, 307);
+      assert.equal(panel.headers.get("location"), "/entrar");
+    }
+    const reset = await fetch(`${origin}/recuperar-senha/nova`, { redirect: "manual" });
+    assert.equal(reset.status, 307);
+    assert.equal(reset.headers.get("location"), "/recuperar-senha?status=link-invalido");
     const callback = await fetch(
       `${origin}/auth/callback?code=invalid&next=https://evil.example`,
       { redirect: "manual" },

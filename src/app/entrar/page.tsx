@@ -14,9 +14,9 @@ export default async function SignInPage({
   const { status, plano, ciclo } = await searchParams;
   return (
     <AuthPage
-      signup={false}
+      mode="login"
       ready={!!getSupabaseConfig(process.env)}
-      confirmationError={status === "confirmation-error"}
+      status={status}
       selection={readPlanSelection(plano, ciclo)}
     />
   );
