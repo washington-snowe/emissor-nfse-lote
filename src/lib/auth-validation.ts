@@ -5,6 +5,7 @@ export type AuthState = {
 };
 
 export const accountPhoneMetadata = "account_phone";
+export const rememberedEmailCookie = "rex-remembered-email";
 
 export function validateEmail(value: unknown) {
   const email = typeof value === "string" ? value.trim() : "";

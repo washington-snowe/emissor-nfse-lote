@@ -18,12 +18,10 @@ export default async function Invoices({ searchParams }: { searchParams: Promise
   const legacy = list.error?.code === "PGRST202" || list.error?.code === "42883";
   if (legacy) [list, counts] = await Promise.all([client.rpc("list_fiscal_operations", { p_limit: 50, p_offset: (page - 1) * 50 }), client.rpc("fiscal_status_totals")]);
   const operations = await attachEmailStatuses(client,context.tenantId,(list.data ?? []) as OperationDisplay[]);
-  const diagnostics=await client.rpc("fiscal_diagnostics_ready");
   return <WorkspaceShell email={context.user.email} active="invoices" companyId={selected?.id}><div className="dashboard-content company-page">
     <PageHeader title="Notas" description="Acompanhe o resultado de cada nota e baixe os documentos autorizados."
       actions={<Link className="btn btn--primary" href={selected ? `/painel/importacoes?empresa=${selected.id}` : "/painel/importacoes"}>Importar relatório</Link>} />
     {legacy && <p className="save-notice">O filtro por empresa está indisponível. Esta lista mostra as notas de todas as suas empresas.</p>}
-    {(diagnostics.error||diagnostics.data!==true)&&<p className="save-notice">Novas transmissões aguardam a atualização do registro técnico. Operações já enviadas continuam permitindo somente consulta.</p>}
     {!counts.error && <dl className="report-totals invoice-metrics" aria-label="Situação das notas">
       {[
         { status: "queued", label: "Na fila" },
@@ -36,7 +34,6 @@ export default async function Invoices({ searchParams }: { searchParams: Promise
       <h2>Histórico de emissões</h2>
       <div className="list-toolbar-actions">
         <FiscalRefresh waiting={operations.some(operation => ["queued", "preparing", "sending", "reconciling", "uncertain"].includes(operation.status))} />
-        <Link className="btn btn--secondary" href="/painel/notas/email-teste">Testar e-mails</Link>
       </div>
     </div>
     {list.error ? <section className="dashboard-welcome"><h2>Emissões indisponíveis</h2><p>Atualize a página para tentar carregar as notas novamente.</p></section> :

@@ -8,7 +8,6 @@ import { WorkspaceShell } from "@/components/workspace";
 import { CertificateForm } from "@/components/certificate-form";
 import { CertificateDeactivate } from "@/components/certificate-deactivate";
 import { AutomaticCertificateStatus } from "@/components/automatic-certificate-status";
-import { CertificateSefinDiagnostic } from "@/components/certificate-sefin-diagnostic";
 import { ensureAutomaticFiscalSetup } from "@/lib/automatic-fiscal-setup";
 import { processCertificateChecks } from "@/lib/certificate-check-jobs";
 import type { VerificationDisplay } from "@/lib/certificate-verification-state";
@@ -51,6 +50,6 @@ export default async function Certificates({ searchParams }: { searchParams: Pro
       <h2>{companies.data.find(company => company.id===certificate.company_id)?.legal_name ?? "Empresa"}</h2>
       <p className="mono">{certificate.subject_cnpj}</p><p>Validade: {new Intl.DateTimeFormat("pt-BR",{dateStyle:"short",timeZone:"America/Sao_Paulo"}).format(new Date(certificate.valid_until))}</p>
       <span className="small-status">{certificate.status === "active" ? new Date(certificate.valid_until).getTime()<=renderTime ? "Vencido" : "Armazenado com proteção" : certificate.status === "replaced" ? "Substituído para novas operações" : "Desativado nesta conta"}</span>
-    </div>{certificate.status === "active" && <div className="certificate-actions">{new Date(certificate.valid_until).getTime()>renderTime && <><AutomaticCertificateStatus verification={checkMap.get(certificate.id)} available={!checks.error}/><CertificateSefinDiagnostic id={certificate.id}/></>}<CertificateDeactivate id={certificate.id} /></div>}</article>)}</div>
+    </div>{certificate.status === "active" && <div className="certificate-actions">{new Date(certificate.valid_until).getTime()>renderTime && <><AutomaticCertificateStatus verification={checkMap.get(certificate.id)} available={!checks.error}/></>}<CertificateDeactivate id={certificate.id} /></div>}</article>)}</div>
   </div></WorkspaceShell>;
 }

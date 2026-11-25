@@ -1,6 +1,7 @@
 export type WorkspaceArea = "overview" | "companies" | "imports" | "invoices" | "standalone" | "service" | "advanced" | "certificates" | "profile" | "login" | "subscription" | "referrals" | "admin" | "history" | "emailTest";
 export type NavigationCompany = { id: string; legal_name: string; cnpj: string };
 export const COMPANY_COOKIE = "emissor_company";
+export const SIDEBAR_COOKIE = "rex-compact-navigation";
 export function workspaceDestination(area: string, companyId?: string) {
   const company = companyId && /^[0-9a-f-]{36}$/i.test(companyId) ? companyId : undefined;
   const paths: Record<WorkspaceArea, string> = {

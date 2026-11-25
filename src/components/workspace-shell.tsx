@@ -4,27 +4,25 @@ import Link from "next/link";
 import { useRef, useState, useTransition } from "react";
 import {
   ArrowRight, Building2, ChevronDown, CreditCard, FileStack, FileText, History, House,
-  KeyRound, LogOut, Menu, Plus, Settings2, Share2, ShieldCheck, Ticket, Upload, UserRound, X,
+  KeyRound, LogOut, Menu, MessageCircle, PanelLeftClose, PanelLeftOpen, Plus, Settings2, Share2, ShieldCheck, Ticket, Upload, UserRound, X,
 } from "lucide-react";
 import { Brand } from "@/components/brand";
 import { signOut } from "@/app/auth/actions";
-import { selectWorkspaceCompany } from "@/app/painel/navigation-actions";
+import { saveWorkspaceSidebar, selectWorkspaceCompany } from "@/app/painel/navigation-actions";
 import { chooseCompany, formatCompanyDocument, workspaceDestination, type NavigationCompany, type WorkspaceArea } from "@/lib/workspace-navigation";
 
 const sections = [
-  { label: "Operação", items: [
-    { area: "overview", label: "Início", Icon: House },
+  { label: "Emitir", Icon: Upload, items: [
     { area: "imports", label: "Notas em lote", Icon: Upload },
     { area: "history", label: "Importações salvas", Icon: History },
-    { area: "invoices", label: "Notas", Icon: FileText },
   ] },
-  { label: "Empresa", items: [
+  { label: "Empresa", Icon: Building2, items: [
     { area: "companies", label: "Cadastro", Icon: Building2 },
     { area: "service", label: "Serviço", Icon: FileStack },
     { area: "advanced", label: "Avançado", Icon: Settings2 },
     { area: "certificates", label: "Certificado", Icon: ShieldCheck },
   ] },
-  { label: "Conta", items: [
+  { label: "Conta", Icon: Settings2, items: [
     { area: "profile", label: "Perfil", Icon: UserRound },
     { area: "login", label: "Login", Icon: KeyRound },
     { area: "subscription", label: "Assinatura", Icon: CreditCard },
@@ -32,11 +30,13 @@ const sections = [
   ] },
 ] as const;
 
-export function WorkspaceShell({ email, name, active = "overview", companies = [], companyId, canAdmin = false, children }: {
-  canAdmin?: boolean; email?: string; name?: string; active?: WorkspaceArea; companies?: NavigationCompany[]; companyId?: string; children: React.ReactNode;
+export function WorkspaceShell({ email, name, active = "overview", companies = [], companyId, canAdmin = false, compactSidebar = false, support, children }: {
+  canAdmin?: boolean; email?: string; name?: string; active?: WorkspaceArea; companies?: NavigationCompany[]; companyId?: string;
+  compactSidebar?: boolean; support?: { href: string; label: string }; children: React.ReactNode;
 }) {
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState("");
+  const [savingSidebar, toggleSidebar] = useTransition();
   const drawer = useRef<HTMLDialogElement>(null);
   const drawerTrigger = useRef<HTMLButtonElement>(null);
   const selected = chooseCompany(companies, companyId);
@@ -49,15 +49,20 @@ export function WorkspaceShell({ email, name, active = "overview", companies = [
     </Link>;
   };
   const navigation = <nav aria-label="Navegação principal" className="workspace-navigation">
-    {sections.map(section => <div className="workspace-nav-section" key={section.label}>
-      <span className="workspace-nav-heading">{section.label}</span>
-      {section.items.map(({ area, label, Icon }) => navigate(area, label, Icon))}
-    </div>)}
+    {navigate("overview", "Início", House)}
+    {navigate("invoices", "Notas", FileText)}
+    {sections.map(({ label, items, Icon }) => <details className="workspace-nav-group" key={label} open={items.some(item => item.area === active)}>
+      <summary><Icon size={18} aria-hidden="true" /><span>{label}</span><ChevronDown size={15} aria-hidden="true" /></summary>
+      <div className="workspace-nav-children">{items.map(({ area, label, Icon }) => navigate(area, label, Icon))}</div>
+    </details>)}
     {canAdmin && <div className="workspace-nav-section">{navigate("admin", "Administração", Ticket)}</div>}
+    {support && <div className="workspace-nav-section"><span className="workspace-nav-heading">Suporte</span>
+      <a href={support.href} className="workspace-nav-link"><MessageCircle size={18} aria-hidden="true" /><span>{support.label}</span></a>
+    </div>}
   </nav>;
   const account = <details className="workspace-account">
     <summary>
-      <span className="workspace-avatar">{displayName.slice(0, 1).toLocaleUpperCase("pt-BR")}</span>
+      <span className="workspace-avatar" aria-hidden="true">{displayName.slice(0, 1).toLocaleUpperCase("pt-BR")}</span>
       <span className="workspace-account-copy"><strong title={displayName}>{displayName}</strong><span title={email}>{email}</span></span>
       <ChevronDown size={16} aria-hidden="true" />
     </summary>
@@ -67,8 +72,8 @@ export function WorkspaceShell({ email, name, active = "overview", companies = [
     </div>
   </details>;
 
-  return <div className="dashboard-shell workspace-shell workspace-experience">
-    <aside className="workspace-sidebar">
+  return <div className="dashboard-shell workspace-shell workspace-experience rex-workspace" data-sidebar={compactSidebar ? "hidden" : "visible"}>
+    <aside className="workspace-sidebar" id="workspace-sidebar">
       <div className="workspace-brand-row"><Brand href="/painel" /></div>
       <div className="workspace-nav-scroll">{navigation}</div>
       {account}
@@ -78,6 +83,14 @@ export function WorkspaceShell({ email, name, active = "overview", companies = [
         <div className="workspace-bar-inner">
           <button ref={drawerTrigger} className="icon-button workspace-menu-button" type="button" aria-label="Menu do painel" aria-haspopup="dialog" onClick={() => drawer.current?.showModal()}>
             <Menu size={20} aria-hidden="true" />
+          </button>
+          <button className="icon-button workspace-sidebar-toggle" type="button" aria-controls="workspace-sidebar" aria-expanded={!compactSidebar}
+            aria-label={compactSidebar ? "Mostrar navegação" : "Recolher navegação"} disabled={savingSidebar}
+            onClick={() => toggleSidebar(async () => {
+              try { setError(""); await saveWorkspaceSidebar(!compactSidebar); }
+              catch { setError("Não foi possível salvar a preferência de navegação."); }
+            })}>
+            {compactSidebar ? <PanelLeftOpen size={18} aria-hidden="true" /> : <PanelLeftClose size={18} aria-hidden="true" />}
           </button>
           <div className="workspace-context">
             {selected ? <>
@@ -100,6 +113,7 @@ export function WorkspaceShell({ email, name, active = "overview", companies = [
             </> : <Link className="workspace-context-link" href="/painel/empresas/nova"><Plus size={16} aria-hidden="true" /> Cadastrar empresa</Link>}
           </div>
           <Link className="workspace-companies-link" href="/painel/empresas" aria-label="Gerenciar empresas" title="Gerenciar empresas"><span>Empresas</span><ArrowRight size={16} aria-hidden="true" /></Link>
+          <div className="workspace-bar-account">{account}</div>
         </div>
         {error && <p className="field-error workspace-switch-error" role="alert">{error}</p>}
         {pending && <span className="sr-only" role="status">Trocando empresa…</span>}

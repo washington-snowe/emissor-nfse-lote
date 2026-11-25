@@ -170,14 +170,11 @@ try {
   assert.ok(!await page.getByRole('checkbox',{name:/Revisei os valores/}).isChecked());
   await page.getByRole('checkbox',{name:/Revisei os valores/}).check();assert.ok(await page.getByRole('button',{name:'Revisei, confirmar e emitir em produção'}).isEnabled());
   await page.goto(`${origin}/?screen=operations&production=1`);
-  const productionCard=page.locator('article').filter({hasText:'Tomador sintético C'});
+  const productionCard=page.locator('.invoice-list-row').filter({hasText:'Tomador sintético C'});
   await productionCard.getByText('Autorizada em produção',{exact:true}).waitFor();
+  await productionCard.locator('summary').click();
   assert.ok(await productionCard.getByRole('link',{name:'Baixar DANFS-e'}).getAttribute('href').then(href=>href.endsWith('/danfse')));
-  const beforeDanfse=await page.evaluate(()=>window.workflowUiTest.calls);
-  await productionCard.getByRole('button',{name:'Conferir DANFS-e'}).click();
-  await productionCard.getByText('Diagnóstico do DANFS-e',{exact:true}).waitFor();
-  assert.ok((await productionCard.innerText()).includes('DANFS-e disponível: não.'));
-  assert.equal(await page.evaluate(()=>window.workflowUiTest.calls),beforeDanfse,'DANFSe inspection never queues or resumes invoices');
+  assert.equal(await productionCard.getByRole('button',{name:'Conferir DANFS-e'}).count(),0);
   console.log('Production UI: explicit real issuance/email consent, automatic read-only access check without issuing, private XML/DANFSe links and no overflow at 3 widths.');
 
   for(const width of [1440,390,320]){
@@ -207,7 +204,8 @@ try {
     await blockedFooter.getByRole('status').filter({hasText:'O acesso à produção ainda precisa ser confirmado'}).waitFor();
     const blockedHint=await blockedFooter.locator('#quick-review-hint').boundingBox();assert.ok(blockedHint.y>=0);
     await blockedFooter.getByRole('button',{name:'Ver pendência de produção',exact:true}).click();
-    assert.ok(await page.getByRole('button',{name:'Copiar diagnóstico de produção',exact:true}).isVisible());
+    assert.equal(await page.getByRole('button',{name:'Copiar diagnóstico de produção',exact:true}).count(),0);
+    assert.ok(await page.getByRole('button',{name:'Verificar produção novamente',exact:true}).isVisible());
     assert.equal(await page.evaluate(()=>window.workflowUiTest.productionChecks),1,'viewing the existing diagnostic must not recheck access');
     assert.equal(await page.evaluate(()=>window.workflowUiTest.calls),0,'a checkbox cannot bypass missing production access');
     assert.ok(await modal.evaluate(element=>element.scrollWidth<=element.clientWidth));
@@ -342,6 +340,7 @@ try {
   for(const width of [1440,390,320]){
     await page.setViewportSize({width,height:900});await page.goto(`${origin}/?screen=email-operations`);
     const cards=page.locator('.fiscal-operation');
+    for (const card of await cards.all()) await card.locator('summary').click();
     await cards.nth(0).getByLabel('E-mail correto deste vendedor').fill('corrected@example.com');
     await cards.nth(0).getByRole('button',{name:'Tentar entregar novamente',exact:true}).click();
     await cards.nth(0).getByRole('status').filter({hasText:'Nova tentativa sintética'}).waitFor();
@@ -576,24 +575,16 @@ try {
     await page.screenshot({ path: path.join(root, `shots/reports/standalone-${width}.png`), fullPage: true });
     await page.goto(`${origin}/?screen=operations`);
     const uncertain = page.locator('.fiscal-operation').nth(1);
+    await uncertain.locator('summary').click();
     assert.equal(await uncertain.getByRole('button', { name: 'Consultar novamente' }).count(), 1);
     assert.equal(await uncertain.getByRole('button', { name: 'Cancelar preparação' }).count(), 0);
-    await page.evaluate(()=>Object.defineProperty(navigator,'clipboard',{configurable:true,value:{writeText:async text=>{window.workflowUiTest.clipboard=text;}}}));
-    const callsBefore=await page.evaluate(()=>window.workflowUiTest.calls);
-    await uncertain.getByRole('button',{name:'Copiar diagnóstico da emissão',exact:true}).click();
-    await uncertain.getByText('Diagnóstico da emissão copiado.',{exact:true}).waitFor();
-    assert.equal(await page.evaluate(()=>window.workflowUiTest.calls),callsBefore,'diagnostic must not resume or enqueue');
-    assert.ok(await page.evaluate(()=>window.workflowUiTest.clipboard.includes('nfse-operation-v2')));
-    assert.ok(await page.evaluate(()=>window.workflowUiTest.clipboard.includes('Primeiro envio: HTTP 201')));
-    await uncertain.getByRole('button',{name:'Conferir documento na SEFIN',exact:true}).click();
-    await uncertain.getByText('Conferência do documento copiada.',{exact:true}).waitFor();
-    assert.equal(await page.evaluate(()=>window.workflowUiTest.calls),callsBefore,'receipt diagnostic must not resume or enqueue');
-    assert.ok(await page.evaluate(()=>window.workflowUiTest.clipboard.includes('nfse-receipt-v1')));
+    assert.equal(await uncertain.getByRole('button',{name:/diagnóstico|Conferir documento na SEFIN/i}).count(),0);
     await uncertain.getByRole('button', { name: 'Consultar novamente' }).click();
     await uncertain.getByRole('status').filter({ hasText: 'Ação sintética resume' }).waitFor();
     const authorized=page.locator('.fiscal-operation').nth(2);
-    assert.equal(await authorized.getByRole('button').count(),1,'authorized invoice only offers the read-only PDF diagnostic');
-    assert.equal(await authorized.getByRole('button',{name:'Conferir DANFS-e'}).count(),1);
+    await authorized.locator('summary').click();
+    assert.equal(await authorized.getByRole('button').count(),0);
+    assert.ok(await authorized.getByRole('link',{name:'Baixar DANFS-e',exact:true}).isVisible());
     // A denied click can race the worker's authorization. Keep real current-state errors,
     // clear old-state results on refresh, and never replay the action automatically.
     await page.evaluate(()=>{window.workflowUiTest.manageError=true;});
@@ -608,14 +599,15 @@ try {
     await uncertain.getByRole('link',{name:'Baixar XML de homologação'}).waitFor();
     assert.equal(await uncertain.getByRole('alert').count(),0,'confirmed authorization clears prior action errors');
     assert.equal(await uncertain.getByRole('status').count(),0,'confirmed authorization clears prior action notices');
-    assert.equal(await uncertain.getByRole('button').count(),1);
-    assert.equal(await uncertain.getByRole('button',{name:'Conferir DANFS-e'}).count(),1);
+    assert.equal(await uncertain.getByRole('button').count(),0);
+    assert.ok(await uncertain.getByRole('link',{name:'Baixar DANFS-e',exact:true}).isVisible());
     assert.equal(await page.evaluate(()=>window.workflowUiTest.calls),callsAfterDenial,'status refresh must not run an action');
     assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), `Operations overflow ${width}`);
     await page.screenshot({ path: path.join(root, `shots/reports/operations-${width}.png`), fullPage: true });
     console.log(`Invoices ${width}px: amount-only with defaults, retry nonce, editable details, new note, consultation-only uncertainty, no overflow`);
     await page.goto(`${origin}/?screen=operations`);
     const racing=page.locator('.fiscal-operation').nth(1);
+    await racing.locator('summary').click();
     await page.evaluate(()=>{window.workflowUiTest.manageError=true;window.workflowUiTest.holdManage=true;});
     await racing.getByRole('button',{name:'Consultar novamente'}).click();
     await page.waitForFunction(()=>typeof window.workflowUiTest.finishManage==='function');
@@ -624,8 +616,8 @@ try {
     await page.evaluate(()=>window.workflowUiTest.finishManage());
     await page.waitForFunction(()=>(window.workflowUiTest.refreshes??0)>0);
     assert.equal(await racing.getByRole('alert').count(),0,'late refusal from a previous state must not appear after authorization');
-    assert.equal(await racing.getByRole('button').count(),1);
-    assert.equal(await racing.getByRole('button',{name:'Conferir DANFS-e'}).count(),1);
+    assert.equal(await racing.getByRole('button').count(),0);
+    assert.ok(await racing.getByRole('link',{name:'Baixar DANFS-e',exact:true}).isVisible());
     assert.equal(await page.evaluate(()=>window.workflowUiTest.calls),1,'late response never retries or enqueues');
     console.log(`Invoices ${width}px: current errors remain visible; authorization removes stale notices, including late responses, without another action`);
   }

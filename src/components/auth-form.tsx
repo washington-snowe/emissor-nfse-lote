@@ -16,10 +16,10 @@ const actions = {
 
 export type AuthMode = keyof typeof actions;
 
-export function AuthForm({ mode, referral, selection }: { mode: AuthMode; referral?: string; selection?: PlanSelection }) {
+export function AuthForm({ mode, referral, selection, initialEmail }: { mode: AuthMode; referral?: string; selection?: PlanSelection; initialEmail?: string }) {
   const { submit, label, loading } = actions[mode];
   const [state, action, pending] = useActionState<AuthState, FormData>(submit, {});
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState(initialEmail ?? "");
   const [phone, setPhone] = useState("");
   const [visible, setVisible] = useState(false);
   const newPassword = mode === "signup" || mode === "reset";
@@ -72,7 +72,10 @@ export function AuthForm({ mode, referral, selection }: { mode: AuthMode; referr
         {state.fields?.confirmation && <p id="confirmation-error" className="field-error">{state.fields.confirmation}</p>}
       </div>}
     </fieldset>
-    {mode === "login" && <Link className="text-link auth-recover" href="/recuperar-senha">Esqueci minha senha</Link>}
+    {(mode === "login" || mode === "signup") && <div className="auth-options">
+      <label><input type="checkbox" name="remember_email" defaultChecked={!!initialEmail} /> Lembrar meu e-mail</label>
+      {mode === "login" && <Link className="text-link" href="/recuperar-senha">Esqueci minha senha</Link>}
+    </div>}
     <button className="btn btn--primary auth-submit" type="submit" disabled={pending || !!state.success} aria-busy={pending}>
       {pending ? <><span className="skeleton auth-submit-skeleton" aria-hidden="true" /><span className="sr-only">{label}</span></>
         : <>{label}<ArrowRight size={18} aria-hidden="true" /></>}

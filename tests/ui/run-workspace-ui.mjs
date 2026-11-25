@@ -63,6 +63,10 @@ try {
     await page.goto(`${origin}/?screen=plans`);
     const nav=width>900 ? page.locator('.workspace-sidebar') : page.locator('.workspace-drawer');
     if(width<=900) await page.getByRole("button",{name:"Menu do painel",exact:true}).click();
+    for(const label of ['Emitir','Empresa','Conta']) {
+      const group=nav.locator('.workspace-nav-group').filter({ has: page.getByText(label,{exact:true}) });
+      if (!await group.evaluate(element=>element.open)) await group.locator('summary').click();
+    }
     for(const name of ['Início','Notas','Notas em lote','Importações salvas','Cadastro','Serviço','Avançado','Certificado','Perfil','Login','Assinatura','Indicações']) await nav.getByRole('link',{name,exact:true}).waitFor();
     assert.equal(await nav.getByRole('link',{name:'API',exact:true}).count(),0);
     assert.equal(await nav.getByRole('link',{name:'Nota avulsa',exact:true}).count(),0);

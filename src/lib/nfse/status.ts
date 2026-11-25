@@ -7,7 +7,7 @@ export const fiscalReasonLabels: Record<string, string> = {
   transmission_disabled: "A transmissão está desativada para o ambiente desta operação.", contract_missing: "O contrato oficial da API ainda precisa ser verificado.",
   production_not_ready:'O acesso à produção ainda precisa ser conferido. A operação permanece sem envio.',
   identity_in_use:'A DPS reservada já existe no serviço oficial. Confira a série e a numeração antes de preparar outro lote; esta operação não foi enviada.',
-  certificate_missing: "Cadastre um certificado A1 válido para esta empresa.", certificate_unavailable: "Não foi possível validar o A1 ou confirmar o acesso à SEFIN para esta operação. Confira o diagnóstico na página de certificados.",
+  certificate_missing: "Cadastre um certificado A1 válido para esta empresa.", certificate_unavailable: "Não foi possível validar o A1 ou confirmar o acesso à SEFIN para esta operação. Confira a validade e o status em Empresa → Certificado.",
   configuration_changed: "A revisão ou o perfil mudou. Cancele esta preparação e confira uma nova versão.",
   worker_interrupted: "O processamento foi interrompido. A fila preservou o estado para recuperação.",
   invalid_xml: "O XML não passou na validação. Revise os dados fiscais.", preparation_failed: "Não foi possível concluir a preparação com segurança.",

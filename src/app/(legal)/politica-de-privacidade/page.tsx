@@ -39,7 +39,7 @@ export default function PrivacyPage() {
     </section>
     <section>
       <h2>4. Cookies e retenção</h2>
-      <p>O painel usa cookies necessários para manter a sessão, proteger o acesso e lembrar a empresa selecionada. Quando você se cadastra por indicação, um cookie temporário guarda o código para associar a indicação à conta. Você pode gerenciar cookies nas configurações do navegador. Limpar os cookies de sessão encerra o acesso naquele navegador.</p>
+      <p>O painel usa cookies necessários para manter a sessão, proteger o acesso e lembrar a empresa selecionada. Usamos cookies também para lembrar o estado da barra lateral e, se você marcar a opção no formulário de acesso, preencher seu e-mail por até 90 dias. Quando você se cadastra por indicação, um cookie temporário guarda o código para associar a indicação à conta. Você pode gerenciar cookies nas configurações do navegador. Limpar os cookies de sessão encerra o acesso naquele navegador.</p>
       <p>Os dados são mantidos pelo tempo necessário para a prestação do serviço, o cumprimento de obrigações legais e fiscais, a segurança e o exercício de direitos. Uma solicitação de exclusão é avaliada conforme a finalidade do dado e os deveres de guarda aplicáveis.</p>
     </section>
     <section>

@@ -6,8 +6,20 @@ import { completeReferral } from "@/lib/referral-attribution";
 import { redirect } from "next/navigation";
 import { clearRecoverySession, createSupabaseClient } from "@/lib/supabase/server";
 import { getSiteOrigin } from "@/lib/config";
-import { accountPhoneMetadata, validateCredentials, validateEmail, validateNewPassword, validateSignupPhone, type AuthState } from "@/lib/auth-validation";
+import { accountPhoneMetadata, rememberedEmailCookie, validateCredentials, validateEmail, validateNewPassword, validateSignupPhone, type AuthState } from "@/lib/auth-validation";
+import { sessionCookieOptions } from "@/lib/supabase/session-cookies";
 import { planSelectionCookie, planSelectionHref, readPlanSelection } from "@/lib/billing/plan-selection";
+
+async function saveRememberedEmail(form: FormData, email: string) {
+  const remember = form.get("remember_email") === "on";
+  const store = await cookies();
+  if (remember || store.has(rememberedEmailCookie)) {
+    store.set(rememberedEmailCookie, remember ? email : "", {
+      ...sessionCookieOptions,
+      maxAge: remember ? 90 * 24 * 60 * 60 : 0,
+    });
+  }
+}
 
 export async function signIn(
   _previous: AuthState,
@@ -33,6 +45,7 @@ export async function signIn(
           "Não foi possível entrar. Confira e-mail e senha ou tente novamente mais tarde.",
       };
     await completeReferral();
+    await saveRememberedEmail(form, input.email);
   } catch {
     return {
       error:
@@ -81,6 +94,7 @@ export async function signUp(
           "Não foi possível concluir o cadastro. Tente novamente mais tarde.",
       };
     if (data.session) await completeReferral();
+    await saveRememberedEmail(form, input.email);
     if (!data.session) {
       const store = await cookies();
       const value = selection ? new URLSearchParams({ plano: selection.plan.code, ciclo: selection.cadence }).toString() : "";

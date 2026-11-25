@@ -7,7 +7,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 
 export const hasAdminAccess = cache(async () => {
   const { client, context } = await requireWorkspace();
-  if (!context.user.email_confirmed_at) return false;
+  if (!context.user.email_confirmed_at || context.user.email?.toLowerCase() !== "whashingtonexpedito@gmail.com") return false;
   const { data, error } = await client.rpc("rex_admin_access");
   return !error && data === true;
 });

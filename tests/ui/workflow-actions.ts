@@ -33,6 +33,7 @@ export async function adjustQuickReviewValidity(_id:string,form:FormData){if(for
 export async function confirmAndQueueQuickReview(_id:string,form:FormData){window.workflowUiTest.submittedEnvironment=form.get("environment");window.workflowUiTest.emailOptIn=form.get("emailReviewed");window.workflowUiTest.calls++;window.workflowUiTest.reviewJson=String(form.get("input"));(window.workflowUiTest.requestIds??=[]).push(String(form.get("request")));await new Promise(resolve=>setTimeout(resolve,120));return window.workflowUiTest.calls===1?{error:"Falha sintética preserva a confirmação."}:{id:"test-quick-batch",duplicate:true};}
 
 export async function selectWorkspaceCompany(id: string, area: string) { window.workflowUiTest.companyId = id; window.workflowUiTest.path = area; return {}; }
+export async function saveWorkspaceSidebar() {}
 export async function saveAccountProfile(_state: unknown, form: FormData) { window.workflowUiTest.calls++; return window.workflowUiTest.calls===1 ? {error:"Falha sintética de perfil."} : { success: "Perfil sintético salvo.", version: Number(form.get("version"))+1 }; }
 export async function updateLogin() { window.workflowUiTest.calls++; return { success: "Acesso sintético atualizado; nenhum Auth real." }; }
 export async function claimReferral() { return { success: "Indicação sintética vinculada." }; }

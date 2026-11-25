@@ -134,7 +134,7 @@ export function ReportPreview({ companies, saveAction, initialCompanyId,automati
           </div>
           <div className="field report-upload-file">
             <label htmlFor="report-file">Relatório mensal da Shopee</label>
-            <FileControl file={file} prompt="Selecionar arquivo CSV" detail="Relatório mensal por vendedor"
+            <FileControl file={file} prompt="Escolher arquivo CSV" detail="Relatório mensal por vendedor"
               input={{ ref: fileInput, id: "report-file", accept: ".csv,text/csv", required: true, disabled: saving,
                 "aria-describedby": "report-file-hint report-error", onChange: event => { void chooseFile(event.target.files?.[0] ?? null); } }} />
             <p id="report-file-hint" className="field-hint">CSV em UTF-8, até 512 KB e 10.000 linhas.</p>

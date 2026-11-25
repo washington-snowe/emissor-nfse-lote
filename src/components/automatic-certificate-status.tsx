@@ -18,6 +18,5 @@ export function AutomaticCertificateStatus({verification,available=true}: {verif
     return () => {clearInterval(timer);clearTimeout(retry);document.removeEventListener("visibilitychange",refresh);};
   },[router,available,status,nextAttempt]);
   return <div className="certificate-automatic-status"><p className={verification?.status === "verified" ? "form-success" : "field-hint"} role="status">{available ? certificateVerificationMessage(verification) : "A verificação automática aguarda a atualização do processamento. O certificado já está protegido."}</p>
-    {verification && <details><summary>Detalhes da verificação automática</summary><p className="field-hint">SEFIN · homologação · {verification.result_code ?? verification.status}{verification.http_status ? ` · HTTP ${verification.http_status}` : ""}. A consulta não transmite notas.</p></details>}
   </div>;
 }
