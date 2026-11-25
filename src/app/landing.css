@@ -336,6 +336,7 @@ html:has(.landing :focus-visible) { scroll-behavior: auto; }
 .landing-volume-summary p { color: var(--muted); line-height: 1.4; }
 .landing-volume-summary strong { color: var(--ink); }
 .landing-volume-summary .text-link { font-size: inherit; }
+.landing-volume-note { color: var(--muted); font-size: 13px; line-height: 1.4; }
 .landing-plan-carousel, .landing-carousel-controls {
   width: var(--landing-plan-track);
   margin-inline: auto;

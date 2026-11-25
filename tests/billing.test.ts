@@ -2,7 +2,7 @@ import { checkoutRecovery } from "../src/lib/billing/checkout-state.ts";
 import assert from "node:assert/strict";
 import { createHmac } from "node:crypto";
 import { test } from "node:test";
-import { plans, planPrice, money, firstPaymentCommission, overagePrice, upgradeEligible } from "../src/lib/billing/catalog.ts";
+import { estimateBestPlan, plans, planPrice, money, firstPaymentCommission, overagePrice, upgradeEligible } from "../src/lib/billing/catalog.ts";
 import { verifyStripeSignature, stripeUrl } from "../src/lib/billing/stripe-contract.ts";
 import { readStripeEvent, stripeSnapshot, type StripeEvent } from "../src/lib/billing/webhook.ts";
 import { transmitUsage, type UsageBatch } from "../src/lib/billing/usage.ts";
@@ -42,6 +42,19 @@ test("upgrade exige preço maior no mesmo ciclo de cobrança",()=>{
  assert(upgradeEligible({cadence:"annual",unitCents:14304},plans[1],"annual"));
  assert(!upgradeEligible({cadence:"monthly",unitCents:1490},plans[1],"annual"));
  assert(!upgradeEligible({cadence:"monthly",unitCents:3490},plans[0],"monthly"));
+});
+test("estimativa mantém o plano mais barato com excedentes e reage à periodicidade", () => {
+  assert.deepEqual(estimateBestPlan(151, "monthly"), { plan: plans[0], extraNotes: 1, monthlyCents: 1500n });
+  assert.deepEqual(estimateBestPlan(151, "annual"), { plan: plans[0], extraNotes: 1, monthlyCents: 1202n });
+  assert.equal(estimateBestPlan(351, "monthly").plan, plans[0]);
+  assert.equal(estimateBestPlan(352, "monthly").plan, plans[1]);
+  assert.equal(estimateBestPlan(311, "annual").plan, plans[0]);
+  assert.equal(estimateBestPlan(312, "annual").plan, plans[1]);
+  assert.equal(estimateBestPlan(1202, "monthly").plan, plans[2]);
+  assert.equal(estimateBestPlan(1082, "annual").plan, plans[2]);
+  assert.equal(estimateBestPlan(5000, "monthly").plan, plans[2]);
+  assert.equal(estimateBestPlan(5001, "monthly").plan, plans[3]);
+  assert.equal(estimateBestPlan(4501, "annual").plan, plans[3]);
 });
 test("webhook exige HMAC v1 do corpo exato, timestamp recente e não aceita metadata de depuração como assinatura",()=>{
  const secret="whsec_synthetic_test_only",body=JSON.stringify(event),signature=createHmac("sha256",secret).update(seconds+"."+body).digest("hex"),header=`t=${seconds},v1=${signature}`;

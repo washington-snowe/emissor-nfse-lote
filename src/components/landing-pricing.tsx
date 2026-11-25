@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { ArrowLeft, ArrowRight, Upload } from "lucide-react";
-import { plans } from "@/lib/billing/catalog";
+import { estimateBestPlan, money, plans, type Cadence } from "@/lib/billing/catalog";
 import { planSelectionHref } from "@/lib/billing/plan-selection";
 import { formatFiscalBrl } from "@/lib/nfse/status";
 import { PlanCard } from "@/components/plan-card";
@@ -18,10 +18,6 @@ const number = new Intl.NumberFormat("pt-BR");
 function cardStep(viewport: HTMLDivElement) {
   const gap = Number.parseFloat(getComputedStyle(viewport).columnGap) || 0;
   return (viewport.firstElementChild?.getBoundingClientRect().width ?? 0) + gap;
-}
-
-function recommendedPlan(volume: number) {
-  return plans.find(plan => volume <= plan.includedNotes) ?? largestPlan;
 }
 
 type Estimate =
@@ -40,8 +36,8 @@ export function LandingPricing() {
   usePlanCarouselDrag(carousel);
   const reading = useRef(false);
   const cadence = annual ? "annual" : "monthly";
-  const recommended = recommendedPlan(volume);
-  const reportPlan = estimate.state === "ready" && estimate.count > 0 ? recommendedPlan(estimate.count) : null;
+  const recommended = estimateBestPlan(volume, cadence);
+  const reportQuote = estimate.state === "ready" && estimate.count > 0 ? estimateBestPlan(estimate.count, cadence) : null;
 
   useEffect(() => {
     const viewport = carousel.current;
@@ -64,15 +60,20 @@ export function LandingPricing() {
     };
   }, []);
 
-  function revealRecommendation(value: number, behavior: ScrollBehavior) {
+  function revealRecommendation(value: number, behavior: ScrollBehavior, cycle: Cadence = cadence) {
     const viewport = carousel.current;
-    const card = viewport?.children.item(plans.indexOf(recommendedPlan(value)));
+    const card = viewport?.children.item(plans.indexOf(estimateBestPlan(value, cycle).plan));
     if (!viewport || !card || viewport.scrollWidth <= viewport.clientWidth + 1) return;
     const frame = viewport.getBoundingClientRect();
     const bounds = card.getBoundingClientRect();
     if (bounds.left < frame.left - 1 || bounds.right > frame.right + 1) {
       viewport.scrollTo({ left: viewport.scrollLeft + bounds.left - frame.left, behavior });
     }
+  }
+
+  function selectCadence(next: Cadence) {
+    setAnnual(next === "annual");
+    revealRecommendation(volume, "auto", next);
   }
 
   function step(direction: -1 | 1, behavior: ScrollBehavior) {
@@ -135,11 +136,11 @@ export function LandingPricing() {
           <fieldset className="landing-cadence">
             <legend className="sr-only">Período da assinatura</legend>
             <label>
-              <input type="radio" name="landing-cadence" checked={!annual} onChange={() => setAnnual(false)} />
+              <input type="radio" name="landing-cadence" checked={!annual} onChange={() => selectCadence("monthly")} />
               <span>Mensal</span>
             </label>
             <label>
-              <input type="radio" name="landing-cadence" checked={annual} onChange={() => setAnnual(true)} />
+              <input type="radio" name="landing-cadence" checked={annual} onChange={() => selectCadence("annual")} />
               <span>Anual <small className="landing-discount-tag">−20%</small></span>
             </label>
           </fieldset>
@@ -161,7 +162,7 @@ export function LandingPricing() {
           </div>
           <input id="landing-volume" type="range" min={1} max={maximumVolume} value={volume}
             aria-label="Ajustar notas por mês"
-            aria-valuetext={`${number.format(volume)} notas por mês. Franquia sugerida: ${recommended.name}`}
+            aria-valuetext={`${number.format(volume)} notas por mês. Menor custo estimado: ${recommended.plan.name}, ${money(recommended.monthlyCents)} por mês.`}
             style={{ "--volume-progress": `${100 * (volume - 1) / (maximumVolume - 1)}%` } as CSSProperties}
             onChange={event => {
               const input = event.currentTarget;
@@ -172,9 +173,12 @@ export function LandingPricing() {
               if (event.isPrimary) revealRecommendation(event.currentTarget.valueAsNumber, "auto");
             }} />
           <div className="landing-volume-summary">
-            <p><strong>{recommended.name}</strong> é o primeiro plano que cobre {number.format(volume)} notas sem excedentes.</p>
+            <p><strong>{recommended.plan.name} · {money(recommended.monthlyCents)}/mês</strong> é o menor custo estimado{recommended.extraNotes > 0
+              ? ` com ${number.format(recommended.extraNotes)} ${recommended.extraNotes === 1 ? "nota excedente" : "notas excedentes"}`
+              : ""}.</p>
             <a href="#simulador" className="text-link">Estimar pelo CSV <ArrowRight size={15} aria-hidden="true" /></a>
           </div>
+          {annual && <p className="landing-volume-note">A média mensal inclui a assinatura anual dividida em 12 meses.</p>}
         </div>
         <div className="landing-carousel-controls">
           <span>{visible.first === visible.last ? visible.first : `${visible.first}–${visible.last}`} de {plans.length}</span>
@@ -194,7 +198,7 @@ export function LandingPricing() {
             }
           }} tabIndex={0}>
           {plans.map(plan =>
-            <PlanCard key={plan.code} plan={plan} cadence={cadence} variant="landing" showBadge={false} recommended={plan.code === recommended.code}
+            <PlanCard key={plan.code} plan={plan} cadence={cadence} variant="landing" showBadge={false} recommended={plan.code === recommended.plan.code}
               action={<Link href={planSelectionHref("/criar-conta", { plan, cadence })} className="btn btn--primary" aria-label={`Começar agora — ${plan.name}`}>Começar agora <ArrowRight size={16} aria-hidden="true" /></Link>} />,
           )}
         </div>
@@ -207,7 +211,7 @@ export function LandingPricing() {
       <div className="wrap landing-simulator-content">
         <div className="landing-simulator-head" data-landing-reveal="heading">
           <h2 id="simulador-titulo">Estime suas notas pelo CSV</h2>
-          <p>Veja quantas notas seu relatório pode gerar, o total de comissões e qual plano cobre esse volume. O arquivo é lido no seu navegador.</p>
+          <p>Veja quantas notas seu relatório pode gerar, o total de comissões e qual plano tem o menor custo estimado. O arquivo é lido no seu navegador.</p>
         </div>
         <div className="landing-file-panel" data-landing-reveal="panel">
           <label className="landing-file-zone" data-dragging={dragging} data-busy={estimate.state === "loading"}
@@ -246,15 +250,15 @@ export function LandingPricing() {
               <dl className="landing-estimate-metrics">
                 <div><dt>Notas estimadas</dt><dd>{number.format(estimate.count)}</dd></div>
                 <div><dt>Total do relatório</dt><dd>{formatFiscalBrl(estimate.total)}</dd></div>
-                <div><dt>Franquia sugerida</dt><dd className="landing-estimate-plan">{reportPlan?.name ?? "—"}</dd>
-                  {reportPlan && <dd className="landing-estimate-limit">Até {number.format(reportPlan.includedNotes)} notas por mês</dd>}
+                <div><dt>Menor custo estimado</dt><dd className="landing-estimate-plan">{reportQuote?.plan.name ?? "—"}</dd>
+                  {reportQuote && <dd className="landing-estimate-limit">{money(reportQuote.monthlyCents)}/mês · {annual ? "Anual" : "Mensal"}</dd>}
                 </div>
               </dl>
-              <p className="landing-estimate-note">{reportPlan
+              <p className="landing-estimate-note">{reportQuote
                 ? "A estimativa conta uma nota por linha com comissão positiva. A quantidade final depende da revisão e do agrupamento."
                 : "Este relatório não tem linhas com comissão positiva."}</p>
             </div>
-            {reportPlan && <a className="text-link" href="#planos" onClick={event => {
+            {reportQuote && <a className="text-link" href="#planos" onClick={event => {
               setVolume(estimate.count);
               revealRecommendation(estimate.count, event.detail === 0 ? "instant" : "auto");
             }}>Usar volume na comparação <ArrowRight size={16} aria-hidden="true" /></a>}
