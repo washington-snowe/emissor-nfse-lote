@@ -1,4 +1,17 @@
 @media (prefers-reduced-motion: no-preference) {
+  .landing-hero-copy > :is(h1, .landing-hero-context, .landing-actions) {
+    animation: marketing-arrival 240ms var(--rex-settle) both;
+  }
+  .landing-hero-copy > .landing-hero-context { animation-delay: 45ms; }
+  .landing-hero-copy > .landing-actions { animation-delay: 90ms; }
+  .landing-hero-copy > .landing-actions:focus-within { animation: none; }
+
+  .landing [data-landing-reveal-state="visible"]:not(:focus-within):is([data-landing-reveal="heading"], [data-landing-reveal="panel"], .landing-steps > li, .landing-tutorials-grid > div) {
+    animation: marketing-arrival 250ms var(--draw-delay) var(--rex-settle) both;
+  }
+  .landing [data-landing-reveal-state="visible"]:not(:focus-within):is([data-landing-reveal="row"], .billing-plan) {
+    animation: marketing-fade 200ms var(--draw-delay) var(--rex-settle) both;
+  }
   .landing-step-drawing .dimension-line { --draw-order: 0; }
   .landing-step-drawing .dimension-line:nth-child(3) { --draw-order: 1; }
   .landing-step-drawing .dimension-line:nth-child(4) { --draw-order: 2; }
@@ -9,6 +22,15 @@
   }
   .landing-steps li:nth-child(2) { --draw-delay: 85ms; }
   .landing-steps li:nth-child(3) { --draw-delay: 145ms; }
+  .landing-tutorials-grid > :nth-child(2) { --draw-delay: 50ms; }
+  .landing-footer-grid > :nth-child(2) { --draw-delay: 35ms; }
+  .landing-footer-grid > :nth-child(3) { --draw-delay: 70ms; }
+  .landing-footer-grid > :nth-child(4) { --draw-delay: 105ms; }
+  @media (min-width: 1131px) {
+    .landing-plan-carousel > :nth-child(2) { --draw-delay: 40ms; }
+    .landing-plan-carousel > :nth-child(3) { --draw-delay: 80ms; }
+    .landing-plan-carousel > :nth-child(4) { --draw-delay: 120ms; }
+  }
 
   [data-landing-reveal-state="pending"] :is(.dimension-line, .landing-step-arrow path) {
     stroke-dasharray: 1 2;
@@ -42,10 +64,6 @@
       animation-range: exit 0% exit 82%;
     }
   }
-
-  .landing-tutorials [data-landing-reveal-state="pending"] { opacity: .4; transform: translateY(22px); }
-  .landing-tutorials [data-landing-reveal-state="visible"] { animation: tutorial-reveal 570ms var(--landing-ease) both; }
-  .landing-tutorials-grid > :nth-child(2)[data-landing-reveal-state="visible"] { animation-delay: 60ms; }
 
   .landing-questions details[open] > p { animation: landing-answer 220ms var(--landing-ease) both; }
   .landing-questions details:has(:focus-visible) > p { animation: none; }
@@ -89,8 +107,8 @@
     .landing-nav a:hover:not(:focus-visible) { text-decoration: none; }
     .landing-nav a:hover:not(:focus-visible)::after { opacity: 1; transform: scaleX(1); }
 
-    .landing-tutorials-grid > div { transition: translate 220ms var(--landing-ease); }
-    .landing-tutorials-grid > div:hover { translate: 0 -5px; }
+    .landing-tutorials-grid > div { transition: translate 150ms var(--rex-settle); }
+    .landing-tutorials-grid > div:hover { translate: 0 -3px; }
 
     .landing :is(.btn, .icon-button, .text-link, .landing-footer a) > svg {
       transition: translate 185ms var(--landing-ease);
@@ -103,7 +121,8 @@
   }
 }
 
-@keyframes tutorial-reveal { from { opacity: .4; transform: translateY(22px); } }
+@keyframes marketing-arrival { from { opacity: .84; transform: translateY(6px); } }
+@keyframes marketing-fade { from { opacity: .84; } }
 @keyframes landing-blend-spread { to { transform: scaleY(1.23); } }
 @keyframes landing-answer { from { opacity: .75; transform: translateY(-3px); } }
 @keyframes report-icon-in { from { opacity: .5; transform: scale(.86); } }
