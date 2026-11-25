@@ -163,7 +163,7 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--action); }
 .workspace-context-link, .workspace-companies-link { display: inline-flex; align-items: center; gap: 7px; min-height: 44px; font-size: 14px; font-weight: 520; }
 .workspace-companies-link:hover, .workspace-context-link:hover { text-decoration: underline; text-underline-offset: 4px; }
 .workspace-switch-error { padding: 0 0 8px; }
-.workspace-drawer:not([open]) { display: none; }
+.workspace-drawer:not([open]), .quick-review-dialog:not([open]) { display: none; }
 .workspace-drawer {
   border: 0;
   margin: 0;
@@ -384,6 +384,10 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--action); }
 .file-control:hover, .file-control[data-selected="true"] { border-color: var(--ink); background: var(--wash); }
 .file-control[data-disabled="true"] { opacity: .68; }
 .file-control-icon { display: grid; width: 40px; height: 40px; flex: 0 0 40px; place-items: center; border-radius: 8px; background: var(--surface); border: 1px solid var(--line); }
+.file-control-icon > svg { grid-area: 1 / 1; transition: opacity 120ms var(--rex-settle); }
+.file-control-icon-selected, .file-control[data-selected="true"] .file-control-icon-empty { opacity: 0; }
+.file-control[data-selected="true"] .file-control-icon-selected { opacity: 1; }
+.file-control:has(:focus-visible) .file-control-icon > svg { transition: none; }
 .file-control-copy { min-width: 0; line-height: 1.35; overflow-wrap: anywhere; }
 .file-control-copy strong, .file-control-copy span { display: block; }
 .file-control-copy span { margin-top: 4px; color: var(--muted); font-size: 13px; }
@@ -416,9 +420,7 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--action); }
     transition: opacity 125ms var(--rex-settle), scale 125ms var(--rex-settle);
   }
   .workspace-nav-link.is-current::after { scale: 1; }
-  .workspace-navigation:focus-within .workspace-nav-link::after { transition: none; }
-  .file-control:not(:focus-within) .file-control-icon { transition: scale 150ms var(--rex-settle); }
-  .file-control[data-selected="true"]:not(:focus-within) .file-control-icon { scale: 1.04; }
+  .workspace-navigation:has(:focus-visible) .workspace-nav-link::after { transition: none; }
   @media (hover: hover) and (pointer: fine) {
     :is(.overview-shortcut, .workspace-companies-link, .entry-layout .page-back, .legal-masthead .text-link) > svg:last-child {
       transition: translate 125ms var(--rex-settle);
@@ -470,14 +472,15 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--action); }
   }
   @media (prefers-reduced-motion: no-preference) {
     .workspace-drawer, .workspace-drawer::backdrop {
-      --overlay-time: 250ms;
+      --overlay-time: 180ms;
       --overlay-ease: var(--rex-drawer);
     }
+    .workspace-drawer[open], .workspace-drawer[open]::backdrop { --overlay-time: 250ms; }
     .workspace-drawer {
       &:not([open]) { opacity: 1; transform: translateX(-100%); }
       &[open] { @starting-style { opacity: 1; transform: translateX(-100%); } }
     }
-    .quick-review-dialog, .quick-review-dialog::backdrop { --overlay-time: 200ms; }
+    .quick-review-dialog[open], .quick-review-dialog[open]::backdrop { --overlay-time: 200ms; }
     .quick-review-dialog {
       &:not([open]) { transform: scale(.97); }
       &[open] { @starting-style { transform: scale(.97); } }

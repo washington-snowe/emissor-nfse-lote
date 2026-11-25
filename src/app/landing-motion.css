@@ -6,7 +6,7 @@
   .landing-hero-copy > .landing-actions { animation-delay: 90ms; }
   .landing-hero-copy > .landing-actions:focus-within { animation: none; }
 
-  .landing [data-landing-reveal-state="visible"]:not(:focus-within):is([data-landing-reveal="heading"], [data-landing-reveal="panel"], .landing-steps > li, .landing-tutorials-grid > div) {
+  .landing [data-landing-reveal-state="visible"]:not(:focus-within, .landing-report-preview):is([data-landing-reveal="heading"], [data-landing-reveal="panel"], .landing-steps > li, .landing-tutorials-grid > div) {
     animation: marketing-arrival 250ms var(--draw-delay) var(--rex-settle) both;
   }
   .landing [data-landing-reveal-state="visible"]:not(:focus-within):is([data-landing-reveal="row"], .billing-plan) {
@@ -53,18 +53,18 @@
   }
   [data-landing-reveal-state]:focus-within .landing-ink-word path { stroke-dashoffset: 0; animation: none; }
 
-  .landing-report-preview[data-landing-reveal-state="visible"] .landing-report-summary > p svg {
-    animation: report-icon-in 420ms var(--rex-settle) both;
+  .landing-report-preview[data-landing-reveal-state="visible"]:not(:focus-within) .landing-report-body::before {
+    animation: report-transfer 560ms var(--rex-trace) both;
   }
-  @supports (animation-timeline: view()) {
-    .landing-hero { view-timeline: --rex-hero block; }
-    .landing-hero::after {
-      animation: landing-blend-spread linear both;
-      animation-timeline: --rex-hero;
-      animation-range: exit 0% exit 82%;
-    }
+  .landing-report-preview[data-landing-reveal-state="visible"]:not(:focus-within) .landing-report-detail tbody tr {
+    animation: report-line-resolve 240ms var(--row-arrival, 200ms) var(--rex-settle) both;
   }
-
+  .landing-report-detail tbody tr:nth-child(2) { --row-arrival: 240ms; }
+  .landing-report-detail tbody tr:nth-child(3) { --row-arrival: 280ms; }
+  .landing-report-detail tbody tr:nth-child(n+4) { --row-arrival: 320ms; }
+  @media (max-width: 720px) {
+    .landing-report-preview[data-landing-reveal-state="visible"]:not(:focus-within) .landing-report-body::before { animation-name: report-transfer-vertical; }
+  }
   .landing-questions details[open] > p { animation: landing-answer 220ms var(--landing-ease) both; }
   .landing-questions details:has(:focus-visible) > p { animation: none; }
   @supports (interpolate-size: allow-keywords) and selector(::details-content) {
@@ -107,8 +107,8 @@
     .landing-nav a:hover:not(:focus-visible) { text-decoration: none; }
     .landing-nav a:hover:not(:focus-visible)::after { opacity: 1; transform: scaleX(1); }
 
-    .landing-tutorials-grid > div { transition: translate 150ms var(--rex-settle); }
-    .landing-tutorials-grid > div:hover { translate: 0 -3px; }
+    .landing-tutorials-grid > div > h3 { transition: translate 150ms var(--rex-settle); }
+    .landing-tutorials-grid > div:hover > h3 { translate: 0 -2px; }
 
     .landing :is(.btn, .icon-button, .text-link, .landing-footer a) > svg {
       transition: translate 185ms var(--landing-ease);
@@ -123,6 +123,15 @@
 
 @keyframes marketing-arrival { from { opacity: .84; transform: translateY(6px); } }
 @keyframes marketing-fade { from { opacity: .84; } }
-@keyframes landing-blend-spread { to { transform: scaleY(1.23); } }
 @keyframes landing-answer { from { opacity: .75; transform: translateY(-3px); } }
-@keyframes report-icon-in { from { opacity: .5; transform: scale(.86); } }
+@keyframes report-transfer {
+  from { opacity: 0; transform: scaleX(0); }
+  55% { opacity: 1; }
+  to { opacity: 0; transform: scaleX(1); }
+}
+@keyframes report-transfer-vertical {
+  from { opacity: 0; transform: scaleY(0); }
+  55% { opacity: 1; }
+  to { opacity: 0; transform: scaleY(1); }
+}
+@keyframes report-line-resolve { from { opacity: .66; } }

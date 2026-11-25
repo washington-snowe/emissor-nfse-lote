@@ -676,8 +676,8 @@ strong {
 .quick-review-launch { display: flex; align-items: center; justify-content: space-between; gap: 24px; overflow-wrap: anywhere; }
 .quick-review-launch > div { min-width: 0; }
 .quick-review-launch > .btn { flex-shrink: 0; }
-.quick-review-dialog { width: min(1000px,calc(100vw - 32px)); max-width: none; max-height: calc(100dvh - 32px); margin: auto; padding: 0; border: 1px solid var(--line); border-radius: 16px; background: #fff; color: var(--ink); font: inherit; overflow: hidden; box-shadow: 0 24px 90px #15231633; }
-.quick-review-dialog[open] { display: flex; flex-direction: column; }
+.quick-review-dialog { width: min(1000px,calc(100vw - 32px)); max-width: none; max-height: calc(100dvh - 32px); margin: auto; padding: 0; border: 1px solid var(--line); border-radius: 16px; background: #fff; color: var(--ink); font: inherit; overflow: hidden; box-shadow: 0 24px 90px #15231633; flex-direction: column; }
+.quick-review-dialog[open] { display: flex; }
 .quick-review-dialog::backdrop { background: #14211699; }
 .quick-review-dialog-header { display: flex; flex-shrink: 0; align-items: flex-start; justify-content: space-between; gap: 16px; padding: 24px 28px 20px; border-bottom: 1px solid var(--line); }
 .quick-review-dialog-header h2 { margin: 8px 0 0; }

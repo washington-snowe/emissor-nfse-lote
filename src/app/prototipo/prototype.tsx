@@ -82,8 +82,12 @@ export function Prototype({ initial }: { initial: Screen }) {
     return () => window.removeEventListener("popstate", onPop);
   }, []);
   useEffect(() => {
-    if (screen === "revisar") dialog.current?.showModal();
-    else if (screen !== initial) heading.current?.focus({ preventScroll: true });
+    if (screen === "revisar") {
+      if (dialog.current && !dialog.current.open) dialog.current.showModal();
+    } else {
+      if (dialog.current?.open) dialog.current.close();
+      if (screen !== initial) heading.current?.focus({ preventScroll: true });
+    }
   }, [screen, initial]);
 
   const next = (to: Screen, label: string, primary = false) => <Go to={to} navigate={go} primary={primary}>{label}</Go>;
@@ -93,7 +97,8 @@ export function Prototype({ initial }: { initial: Screen }) {
     { label: "Competência", value: demoReport.competence, Icon: FileSpreadsheet },
     { label: "Total do lote", value: money(demoReportTotal), Icon: Ticket },
   ]} />;
-  const info = screens[screen];
+  const baseScreen = screen === "revisar" ? "importar" : screen;
+  const info = screens[baseScreen];
   let content: ReactNode;
   switch (screen) {
     case "inicio":
@@ -118,16 +123,18 @@ export function Prototype({ initial }: { initial: Screen }) {
           {next("revisar", "Usar relatório de exemplo", true)}</div>
         <div className="rex-demo-actions">{next("historico", "Ver importações salvas")}</div>
       </section>
-      {screen === "revisar" && <dialog ref={dialog} className="quick-review-dialog" onCancel={(event) => { event.preventDefault(); go("importar"); }} aria-labelledby="demo-review-heading">
+      <dialog ref={dialog} className="quick-review-dialog" onClose={() => {
+        if (screen === "revisar") go("importar");
+      }} aria-labelledby="demo-review-heading">
         <div className="quick-review-dialog-header"><div><span className="rex-label">Revisão do lote</span><h2 id="demo-review-heading">Revise e emita seu lote.</h2></div>
-          <button className="btn btn--secondary" type="button" aria-label="Fechar revisão" onClick={() => go("importar")} data-prototype-target="importar"><X size={18} /></button>
+          <button className="btn btn--secondary" type="button" aria-label="Fechar revisão" onClick={() => dialog.current?.close()} data-prototype-target="importar"><X size={18} /></button>
         </div>
         <div className="quick-review-dialog-body">{summary}<div className="rex-demo-review-info"><strong>{demoReport.recipient}</strong><p>Comissões de afiliado Shopee · Uma nota por linha do relatório</p></div><NoteRows navigate={go} /></div>
         <div className="quick-review-confirm">
           <label className="fiscal-checkbox"><input type="checkbox" checked={reviewed} onChange={(event) => setReviewed(event.target.checked)} /> Revisei os valores, o tomador e a competência.</label>
           <button type="button" className="btn btn--primary" disabled={!reviewed} onClick={() => go("lote")} data-prototype-target="lote">Confirmar lote de exemplo <ArrowRight size={17} /></button>
         </div>
-      </dialog>}</>; break;
+      </dialog></>; break;
     case "lote":
     case "notas":
       content = <>{screen === "lote" && summary}<section className="rex-surface"><h2>{screen === "lote" ? "Notas do lote" : "Emissões recentes"}</h2><NoteRows navigate={go} /></section></>; break;
@@ -218,7 +225,7 @@ export function Prototype({ initial }: { initial: Screen }) {
   }
 
   const demoNavigation = <nav aria-label="Telas do protótipo" className="workspace-navigation workspace-nav-scroll">
-        {navigation.map(([id, label, Icon]) => <a key={id} href={prototypeHref(id)} data-prototype-target={id} className={`workspace-nav-link${screen === id ? " is-current" : ""}`} aria-current={screen === id ? "page" : undefined} onClick={(event) => { event.preventDefault(); go(id); }}><Icon size={18} aria-hidden="true" />{label}</a>)}
+        {navigation.map(([id, label, Icon]) => <a key={id} href={prototypeHref(id)} data-prototype-target={id} className={`workspace-nav-link${baseScreen === id ? " is-current" : ""}`} aria-current={baseScreen === id ? "page" : undefined} onClick={(event) => { event.preventDefault(); go(id); }}><Icon size={18} aria-hidden="true" />{label}</a>)}
       </nav>;
   return <div className="workspace-shell workspace-experience rex-demo" data-prototype-screen={screen}>
     <aside className="workspace-sidebar rex-demo-nav">
@@ -238,11 +245,11 @@ export function Prototype({ initial }: { initial: Screen }) {
     <main id="conteudo" className="dashboard-main">
       <header className="workspace-bar"><div className="workspace-bar-inner rex-demo-top"><button type="button" ref={menuButton} className="icon-button workspace-menu-button" onClick={() => menu.current?.showModal()} aria-haspopup="dialog" aria-label="Menu do protótipo" data-prototype-target="menu"><Menu size={18} /></button>
         <span>Protótipo · dados fictícios</span>
-        <label className="rex-demo-select"><span className="sr-only">Ir para tela</span><select value={screen} onChange={(event) => go(event.target.value as Screen)}>
+        <label className="rex-demo-select"><span className="sr-only">Ir para tela</span><select value={baseScreen} onChange={(event) => go(event.target.value as Screen)}>
           {[...new Set(Object.values(screens).map(({ group }) => group))].map((group) => <optgroup key={group} label={group}>{(Object.keys(screens) as Screen[]).filter((id) => screens[id].group === group).map((id) => <option key={id} value={id}>{screens[id].title}</option>)}</optgroup>)}
         </select><ChevronDown size={15} aria-hidden="true" /></label>
       </div></header>
-      <div className="dashboard-content rex-demo-content rex-admin" key={screen}>
+      <div className="dashboard-content rex-demo-content rex-admin" key={baseScreen}>
         <header className="page-header"><h1 tabIndex={-1} ref={heading}>{info.title}</h1><p>{info.description}</p></header>
         {feedback && <p className="rex-admin-result" role="status">{feedback}</p>}
         {content}
