@@ -4,6 +4,7 @@ import { useActionState, useState } from "react";
 import { cadenceLabels, MINIMUM_USAGE_CHARGE_CENTS, plans, money, planPrice, upgradeEligible, type Cadence, type StoredCadence } from "@/lib/billing/catalog";
 import { openBilling } from "@/app/painel/conta/assinatura/actions";
 import { PlanCard, PlanIntervalToggle } from "@/components/plan-card";
+import type { PlanSelection } from "@/lib/billing/plan-selection";
 
 function BillingButton({ plan, cadence, request, ready, manage = false, label }: {
   plan?: string; cadence?: Cadence; request: string; ready: boolean; manage?: boolean; label?: string;
@@ -20,26 +21,28 @@ function BillingButton({ plan, cadence, request, ready, manage = false, label }:
   </form>;
 }
 
-export function SubscriptionPlans({ ready, request, currentPlan, currentCadence, currentStatus }: {
-  ready: boolean; request: string; currentPlan?: string; currentCadence?: StoredCadence; currentStatus?: string;
+export function SubscriptionPlans({ ready, request, currentPlan, currentCadence, currentStatus, selection }: {
+  ready: boolean; request: string; currentPlan?: string; currentCadence?: StoredCadence; currentStatus?: string; selection?: PlanSelection;
 }) {
-  const [annual, setAnnual] = useState(true);
+  const [annual, setAnnual] = useState(selection ? selection.cadence === "annual" : true);
   const cadence: Cadence = annual ? "annual" : "monthly";
   const current = plans.find(plan => plan.code === currentPlan);
   const sameCycle = !currentCadence || currentCadence === cadence;
+  const intendedPlan = selection?.cadence === cadence ? selection.plan : undefined;
   return <section className="account-section plans-section" aria-labelledby="plans-title">
     <div className="split-intro">
       <div><h2 id="plans-title">Escolher plano</h2><p>CNPJs sem limite. A franquia de notas é mensal.</p></div>
       <PlanIntervalToggle annual={annual} onChange={setAnnual} />
     </div>
+    {intendedPlan && <p className="field-hint">Você selecionou <strong>{intendedPlan.name} · {cadenceLabels[cadence]}</strong>. Confira a opção antes de continuar.</p>}
     {currentCadence && !sameCycle && <p className="field-hint">Para subir de plano, selecione a frequência da assinatura atual ({cadenceLabels[currentCadence]}).</p>}
     <div className="billing-plan-grid">{plans.map(plan => {
       const selected = currentPlan === plan.code && sameCycle;
       const canUpgrade = currentStatus === "active" && current && sameCycle &&
         upgradeEligible({ cadence, unitCents: planPrice(current, cadence) }, plan, cadence);
-      return <PlanCard key={plan.code} plan={plan} cadence={cadence} action={
+      return <PlanCard key={plan.code} plan={plan} cadence={cadence} recommended={intendedPlan ? intendedPlan.code === plan.code : undefined} showBadge={!intendedPlan} action={
         <BillingButton plan={plan.code} cadence={cadence} request={request}
-          ready={ready && (!currentPlan || Boolean(canUpgrade))} label={selected ? "Plano atual" : currentPlan ? "Subir de plano" : undefined} />
+          ready={ready && (!currentPlan || Boolean(canUpgrade))} label={selected ? "Plano atual" : currentPlan ? "Subir de plano" : intendedPlan?.code === plan.code ? "Continuar com este plano" : undefined} />
       } />;
     })}</div>
     <details className="inline-disclosure">

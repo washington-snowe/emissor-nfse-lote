@@ -5,8 +5,9 @@ import { useActionState, useEffect, useState } from "react";
 import { ArrowRight, Eye, EyeOff, LoaderCircle } from "lucide-react";
 import { signIn, signUp } from "@/app/auth/actions";
 import type { AuthState } from "@/lib/auth-validation";
+import { planSelectionHref, type PlanSelection } from "@/lib/billing/plan-selection";
 
-export function AuthForm({ signup = false, referral }: { signup?: boolean; referral?: string }) {
+export function AuthForm({ signup = false, referral, selection }: { signup?: boolean; referral?: string; selection?: PlanSelection }) {
   const [state, action, pending] = useActionState<AuthState, FormData>(
     signup ? signUp : signIn,
     {},
@@ -24,6 +25,10 @@ export function AuthForm({ signup = false, referral }: { signup?: boolean; refer
   return (
     <form action={action} className="auth-form" onSubmit={() => setVisible(false)}>
       {signup && referral && <input type="hidden" name="referral" value={referral} />}
+      {selection && <>
+        <input type="hidden" name="plano" value={selection.plan.code} />
+        <input type="hidden" name="ciclo" value={selection.cadence} />
+      </>}
       <div className="field">
         <label htmlFor="email">E-mail</label>
         <input
@@ -98,7 +103,7 @@ export function AuthForm({ signup = false, referral }: { signup?: boolean; refer
       </p>
       <p className="auth-switch">
         {signup ? "Já tem uma conta?" : "Primeiro acesso?"}{" "}
-        <Link className="text-link" href={signup ? "/entrar" : "/criar-conta"}>
+        <Link className="text-link" href={planSelectionHref(signup ? "/entrar" : "/criar-conta", selection)}>
           {signup ? "Entrar na conta" : "Criar minha conta"}
         </Link>
       </p>

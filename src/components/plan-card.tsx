@@ -25,11 +25,8 @@ export function PlanCard({ plan, cadence, action, showBadge = true, recommended,
       {featured && showBadge && <span className="billing-plan-badge">Mais Escolhido</span>}
     </div>
     <div className="plan-card-price">
-      {landing && annual && <div className="landing-plan-discount">
-        <del>{money(plan.monthlyCents)}</del><span className="landing-discount-tag">−20%</span>
-      </div>}
       <p className="billing-plan-price"><strong>{money(annual ? Math.round(price / 12) : price)}</strong><span>/mês</span></p>
-      {annual && <p className="billing-plan-cycle">Cobrança anual de {money(price)}</p>}
+      {annual && <p className="billing-plan-cycle"><strong>{money(price)}</strong> cobrados por ano</p>}
       {landing && annual && <p className="landing-plan-savings"><span className="landing-discount-tag">Economize {money(plan.monthlyCents * 12 - price)} por ano</span></p>}
     </div>
     {landing && callToAction}

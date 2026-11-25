@@ -1672,7 +1672,7 @@ strong {
 .billing-plan .billing-plan-price { margin-block: auto 3px; padding-top: 12px; white-space: nowrap; }
 .billing-plan-price strong { font-size: 24px; }
 .billing-plan-price span { margin-left: 3px; color: var(--muted); }
-.billing-plan-cycle { color: var(--muted); font-size: 13px; }
+.billing-plan-cycle { color: var(--ink); font-size: 15px; line-height: 1.35; }
 .billing-plan form { margin-top: 10px; }
 .billing-plan .btn { width: 100%; white-space: normal; }
 

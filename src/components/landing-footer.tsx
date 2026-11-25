@@ -10,7 +10,7 @@ export function LandingFooter() {
     <div className="wrap landing-footer-grid">
       <div className="landing-footer-about" data-landing-reveal="row">
         <Brand inverse />
-        <p>Emissão de NFS-e em lote para afiliados da Shopee, a partir do relatório mensal de comissões.</p>
+        <p>Emissão de NFS-e em lote para afiliados da Shopee.</p>
       </div>
       <nav className="landing-footer-navigation" aria-label="Navegação do rodapé" data-landing-reveal="row">
         <h2>Navegação</h2>
@@ -30,6 +30,6 @@ export function LandingFooter() {
         <Link href="/politica-de-privacidade">Política de privacidade</Link>
       </nav>
     </div>
-    <div className="wrap landing-footer-bottom">© Rex Notas</div>
+    <div className="wrap landing-footer-bottom">© RexNotas</div>
   </footer>;
 }

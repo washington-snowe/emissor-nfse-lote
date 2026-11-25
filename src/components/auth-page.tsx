@@ -3,9 +3,11 @@ import Image from "next/image";
 import { ArrowLeft, ArrowRight, ShieldCheck } from "lucide-react";
 import { Brand } from "@/components/brand";
 import { AuthForm } from "@/components/auth-form";
+import { cadenceLabels, money, planPrice } from "@/lib/billing/catalog";
+import type { PlanSelection } from "@/lib/billing/plan-selection";
 
-export function AuthPage({ signup, ready, confirmationError = false, referral }: {
-  signup: boolean; referral?: string; ready: boolean; confirmationError?: boolean;
+export function AuthPage({ signup, ready, confirmationError = false, referral, selection }: {
+  signup: boolean; referral?: string; ready: boolean; confirmationError?: boolean; selection?: PlanSelection;
 }) {
   return <div className="entry-layout">
     <header className="site-masthead"><div className="site-width site-masthead-inner">
@@ -19,8 +21,13 @@ export function AuthPage({ signup, ready, confirmationError = false, referral }:
           {signup && <p>Use seu e-mail para criar a conta que vai emitir suas notas.</p>}
           {!signup && <p>Acesse seu painel de emissão.</p>}
         </div>
+        {selection && <div className="entry-plan">
+          <p><strong>{selection.plan.name}</strong> · {cadenceLabels[selection.cadence]}</p>
+          <p>{money(planPrice(selection.plan, selection.cadence))} por {selection.cadence === "annual" ? "ano" : "mês"}. Você confirma a contratação na próxima etapa.</p>
+          <Link className="text-link" href="/#planos">Alterar plano</Link>
+        </div>}
         {confirmationError && <p className="field-error" role="alert">Não foi possível confirmar o acesso. Abra o link mais recente no navegador em que você fez o cadastro.</p>}
-        {ready ? <AuthForm signup={signup} referral={referral} /> : <div role="status" className="save-notice">
+        {ready ? <AuthForm signup={signup} referral={referral} selection={selection} /> : <div role="status" className="save-notice">
           <strong>Acesso em preparação</strong><p>O cadastro e o login estão indisponíveis. Tente mais tarde.</p>
         </div>}
       </section>

@@ -7,6 +7,7 @@ import { redirect } from "next/navigation";
 import { createSupabaseClient } from "@/lib/supabase/server";
 import { getSiteOrigin } from "@/lib/config";
 import { validateCredentials, type AuthState } from "@/lib/auth-validation";
+import { planSelectionCookie, planSelectionHref, readPlanSelection } from "@/lib/billing/plan-selection";
 
 export async function signIn(
   _previous: AuthState,
@@ -38,7 +39,8 @@ export async function signIn(
         "O serviço de acesso está indisponível. Tente novamente mais tarde.",
     };
   }
-  redirect("/painel");
+  const selection = readPlanSelection(form.get("plano"), form.get("ciclo"));
+  redirect(selection ? planSelectionHref("/painel/conta/assinatura", selection) : "/painel");
 }
 
 export async function signUp(
@@ -52,6 +54,7 @@ export async function signUp(
   );
   if (!input.valid)
     return { fields: input.fields, error: "Confira os campos indicados." };
+  const selection = readPlanSelection(form.get("plano"), form.get("ciclo"));
   try {
     const supabase = await createSupabaseClient();
     const origin = getSiteOrigin(process.env);
@@ -76,18 +79,28 @@ export async function signUp(
           "Não foi possível concluir o cadastro. Tente novamente mais tarde.",
       };
     if (data.session) await completeReferral();
-    if (!data.session)
+    if (!data.session) {
+      const store = await cookies();
+      const value = selection ? new URLSearchParams({ plano: selection.plan.code, ciclo: selection.cadence }).toString() : "";
+      store.set(planSelectionCookie, value, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+        path: "/auth/callback",
+        maxAge: selection ? 86400 : 0,
+      });
       return {
         success:
           "Se o cadastro estiver disponível para este e-mail, você receberá as instruções para confirmar o acesso.",
       };
+    }
   } catch {
     return {
       error:
         "O serviço de cadastro está indisponível. Tente novamente mais tarde.",
     };
   }
-  redirect("/painel");
+  redirect(selection ? planSelectionHref("/painel/conta/assinatura", selection) : "/painel");
 }
 
 export async function signOut() {

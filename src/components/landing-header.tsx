@@ -7,6 +7,7 @@ import { Brand } from "@/components/brand";
 
 const sections = [
   { href: "#como-funciona", label: "Como funciona" },
+  { href: "#consultar-cnpj", label: "Consultar CNPJ" },
   { href: "#planos", label: "Preços" },
   { href: "#simulador", label: "Simulador" },
 ];

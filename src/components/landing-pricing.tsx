@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { ArrowLeft, ArrowRight, Upload } from "lucide-react";
 import { plans } from "@/lib/billing/catalog";
+import { planSelectionHref } from "@/lib/billing/plan-selection";
 import { formatFiscalBrl } from "@/lib/nfse/status";
 import { PlanCard } from "@/components/plan-card";
 import { LandingTutorials } from "@/components/landing-tutorials";
@@ -13,6 +14,11 @@ const largestPlan = plans[plans.length - 1];
 const maximumVolume = largestPlan.includedNotes;
 const maxCsvBytes = 512 * 1024;
 const number = new Intl.NumberFormat("pt-BR");
+
+function cardStep(viewport: HTMLDivElement) {
+  const gap = Number.parseFloat(getComputedStyle(viewport).columnGap) || 0;
+  return (viewport.firstElementChild?.getBoundingClientRect().width ?? 0) + gap;
+}
 
 function recommendedPlan(volume: number) {
   return plans.find(plan => volume <= plan.includedNotes) ?? largestPlan;
@@ -26,9 +32,10 @@ type Estimate =
 export function LandingPricing() {
   const [annual, setAnnual] = useState(true);
   const [volume, setVolume] = useState<number>(plans[0].includedNotes);
+  const [draftVolume, setDraftVolume] = useState<string>();
   const [estimate, setEstimate] = useState<Estimate>({ state: "idle" });
   const [dragging, setDragging] = useState(false);
-  const [edges, setEdges] = useState({ atStart: true, atEnd: false });
+  const [visible, setVisible] = useState({ first: 1, last: 1 });
   const carousel = useRef<HTMLDivElement>(null);
   usePlanCarouselDrag(carousel);
   const reading = useRef(false);
@@ -40,11 +47,12 @@ export function LandingPricing() {
     const viewport = carousel.current;
     if (!viewport) return;
     const sync = () => {
-      const next = {
-        atStart: viewport.scrollLeft < 2,
-        atEnd: viewport.scrollLeft + viewport.clientWidth >= viewport.scrollWidth - 2,
-      };
-      setEdges(old => old.atStart === next.atStart && old.atEnd === next.atEnd ? old : next);
+      const width = cardStep(viewport);
+      if (width <= 0) return;
+      const first = 1 + Math.round(viewport.scrollLeft / width);
+      const atEnd = viewport.scrollLeft + viewport.clientWidth >= viewport.scrollWidth - 2;
+      const last = atEnd ? plans.length : Math.min(plans.length, first + Math.round(viewport.clientWidth / width) - 1);
+      setVisible(old => old.first === first && old.last === last ? old : { first, last });
     };
     const resize = new ResizeObserver(sync);
     resize.observe(viewport);
@@ -69,12 +77,18 @@ export function LandingPricing() {
 
   function step(direction: -1 | 1, behavior: ScrollBehavior) {
     const viewport = carousel.current;
-    const firstCard = viewport?.firstElementChild;
-    if (!viewport || !(firstCard instanceof HTMLElement)) return;
-    const gap = Number.parseFloat(getComputedStyle(viewport).columnGap) || 0;
-    const stepWidth = firstCard.offsetWidth + gap;
+    if (!viewport) return;
+    const stepWidth = cardStep(viewport);
+    if (stepWidth <= 0) return;
     const index = Math.round(viewport.scrollLeft / stepWidth);
     viewport.scrollTo({ left: (index + direction) * stepWidth, behavior });
+  }
+
+  function commitVolume(value: number) {
+    const next = Number.isFinite(value) ? Math.min(maximumVolume, Math.max(1, Math.round(value))) : volume;
+    setDraftVolume(undefined);
+    setVolume(next);
+    if (draftVolume !== undefined) revealRecommendation(next, "instant");
   }
 
   async function readReport(file: File | undefined) {
@@ -131,9 +145,23 @@ export function LandingPricing() {
           </fieldset>
         </div>
         <div className="landing-volume" data-landing-reveal="row">
-          <div><label htmlFor="landing-volume">Quantas notas você emite por mês?</label><span>{number.format(volume)}</span></div>
+          <div className="landing-volume-heading">
+            <label htmlFor="landing-volume-exact">Notas por mês</label>
+            <input id="landing-volume-exact" type="number" inputMode="numeric" min={1} max={maximumVolume} step={1}
+              value={draftVolume ?? volume}
+              onChange={event => {
+                const input = event.currentTarget;
+                setDraftVolume(input.value);
+                if (input.value && input.validity.valid) setVolume(input.valueAsNumber);
+              }}
+              onBlur={event => commitVolume(event.currentTarget.valueAsNumber)}
+              onKeyDown={event => {
+                if (event.key === "Enter") commitVolume(event.currentTarget.valueAsNumber);
+              }} />
+          </div>
           <input id="landing-volume" type="range" min={1} max={maximumVolume} value={volume}
-            aria-valuetext={`${number.format(volume)} notas por mês. Plano recomendado: ${recommended.name}`}
+            aria-label="Ajustar notas por mês"
+            aria-valuetext={`${number.format(volume)} notas por mês. Franquia sugerida: ${recommended.name}`}
             style={{ "--volume-progress": `${100 * (volume - 1) / (maximumVolume - 1)}%` } as CSSProperties}
             onChange={event => {
               const input = event.currentTarget;
@@ -143,7 +171,19 @@ export function LandingPricing() {
             onPointerUp={event => {
               if (event.isPrimary) revealRecommendation(event.currentTarget.valueAsNumber, "auto");
             }} />
-          <a href="#simulador" className="landing-volume-link text-link">Estimar pelo CSV <ArrowRight size={15} aria-hidden="true" /></a>
+          <div className="landing-volume-summary">
+            <p><strong>{recommended.name}</strong> é o primeiro plano que cobre {number.format(volume)} notas sem excedentes.</p>
+            <a href="#simulador" className="text-link">Estimar pelo CSV <ArrowRight size={15} aria-hidden="true" /></a>
+          </div>
+        </div>
+        <div className="landing-carousel-controls">
+          <span>{visible.first === visible.last ? visible.first : `${visible.first}–${visible.last}`} de {plans.length}</span>
+          <button type="button" className="icon-button" aria-label="Ver plano anterior" aria-controls="landing-plan-carousel" aria-disabled={visible.first === 1} onClick={event => {
+            if (visible.first > 1) step(-1, event.detail === 0 ? "instant" : "auto");
+          }}><ArrowLeft size={18} aria-hidden="true" /></button>
+          <button type="button" className="icon-button" aria-label="Ver próximo plano" aria-controls="landing-plan-carousel" aria-disabled={visible.last === plans.length} onClick={event => {
+            if (visible.last < plans.length) step(1, event.detail === 0 ? "instant" : "auto");
+          }}><ArrowRight size={18} aria-hidden="true" /></button>
         </div>
         <div id="landing-plan-carousel" className="landing-plan-carousel" ref={carousel} role="region" aria-label="Comparação dos planos"
           onKeyDown={event => {
@@ -155,13 +195,9 @@ export function LandingPricing() {
           }} tabIndex={0}>
           {plans.map(plan =>
             <PlanCard key={plan.code} plan={plan} cadence={cadence} variant="landing" showBadge={false} recommended={plan.code === recommended.code}
-              action={<Link href="/criar-conta" className="btn btn--primary" aria-label={`Começar agora — ${plan.name}`}>Começar agora <ArrowRight size={16} aria-hidden="true" /></Link>} />,
+              action={<Link href={planSelectionHref("/criar-conta", { plan, cadence })} className="btn btn--primary" aria-label={`Começar agora — ${plan.name}`}>Começar agora <ArrowRight size={16} aria-hidden="true" /></Link>} />,
           )}
         </div>
-        {!(edges.atStart && edges.atEnd) && <div className="landing-carousel-controls">
-          <button type="button" className="icon-button" aria-label="Ver plano anterior" aria-controls="landing-plan-carousel" disabled={edges.atStart} onClick={event => step(-1, event.detail === 0 ? "instant" : "auto")}><ArrowLeft size={18} aria-hidden="true" /></button>
-          <button type="button" className="icon-button" aria-label="Ver próximo plano" aria-controls="landing-plan-carousel" disabled={edges.atEnd} onClick={event => step(1, event.detail === 0 ? "instant" : "auto")}><ArrowRight size={18} aria-hidden="true" /></button>
-        </div>}
       </div>
     </section>
 
@@ -210,7 +246,7 @@ export function LandingPricing() {
               <dl className="landing-estimate-metrics">
                 <div><dt>Notas estimadas</dt><dd>{number.format(estimate.count)}</dd></div>
                 <div><dt>Total do relatório</dt><dd>{formatFiscalBrl(estimate.total)}</dd></div>
-                <div><dt>Plano recomendado</dt><dd className="landing-estimate-plan">{reportPlan?.name ?? "—"}</dd>
+                <div><dt>Franquia sugerida</dt><dd className="landing-estimate-plan">{reportPlan?.name ?? "—"}</dd>
                   {reportPlan && <dd className="landing-estimate-limit">Até {number.format(reportPlan.includedNotes)} notas por mês</dd>}
                 </div>
               </dl>

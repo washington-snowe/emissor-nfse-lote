@@ -58,6 +58,8 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--action); }
 .entry-panel { min-width: 0; align-self: center; max-width: 520px; width: 100%; margin-inline: auto; background: var(--surface); padding: clamp(24px, 3.6vw, 44px); border: 1px solid var(--line); border-radius: var(--r-lg); }
 .entry-panel h1, .page-header h1 { font-size: var(--section-title-size); font-weight: 580; letter-spacing: -.045em; line-height: 1.1; }
 .entry-panel h1 + p { color: var(--muted); margin-top: 8px; }
+.entry-plan { margin-top: 18px; padding: 12px 14px 4px; border: 1px solid var(--line); border-radius: var(--r-md); background: var(--wash); }
+.entry-plan p + p { color: var(--muted); font-size: 14px; }
 .entry-panel .auth-form { margin-top: 24px; }
 .entry-panel .auth-switch { margin-top: 12px; }
 .entry-art { min-height: 480px; display: grid; align-content: center; justify-items: center; gap: clamp(14px, 3vw, 32px); padding: var(--surface-padding); border: 1px solid var(--line); border-radius: var(--r-lg); background: var(--wash); }
