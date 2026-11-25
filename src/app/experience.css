@@ -658,3 +658,46 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--action); }
   .invoice-competence { grid-column: 2; grid-row: 2; text-align: end; color: var(--muted); font-size: 13px; }
   .invoice-list-summary .fiscal-status { grid-column: 1; grid-row: 2; }
 }
+
+.workspace-link-progress {
+  position: absolute;
+  inset-inline-end: 15px;
+  inline-size: 9px;
+  block-size: 9px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0;
+  pointer-events: none;
+}
+.workspace-link-progress[data-pending="true"] { opacity: .6; }
+
+@media (prefers-reduced-motion: no-preference) {
+  .workspace-link-progress {
+    transition: opacity 120ms ease;
+    transition-delay: 100ms;
+  }
+  .workspace-link-progress[data-pending="true"] { animation: nav-progress 850ms ease-in-out infinite alternate; }
+  .workspace-navigation :is(.workspace-nav-link, .workspace-nav-group > summary),
+  .workspace-account-actions :is(a, button),
+  .invoice-list-summary {
+    transition: background-color 160ms var(--rex-settle), color 160ms var(--rex-settle);
+  }
+  .workspace-nav-group > summary svg:last-child,
+  .invoice-amount svg {
+    transition: rotate 200ms var(--rex-settle);
+  }
+  .rex-workspace .dashboard-content > :is(.page-header, .overview-totals, .overview-recent, .fiscal-operation-list):not(:focus-within) {
+    transition: opacity 220ms var(--rex-settle), translate 220ms var(--rex-settle);
+    @starting-style { opacity: .65; translate: 0 5px; }
+  }
+  .field :is(input, select, textarea), .file-control {
+    transition: border-color 140ms var(--rex-settle), background-color 140ms var(--rex-settle);
+  }
+  @supports selector(::details-content) {
+    :is(.invoice-list-row, .workspace-nav-group)[open]:not(:has(:focus-visible))::details-content {
+      animation: nav-disclosure 175ms var(--rex-settle);
+    }
+  }
+}
+@keyframes nav-progress { from { scale: .55; } }
+@keyframes nav-disclosure { from { opacity: .62; } }

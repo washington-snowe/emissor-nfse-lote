@@ -1,4 +1,5 @@
 export const MAX_REPORT_ROWS = 10_000;
+export const MAX_SHOPEE_CSV_BYTES = 512 * 1024;
 
 type ReportSource = {
   platform: "shopee" | "tiktok_shop" | "mercado_livre";

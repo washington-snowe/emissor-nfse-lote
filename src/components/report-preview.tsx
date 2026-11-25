@@ -7,7 +7,8 @@ import { ReportResults } from "@/components/report-results";
 import { useEffect, useRef, useState } from "react";
 import {useRouter} from "next/navigation";
 import { FileSpreadsheet, LockKeyhole } from "lucide-react";
-import { MAX_SHOPEE_CSV_BYTES, parseShopeeSellerCsv } from "@/lib/shopee-seller-csv";
+import { MAX_SHOPEE_CSV_BYTES } from "@/lib/imports";
+import type { parseShopeeSellerCsv } from "@/lib/shopee-seller-csv";
 
 type Company = { id: string; legal_name: string; cnpj: string };
 type Preview = NonNullable<Awaited<ReturnType<typeof parseShopeeSellerCsv>>["data"]>;
@@ -83,7 +84,9 @@ export function ReportPreview({ companies, saveAction, initialCompanyId,automati
     }
     setPending(true);
     try {
-      const result = await parseShopeeSellerCsv(new Uint8Array(await source.arrayBuffer()));
+      const [parser, buffer] = await Promise.all([import("@/lib/shopee-seller-csv"), source.arrayBuffer()]);
+      if (generation.current !== current) return;
+      const result = await parser.parseShopeeSellerCsv(new Uint8Array(buffer));
       if (generation.current !== current) return;
       if (result.error) {
         const detail = result.error.record ? ` Registro ${result.error.record}${result.error.field ? `, campo “${result.error.field}”` : ""}.` : "";

@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { requireWorkspace } from "@/lib/tenancy-server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { processQueuedWork } from "@/lib/queue-runner";
-import { MAX_SHOPEE_CSV_BYTES } from "@/lib/shopee-seller-csv";
+import { MAX_SHOPEE_CSV_BYTES } from "@/lib/imports";
 
 export async function saveReport(form: FormData): Promise<{ id?: string; duplicate?: boolean; error?: string }> {
   const { client, context } = await requireWorkspace();

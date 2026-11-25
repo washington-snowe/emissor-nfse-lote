@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import Link, { useLinkStatus } from "next/link";
 import { useRef, useState, useTransition } from "react";
 import {
   ArrowRight, Building2, ChevronDown, CreditCard, FileStack, FileText, History, House,
@@ -30,6 +30,13 @@ const sections = [
   ] },
 ] as const;
 
+function NavigationStatus() {
+  const { pending } = useLinkStatus();
+  return <span className="workspace-link-progress" data-pending={pending} role="status">
+    {pending && <span className="sr-only">Carregando página…</span>}
+  </span>;
+}
+
 export function WorkspaceShell({ email, name, active = "overview", companies = [], companyId, canAdmin = false, compactSidebar = false, support, children }: {
   canAdmin?: boolean; email?: string; name?: string; active?: WorkspaceArea; companies?: NavigationCompany[]; companyId?: string;
   compactSidebar?: boolean; support?: { href: string; label: string }; children: React.ReactNode;
@@ -45,7 +52,7 @@ export function WorkspaceShell({ email, name, active = "overview", companies = [
     const current = active === area || (active === "emailTest" && area === "invoices");
     return <Link key={area} href={workspaceDestination(area, selected?.id)} prefetch={false}
       className={`workspace-nav-link${current ? " is-current" : ""}`} aria-current={current ? "page" : undefined}>
-      <Icon size={18} strokeWidth={1.8} aria-hidden="true" /><span>{label}</span>
+      <Icon size={18} strokeWidth={1.8} aria-hidden="true" /><span>{label}</span><NavigationStatus />
     </Link>;
   };
   const navigation = <nav aria-label="Navegação principal" className="workspace-navigation">

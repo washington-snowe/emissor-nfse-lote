@@ -41,13 +41,12 @@ try {
         "/bundle.js": [path.join(output, "bundle.js"), "text/javascript"],
         "/globals.css": [path.join(root, "src/app/globals.css"), "text/css"],
         "/experience.css": [path.join(root, "src/app/experience.css"), "text/css"],
-        "/motion.css": [path.join(root, "public/assets/motion/motion.css"), "text/css"],
         "/outfit.woff2": [path.join(root, "node_modules/@fontsource-variable/outfit/files/outfit-latin-wght-normal.woff2"), "font/woff2"],
         "/mono.woff2": [path.join(root, "node_modules/@fontsource/dm-mono/files/dm-mono-latin-400-normal.woff2"), "font/woff2"],
       };
       if (files[req.url]) { const [file, type] = files[req.url]; res.setHeader("Content-Type", type); res.end(await readFile(file)); return; }
       res.setHeader("Content-Type", "text/html; charset=utf-8");
-      res.end('<!doctype html><html lang="pt-BR"><head><meta name="viewport" content="width=device-width, initial-scale=1"><link rel="stylesheet" href="/globals.css"><link rel="stylesheet" href="/experience.css"><link rel="stylesheet" href="/motion.css"><style>@font-face{font-family:"Outfit Variable";src:url(/outfit.woff2) format("woff2");font-weight:100 900}@font-face{font-family:"DM Mono";src:url(/mono.woff2) format("woff2")}</style></head><body><div id="root"></div><script src="/bundle.js"></script></body></html>');
+      res.end('<!doctype html><html lang="pt-BR"><head><meta name="viewport" content="width=device-width, initial-scale=1"><link rel="stylesheet" href="/globals.css"><link rel="stylesheet" href="/experience.css"><style>@font-face{font-family:"Outfit Variable";src:url(/outfit.woff2) format("woff2");font-weight:100 900}@font-face{font-family:"DM Mono";src:url(/mono.woff2) format("woff2")}</style></head><body><div id="root"></div><script src="/bundle.js"></script></body></html>');
     } catch { res.statusCode = 500; res.end("Fixture unavailable"); }
   });
   await new Promise(resolve => server.listen(0, "127.0.0.1", resolve));

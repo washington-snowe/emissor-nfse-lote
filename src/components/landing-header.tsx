@@ -13,11 +13,20 @@ const sections = [
 ];
 
 function subscribe(onChange: () => void) {
-  window.addEventListener("scroll", onChange, { passive: true });
-  window.addEventListener("resize", onChange);
+  let frame = 0;
+  function schedule() {
+    if (frame) return;
+    frame = window.requestAnimationFrame(() => {
+      frame = 0;
+      onChange();
+    });
+  }
+  window.addEventListener("scroll", schedule, { passive: true });
+  window.addEventListener("resize", schedule);
   return () => {
-    window.removeEventListener("scroll", onChange);
-    window.removeEventListener("resize", onChange);
+    window.cancelAnimationFrame(frame);
+    window.removeEventListener("scroll", schedule);
+    window.removeEventListener("resize", schedule);
   };
 }
 

@@ -1,7 +1,7 @@
 import { parse } from "csv-parse/browser/esm/sync";
-import { canonicalAmount, MAX_REPORT_ROWS, reviewCommissionReport } from "./imports.ts";
+import { canonicalAmount, MAX_REPORT_ROWS, MAX_SHOPEE_CSV_BYTES, reviewCommissionReport } from "./imports.ts";
 
-export const MAX_SHOPEE_CSV_BYTES = 512 * 1024;
+export { MAX_SHOPEE_CSV_BYTES };
 export const SHOPEE_SELLER_HEADERS = [
   "Mês de conclusão", "Nome da loja", "ID da Loja", "Comissão Total do Vendedor",
   "CNPJ do Vendedor", "CPF do Vendedor", "Identificação Fiscal Estrangeira",
