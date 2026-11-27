@@ -2,6 +2,8 @@ import { useEffect, type RefObject } from "react";
 
 const dragThreshold = 10;
 const damping = 18;
+const edgeResistance = .22;
+const edgeLimit = 36;
 
 function nearestSnap(viewport: HTMLElement, position: number) {
   const start = viewport.firstElementChild?.getBoundingClientRect().left ?? 0;
@@ -20,24 +22,34 @@ export function usePlanCarouselDrag(ref: RefObject<HTMLDivElement | null>) {
     const listeners = new AbortController();
     const { signal } = listeners;
     const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
-    let press: { id: number; x: number; y: number; left: number; lastLeft: number; time: number; velocity: number } | undefined;
+    const cards = Array.from(viewport.children) as HTMLElement[];
+    let press: { id: number; x: number; y: number; left: number; limit: number; lastLeft: number; time: number; velocity: number } | undefined;
     let frame = 0;
     let ignoreClick = false;
+    let stretch = 0;
+
+    function moveEdge(next: number) {
+      if (stretch === next) return;
+      stretch = next;
+      cards.forEach(card => { card.style.translate = stretch === 0 ? "" : `${stretch}px 0px`; });
+    }
 
     function stop() {
       const pointer = press?.id;
       cancelAnimationFrame(frame);
       frame = 0;
       press = undefined;
+      moveEdge(0);
       delete viewport.dataset.carouselMotion;
       if (pointer !== undefined && viewport.hasPointerCapture(pointer)) viewport.releasePointerCapture(pointer);
     }
 
     function settle(velocity: number) {
       const from = viewport.scrollLeft;
+      const edge = stretch;
       // Project the release along the track before choosing a snap point.
-      const target = nearestSnap(viewport, from + velocity * .18);
-      if (reducedMotion.matches || Math.abs(target - from) < 1) {
+      const target = edge ? from : nearestSnap(viewport, from + velocity * .18);
+      if (reducedMotion.matches || (Math.abs(target - from) < 1 && Math.abs(edge) < 1)) {
         viewport.scrollLeft = target;
         stop();
         return;
@@ -50,12 +62,14 @@ export function usePlanCarouselDrag(ref: RefObject<HTMLDivElement | null>) {
       const tick = (now: number) => {
         const elapsed = (now - started) / 1000;
         const remaining = (offset + impulse * elapsed) * Math.exp(-damping * elapsed);
-        if (elapsed >= .42 || (elapsed >= .10 && Math.abs(remaining) < .75)) {
+        const edgeRemaining = edge * (1 + damping * elapsed) * Math.exp(-damping * elapsed);
+        if (elapsed >= .42 || (elapsed >= .10 && Math.max(Math.abs(remaining), Math.abs(edgeRemaining)) < .75)) {
           viewport.scrollLeft = target;
           stop();
           return;
         }
         viewport.scrollLeft = target + remaining;
+        moveEdge(edgeRemaining);
         frame = requestAnimationFrame(tick);
       };
       frame = requestAnimationFrame(tick);
@@ -67,7 +81,9 @@ export function usePlanCarouselDrag(ref: RefObject<HTMLDivElement | null>) {
 
     viewport.addEventListener("pointerdown", event => {
       ignoreClick = false;
-      if (event.pointerType !== "mouse" || event.button !== 0 || viewport.scrollWidth <= viewport.clientWidth + 1) {
+      if (!event.isPrimary || event.button !== 0) return;
+      const limit = viewport.scrollWidth - viewport.clientWidth;
+      if (limit <= 1) {
         stop();
         return;
       }
@@ -78,7 +94,7 @@ export function usePlanCarouselDrag(ref: RefObject<HTMLDivElement | null>) {
         frame = 0;
         viewport.dataset.carouselMotion = "held";
       }
-      press = { id: event.pointerId, x: event.clientX, y: event.clientY, left, lastLeft: left, time: event.timeStamp, velocity: 0 };
+      press = { id: event.pointerId, x: event.clientX, y: event.clientY, left: left - stretch / edgeResistance, limit, lastLeft: left, time: event.timeStamp, velocity: 0 };
     }, { signal });
 
     window.addEventListener("pointermove", event => {
@@ -94,7 +110,11 @@ export function usePlanCarouselDrag(ref: RefObject<HTMLDivElement | null>) {
       }
 
       event.preventDefault();
-      viewport.scrollLeft = press.left - distance;
+      const wanted = press.left - distance;
+      const bounded = Math.max(0, Math.min(press.limit, wanted));
+      viewport.scrollLeft = bounded;
+      const overflow = (bounded - wanted) * edgeResistance;
+      moveEdge(reducedMotion.matches ? 0 : Math.max(-edgeLimit, Math.min(edgeLimit, overflow)));
       const current = viewport.scrollLeft;
       const elapsed = event.timeStamp - press.time;
       if (elapsed >= 8) {
@@ -112,7 +132,9 @@ export function usePlanCarouselDrag(ref: RefObject<HTMLDivElement | null>) {
       if (viewport.dataset.carouselMotion) settle(event.timeStamp - release.time < 90 ? release.velocity : 0);
     }, { signal });
 
-    viewport.addEventListener("lostpointercapture", event => { if (press?.id === event.pointerId) stop(); }, { signal });
+    viewport.addEventListener("lostpointercapture", event => {
+      if (event.target === viewport && press?.id === event.pointerId) stop();
+    }, { signal });
 
     viewport.addEventListener("dragstart", event => { if (press) event.preventDefault(); }, { signal });
     viewport.addEventListener("click", event => {
@@ -123,7 +145,7 @@ export function usePlanCarouselDrag(ref: RefObject<HTMLDivElement | null>) {
     }, { capture: true, signal });
     viewport.addEventListener("wheel", stop, { passive: true, signal });
     window.addEventListener("keydown", stop, { signal });
-    window.addEventListener("pointercancel", stop, { signal });
+    window.addEventListener("pointercancel", event => { if (press?.id === event.pointerId) stop(); }, { signal });
     window.addEventListener("blur", stop, { signal });
     window.addEventListener("resize", stop, { signal });
 

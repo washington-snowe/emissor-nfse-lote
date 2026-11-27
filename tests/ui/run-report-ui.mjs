@@ -575,15 +575,17 @@ try {
     await page.goto(`${origin}/?screen=operations`);
     const uncertain = page.locator('.fiscal-operation').nth(1);
     await uncertain.locator('summary').click();
-    assert.equal(await uncertain.getByRole('button', { name: 'Consultar novamente' }).count(), 1);
+    const consultAgain = uncertain.getByRole('button', { name: 'Consultar novamente' });
+    await consultAgain.waitFor();
+    assert.equal(await consultAgain.count(), 1);
     assert.equal(await uncertain.getByRole('button', { name: 'Cancelar preparação' }).count(), 0);
     assert.equal(await uncertain.getByRole('button',{name:/diagnóstico|Conferir documento na SEFIN/i}).count(),0);
-    await uncertain.getByRole('button', { name: 'Consultar novamente' }).click();
+    await consultAgain.click();
     await uncertain.getByRole('status').filter({ hasText: 'Ação sintética resume' }).waitFor();
     const authorized=page.locator('.fiscal-operation').nth(2);
     await authorized.locator('summary').click();
     assert.equal(await authorized.getByRole('button').count(),0);
-    assert.ok(await authorized.getByRole('link',{name:'Baixar DANFS-e',exact:true}).isVisible());
+    await authorized.getByRole('link',{name:'Baixar DANFS-e',exact:true}).waitFor();
     // A denied click can race the worker's authorization. Keep real current-state errors,
     // clear old-state results on refresh, and never replay the action automatically.
     await page.evaluate(()=>{window.workflowUiTest.manageError=true;});

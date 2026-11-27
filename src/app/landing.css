@@ -22,8 +22,8 @@
   --landing-section-space: var(--rex-section-space);
   --landing-section-fade: clamp(28px, 4.4vw, 62px);
   --landing-next-surface: var(--surface);
-  --landing-ease: cubic-bezier(.23, 1, .32, 1);
-  --landing-move: cubic-bezier(.77, 0, .175, 1);
+  --landing-ease: var(--rex-settle);
+  --landing-move: var(--rex-move);
   --landing-glide: cubic-bezier(.32, .04, .28, 1);
   background: var(--surface);
   color: var(--ink);
@@ -113,7 +113,7 @@ html:has(.landing :focus-visible) { scroll-behavior: auto; }
     filter: none;
   }
   @media (prefers-reduced-motion: no-preference) {
-    .site-masthead.landing-header { transition: --masthead-tone 490ms var(--landing-glide); }
+    .site-masthead.landing-header { transition: --masthead-tone 340ms var(--landing-move); }
   }
 }
 .landing-header-inner { position: relative; container-type: inline-size; min-height: var(--landing-header-height); display: flex; justify-content: space-between; align-items: center; gap: 16px; }
@@ -127,13 +127,13 @@ html:has(.landing :focus-visible) { scroll-behavior: auto; }
   opacity: 0;
   visibility: hidden;
   transform: translateY(-4px);
-  transition: opacity 190ms var(--landing-glide), transform 270ms var(--landing-glide), visibility 0s 270ms;
+  transition: opacity 176ms var(--landing-ease), transform 176ms var(--landing-move), visibility 0s 176ms;
 }
 .landing-header[data-scrolled="true"] .landing-header-brand {
   opacity: 1;
   visibility: visible;
   transform: none;
-  transition-delay: 95ms, 95ms, 0s;
+  transition: opacity 220ms 65ms var(--landing-ease), transform 220ms 65ms var(--landing-ease);
 }
 .landing-nav {
   position: absolute;
@@ -146,7 +146,7 @@ html:has(.landing :focus-visible) { scroll-behavior: auto; }
   color: var(--masthead-text);
   font-size: 15px;
   transform: translateX(0);
-  transition: transform 340ms var(--landing-glide);
+  transition: transform 280ms var(--landing-move);
 }
 .landing-header[data-scrolled="true"] .landing-nav { transform: translateX(calc(50cqi - 50%)); }
 .landing-nav:focus-within { transition: none; }
@@ -154,10 +154,6 @@ html:has(.landing :focus-visible) { scroll-behavior: auto; }
 .landing-nav a:focus-visible { color: var(--masthead-control); text-decoration: underline; text-underline-offset: 6px; }
 .landing-menu-toggle, .landing-mobile-nav { display: none; }
 .landing-menu-toggle { padding: 0; background: var(--masthead-bg); color: var(--masthead-control); border-color: var(--masthead-line); }
-.landing-menu-toggle svg { grid-area: 1 / 1; pointer-events: none; }
-.landing-menu-toggle svg:last-child { opacity: 0; }
-.landing-header-inner:has(.landing-mobile-nav:popover-open) .landing-menu-toggle svg:first-child { opacity: 0; }
-.landing-header-inner:has(.landing-mobile-nav:popover-open) .landing-menu-toggle svg:last-child { opacity: 1; }
 .landing-mobile-nav {
   position: fixed;
   inset: calc(var(--landing-header-height) + 6px) var(--space-edge) auto auto;
@@ -344,8 +340,7 @@ html:has(.landing :focus-visible) { scroll-behavior: auto; }
   border-radius: calc(var(--r-btn) + var(--cadence-inset));
   background: #e6e6e6;
 }
-.landing-cadence::before {
-  content: "";
+.landing-cadence-indicator {
   position: absolute;
   inset: var(--cadence-inset) auto var(--cadence-inset) var(--cadence-inset);
   width: calc(50% - var(--cadence-inset) - 1px);
@@ -353,15 +348,16 @@ html:has(.landing :focus-visible) { scroll-behavior: auto; }
   background: var(--surface);
   border: 1px solid var(--edge);
   z-index: -1;
-  transition: transform 175ms var(--landing-move);
+  pointer-events: none;
+  transition: transform 200ms var(--landing-move);
 }
-.landing-cadence:has(label:last-child input:checked)::before { transform: translateX(calc(100% + 2px)); }
+.landing-cadence:has(label:last-child input:checked) .landing-cadence-indicator { transform: translateX(calc(100% + 2px)); }
 .landing-cadence label { position: relative; cursor: pointer; }
 .landing-cadence input { position: absolute; inset: 0; opacity: 0; width: 100%; height: 100%; margin: 0; cursor: inherit; }
 .landing-cadence label > span { display: flex; align-items: center; justify-content: center; gap: 7px; min-height: 47px; padding: 0 15px; border-radius: var(--r-btn); font-size: 15px; font-weight: 550; }
 .landing-cadence input:checked + span { font-weight: 620; }
 .landing-cadence input:focus-visible + span { outline: 2px solid var(--ink); outline-offset: 2px; }
-.landing-cadence:has(input:focus-visible)::before { transition: none; }
+.landing-cadence:has(input:focus-visible) .landing-cadence-indicator { transition: none; }
 .landing-discount-tag { display: inline-block; padding: 3px 7px; border-radius: 6px; font-size: 12px; font-weight: 600; line-height: 1.3; color: var(--landing-discount-ink); background: var(--landing-discount-wash); }
 .landing-volume { width: min(100%, 630px); margin: 0 auto clamp(12px, 2vw, 22px); }
 .landing-volume-heading { display: flex; align-items: center; justify-content: space-between; gap: 10px; font-weight: 550; }
@@ -398,7 +394,7 @@ html:has(.landing :focus-visible) { scroll-behavior: auto; }
 .landing-volume input:active::-webkit-slider-thumb { background: var(--wash); }
 .landing-volume input::-moz-range-track { height: 4px; border-radius: 4px; background: var(--line); }
 .landing-volume input::-moz-range-progress { height: 4px; border-radius: 4px; background: var(--ink); }
-.landing-volume input::-moz-range-thumb { width: 14px; height: 14px; border: 2px solid var(--ink); border-radius: 50%; background: var(--surface); }
+.landing-volume input::-moz-range-thumb { width: 14px; height: 14px; border: 2px solid var(--ink); border-radius: 50%; background: var(--surface); transition: scale 130ms var(--landing-ease); }
 .landing-volume-summary { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0 12px; font-size: 14px; }
 .landing-volume-summary p { color: var(--muted); line-height: 1.4; }
 .landing-volume-summary strong { color: var(--ink); }
@@ -418,6 +414,7 @@ html:has(.landing :focus-visible) { scroll-behavior: auto; }
   overflow-x: auto;
   overflow-y: hidden;
   overscroll-behavior-inline: contain;
+  touch-action: pan-y pinch-zoom;
   scroll-snap-type: x mandatory;
   scroll-behavior: smooth;
   scrollbar-width: none;
@@ -444,8 +441,7 @@ html:has(.landing :focus-visible) { scroll-behavior: auto; }
   gap: 16px;
   transition: border-color 120ms var(--landing-ease);
 }
-.landing-plan-carousel > .billing-plan::after {
-  content: "";
+.landing-plan-outline {
   position: absolute;
   inset: -1px;
   border: 2px solid var(--ink);
@@ -454,7 +450,7 @@ html:has(.landing :focus-visible) { scroll-behavior: auto; }
   pointer-events: none;
   transition: opacity 150ms var(--landing-ease);
 }
-.landing-plan-carousel > .billing-plan[data-recommended]::after { opacity: 1; }
+.landing-plan-carousel > .billing-plan[data-recommended] > .landing-plan-outline { opacity: 1; }
 .landing-plan-carousel .billing-plan:not([data-recommended]):focus-within { border-color: var(--ink); }
 .landing-plan-carousel .plan-card-heading { min-height: 0; }
 .landing-plan-carousel .plan-card-heading h3 { font-size: 19px; font-weight: 590; letter-spacing: -.025em; }
@@ -476,8 +472,8 @@ html:has(.landing :focus-visible) { scroll-behavior: auto; }
 .landing-plan-carousel .plan-features { display: grid; gap: 10px; margin: 0; padding: 2px 0 0; }
 .landing-plan-carousel .plan-features li { margin: 0; gap: 8px; }
 .landing-plan-carousel .plan-features li svg { flex: 0 0 15px; }
-.landing-pricing:has(#landing-volume:focus-visible) :is(.billing-plan, .billing-plan .btn),
-.landing-pricing:has(#landing-volume:focus-visible) .billing-plan::after { transition: none; }
+.landing-pricing:has(#landing-volume:is(:focus-visible, :active)) :is(.billing-plan, .billing-plan .btn, .landing-plan-outline),
+.landing-plan-carousel[data-carousel-motion="dragging"] :is(.billing-plan, .billing-plan .btn, .landing-plan-outline) { transition: none; }
 .landing-carousel-controls { display: flex; justify-content: end; align-items: center; gap: 6px; margin-bottom: 2px; }
 .landing-carousel-controls > span { margin-inline-end: auto; font-size: 14px; color: var(--muted); }
 .landing-carousel-controls .icon-button { border-color: var(--edge); }
@@ -648,41 +644,45 @@ html:has(.landing :focus-visible) { scroll-behavior: auto; }
   .landing-header .landing-header-inner > :is(.btn, .landing-menu-toggle):not(:disabled, :focus-visible) {
     transition: scale 110ms var(--landing-ease);
   }
-  .landing :is(.btn, .icon-button):active:not(:disabled, :focus-visible, [aria-disabled="true"]) { scale: .97; transition-duration: 80ms; }
+  .landing :is(.btn, .icon-button):active:not(:disabled, :focus-visible, [aria-disabled="true"]) { scale: var(--rex-press); transition-duration: 90ms; }
   .landing-circled-word path { animation: landing-ink-trace 730ms 140ms var(--rex-trace) both; }
-  .landing-mascot-art { animation: rex-mascot-nod 1080ms 120ms var(--landing-glide) backwards; }
+  .landing-mascot-art { animation: rex-mascot-rise 740ms 100ms var(--landing-ease) backwards; }
+  @supports (offset-path: path("M 0 0 L 1 1")) {
+    .landing-mascot-art {
+      offset-path: path("M 6 22 Q -16 9 0 0");
+      offset-anchor: 0 0;
+      offset-rotate: 0deg;
+      offset-distance: 100%;
+      animation-name: rex-mascot-arc;
+    }
+  }
   .landing-glasses-sweep { animation: rex-glasses-shine 530ms 880ms var(--rex-trace) both; }
   .landing-estimate-skeleton > [aria-hidden] { animation: rex-skeleton 1.1s var(--landing-move) infinite alternate; }
   .landing-file-zone > svg { transition: transform 210ms var(--landing-glide); }
   .landing-file-zone[data-dragging="true"] > svg { transform: translateY(-3px); }
-  .landing-menu-toggle svg { transition: opacity 160ms var(--landing-glide); }
 }
 @supports (overlay: auto) and (transition-behavior: allow-discrete) {
   .landing-mobile-nav {
-    --menu-motion: 125ms;
+    --menu-motion: var(--rex-disclosure-out);
     opacity: 0;
-    transition: opacity var(--menu-motion) var(--landing-ease), transform var(--menu-motion) var(--landing-ease),
+    transition: opacity var(--menu-motion) var(--landing-ease), transform var(--menu-motion) var(--landing-move),
       display var(--menu-motion) allow-discrete, overlay var(--menu-motion) allow-discrete;
   }
   .landing-mobile-nav:not(:popover-open) { pointer-events: none; }
   .landing-mobile-nav:popover-open {
-    --menu-motion: 175ms;
+    --menu-motion: var(--rex-disclosure-in);
     opacity: 1;
+    transition-timing-function: var(--landing-ease);
     @starting-style { opacity: 0; }
   }
   @media (prefers-reduced-motion: no-preference) {
-    .landing-mobile-nav { --menu-motion: 165ms; }
-    .landing-mobile-nav:popover-open { --menu-motion: 250ms; }
-    .landing-mobile-nav:not(:popover-open) { transform: translateY(-4px) scale(.97); }
-    .landing-mobile-nav:popover-open { @starting-style { transform: translateY(-4px) scale(.97); } }
+    .landing-mobile-nav:not(:popover-open) { transform: translateY(-5px) scale(.95); }
+    .landing-mobile-nav:popover-open { @starting-style { transform: translateY(-5px) scale(.95); } }
   }
-  .landing-header-inner:has(.landing-menu-toggle:focus-visible, .landing-mobile-nav :focus-visible) :is(.landing-mobile-nav, .landing-menu-toggle svg) { transition: none; }
+  @media (prefers-reduced-motion: reduce) { .landing-mobile-nav { transition: none; } }
 }
-@keyframes rex-mascot-nod {
-  0% { transform: translateY(14px) rotate(-2deg) scale(.975); }
-  56% { transform: translateY(-7px) rotate(2.2deg) scale(1.02); }
-  100% { transform: none; }
-}
+@keyframes rex-mascot-rise { from { translate: 0 22px; } }
+@keyframes rex-mascot-arc { from { offset-distance: 0%; } }
 @keyframes rex-glasses-shine {
   0% { opacity: 0; transform: translateX(-110px); }
   24%, 70% { opacity: .52; }
@@ -747,6 +747,6 @@ html:has(.landing :focus-visible) { scroll-behavior: auto; }
   .landing-header-brand { transform: none; transition: opacity 100ms var(--landing-ease), visibility 0s 100ms; }
   .landing-header[data-scrolled="true"] .landing-header-brand { transition-delay: 0s; }
   .landing-volume input::-webkit-slider-thumb { transition: none; }
-  .landing-cadence::before { transition: none; }
+  .landing-cadence-indicator { transition: none; }
   .landing :is(.btn, .icon-button):not(:disabled) { transition: none; }
 }

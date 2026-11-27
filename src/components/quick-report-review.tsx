@@ -20,7 +20,14 @@ export function QuickReportReview({initial,companyName,fileName}: {initial:Quick
   const openReview=useCallback(()=>{
     if(!dialog.current)return;
     if(bodyOverflow.current===null)bodyOverflow.current=document.body.style.overflow;
-    if(!dialog.current.open)dialog.current.showModal();
+    if(!dialog.current.open){
+      const trigger=launcher.current?.getBoundingClientRect();
+      if(trigger){
+        dialog.current.style.setProperty("--review-trigger-x", `${trigger.left + trigger.width / 2}px`);
+        dialog.current.style.setProperty("--review-trigger-y", `${trigger.top + trigger.height / 2}px`);
+      }
+      dialog.current.showModal();
+    }
     document.body.style.overflow="hidden";title.current?.focus();
   },[]);
   useEffect(()=>{openReview();return()=>{if(bodyOverflow.current!==null){document.body.style.overflow=bodyOverflow.current;bodyOverflow.current=null;}};},[openReview]);

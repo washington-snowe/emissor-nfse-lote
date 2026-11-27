@@ -118,9 +118,9 @@ export function WorkspaceShell({ email, name, active = "overview", companies = [
           <button ref={drawerTrigger} className="icon-button workspace-menu-button" type="button" aria-label="Menu do painel" aria-haspopup="dialog" onClick={() => drawer.current?.showModal()}>
             <Menu size={20} aria-hidden="true" />
           </button>
-          <button className="icon-button workspace-sidebar-toggle" type="button" aria-controls="workspace-sidebar" aria-expanded={!compactSidebar}
-            aria-label={compactSidebar ? "Mostrar navegação" : "Recolher navegação"} onClick={toggleSidebar}>
-            {compactSidebar ? <PanelLeftOpen size={18} aria-hidden="true" /> : <PanelLeftClose size={18} aria-hidden="true" />}
+          <button className="icon-button workspace-sidebar-toggle motion-icon-swap" type="button" aria-controls="workspace-sidebar" aria-expanded={!compactSidebar}
+            data-swapped={compactSidebar} aria-label={compactSidebar ? "Mostrar navegação" : "Recolher navegação"} onClick={toggleSidebar}>
+            <PanelLeftClose size={18} aria-hidden="true" /><PanelLeftOpen size={18} aria-hidden="true" />
           </button>
           <div className="workspace-context">
             {selected ? <>

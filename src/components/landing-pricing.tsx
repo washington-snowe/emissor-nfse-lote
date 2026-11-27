@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState, type CSSProperties } from "react";
+import { flushSync } from "react-dom";
 import { ArrowLeft, ArrowRight, Upload } from "lucide-react";
 import { estimateBestPlan, money, plans, type Cadence } from "@/lib/billing/catalog";
 import { planSelectionHref } from "@/lib/billing/plan-selection";
@@ -33,6 +34,7 @@ export function LandingPricing() {
   const [dragging, setDragging] = useState(false);
   const [visible, setVisible] = useState({ first: 1, last: 1 });
   const carousel = useRef<HTMLDivElement>(null);
+  const pricingMotion = useRef<ViewTransition | null>(null);
   usePlanCarouselDrag(carousel);
   const reading = useRef(false);
   const cadence = annual ? "annual" : "monthly";
@@ -71,9 +73,27 @@ export function LandingPricing() {
     }
   }
 
-  function selectCadence(next: Cadence) {
-    setAnnual(next === "annual");
-    revealRecommendation(volume, "auto", next);
+  function selectCadence(next: Cadence, keyboard: boolean) {
+    const viewport = carousel.current;
+    if (pricingMotion.current) {
+      pricingMotion.current.skipTransition();
+      pricingMotion.current = null;
+    }
+    const canAnimate = !keyboard && viewport && viewport.scrollWidth <= viewport.clientWidth + 1 &&
+      typeof document.startViewTransition === "function" && CSS.supports("selector(:active-view-transition-type(rex-pricing))") &&
+      !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (!canAnimate) {
+      setAnnual(next === "annual");
+      revealRecommendation(volume, keyboard ? "instant" : "auto", next);
+      return;
+    }
+
+    const motion = document.startViewTransition({ types: ["rex-pricing"], update: () => {
+      if (pricingMotion.current === motion) flushSync(() => setAnnual(next === "annual"));
+    } });
+    pricingMotion.current = motion;
+    const clear = () => { if (pricingMotion.current === motion) pricingMotion.current = null; };
+    void motion.finished.then(clear, clear);
   }
 
   function step(direction: -1 | 1, behavior: ScrollBehavior) {
@@ -133,12 +153,13 @@ export function LandingPricing() {
           <h2 id="planos-titulo">Planos e preços</h2>
           <fieldset className="landing-cadence">
             <legend className="sr-only">Período da assinatura</legend>
+            <span className="landing-cadence-indicator" aria-hidden="true" />
             <label>
-              <input type="radio" name="landing-cadence" checked={!annual} onChange={() => selectCadence("monthly")} />
+              <input type="radio" name="landing-cadence" checked={!annual} onChange={event => selectCadence("monthly", event.currentTarget.matches(":focus-visible"))} />
               <span>Mensal</span>
             </label>
             <label>
-              <input type="radio" name="landing-cadence" checked={annual} onChange={() => selectCadence("annual")} />
+              <input type="radio" name="landing-cadence" checked={annual} onChange={event => selectCadence("annual", event.currentTarget.matches(":focus-visible"))} />
               <span>Anual <small className="landing-discount-tag">−20%</small></span>
             </label>
           </fieldset>
@@ -249,7 +270,7 @@ export function LandingPricing() {
           </div>}
           {estimate.state === "error" && <p className="landing-estimate landing-estimate-error" role="alert">{estimate.message}</p>}
           {estimate.state === "ready" && <div className="landing-estimate">
-            <div role="status">
+            <div role="status" data-motion-success>
               <dl className="landing-estimate-metrics">
                 <div><dt>Notas estimadas</dt><dd>{number.format(estimate.count)}</dd></div>
                 <div><dt>Total do relatório</dt><dd>{formatFiscalBrl(estimate.total)}</dd></div>

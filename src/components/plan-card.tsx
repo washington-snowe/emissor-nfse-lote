@@ -1,5 +1,5 @@
 import { Check } from "lucide-react";
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import { money, overagePrice, planPrice, type Cadence, type Plan } from "@/lib/billing/catalog";
 
 export function PlanIntervalToggle({ annual, onChange }: { annual: boolean; onChange: (annual: boolean) => void }) {
@@ -20,12 +20,15 @@ export function PlanCard({ plan, cadence, action, showBadge = true, recommended,
   const callToAction = <div className="plan-card-action">{action}</div>;
   return <article className={`billing-plan${featured ? " billing-plan--featured" : ""}`}
     data-recommended={recommended || undefined}>
+    {landing && <span className="landing-plan-outline" aria-hidden="true" />}
     <div className="plan-card-heading">
       <h3>{plan.name}</h3>
       {featured && showBadge && <span className="billing-plan-badge">Mais Escolhido</span>}
     </div>
     <div className="plan-card-price">
-      <p className="billing-plan-price"><strong>{money(annual ? Math.round(price / 12) : price)}</strong><span>/mês</span></p>
+      <p className="billing-plan-price" style={landing ? { "--plan-price-layout": `rex-price-${plan.code}` } as CSSProperties : undefined}>
+        <strong>{money(annual ? Math.round(price / 12) : price)}</strong><span>/mês</span>
+      </p>
       {annual && <p className="billing-plan-cycle"><strong>{money(price)}</strong> cobrados por ano</p>}
       {landing && annual && <p className="landing-plan-savings"><span className="landing-discount-tag">Economize {money(plan.monthlyCents * 12 - price)} por ano</span></p>}
     </div>

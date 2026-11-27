@@ -50,7 +50,7 @@ export function LandingHeader() {
         {sections.map(({ href, label }) => <a key={href} href={href}>{label}</a>)}
       </nav>
       <Link href="/entrar" className="btn btn--primary">Entrar <ArrowUpRight size={16} aria-hidden="true" /></Link>
-      <button type="button" className="icon-button landing-menu-toggle" aria-label="Menu de navegação" popoverTarget="landing-mobile-nav">
+      <button type="button" className="icon-button landing-menu-toggle motion-icon-swap" aria-label="Menu de navegação" popoverTarget="landing-mobile-nav">
         <Menu size={20} aria-hidden="true" />
         <X size={20} aria-hidden="true" />
       </button>

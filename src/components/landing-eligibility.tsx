@@ -108,7 +108,7 @@ export function LandingEligibility({ supportHref }: { supportHref?: string }) {
         </div>}
         {result && message && <div className="landing-eligibility-result" data-eligibility={result.status}>
           <div role={result.status === "invalid" ? "alert" : "status"}>
-            <p className="landing-eligibility-status" id="eligibility-feedback">{message[0]}</p>
+            <p className="landing-eligibility-status" id="eligibility-feedback" data-motion-success={result.status === "eligible" ? "" : undefined}>{message[0]}</p>
             {"location" in result && (result.location || result.profile) && <p className="landing-eligibility-profile">
               {[result.profile, result.location].filter(Boolean).join(" · ")}
             </p>}

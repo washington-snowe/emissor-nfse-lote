@@ -1,6 +1,6 @@
 @media (prefers-reduced-motion: no-preference) {
   .landing-hero-copy > :is(h1, .landing-hero-context, .landing-actions, .landing-hero-estimate) {
-    animation: marketing-arrival 420ms var(--landing-glide) both;
+    animation: marketing-arrival 420ms var(--landing-ease) both;
   }
   .landing-hero-copy > .landing-hero-context { animation-delay: 100ms; }
   .landing-hero-copy > .landing-actions { animation-delay: 185ms; }
@@ -18,17 +18,20 @@
     translate: 0 var(--reveal-distance);
   }
   .landing [data-landing-reveal-state="visible"]:not(:focus-within) {
-    animation: landing-scroll-arrival 540ms var(--reveal-delay) var(--landing-glide) backwards;
+    animation: landing-scroll-arrival 420ms var(--reveal-delay) var(--landing-ease) backwards;
   }
-  .landing-steps li:nth-child(2), .landing-tutorials-grid > :nth-child(2) { --reveal-delay: 85ms; }
-  .landing-steps li:nth-child(3) { --reveal-delay: 135ms; }
-  .landing-footer-grid > :nth-child(2) { --reveal-delay: 70ms; }
-  .landing-footer-grid > :nth-child(3) { --reveal-delay: 105ms; }
-  .landing-footer-grid > :nth-child(4) { --reveal-delay: 140ms; }
+  .landing [data-landing-reveal="heading"][data-landing-reveal-state="visible"]:not(:focus-within) { animation-name: landing-masked-arrival; }
+  .landing .landing-plan-carousel[data-carousel-motion="dragging"] > .billing-plan[data-landing-reveal-state] {
+    opacity: 1;
+    animation: none;
+  }
+  :is(.landing-steps li, .landing-tutorials-grid > *, .landing-footer-grid > *):nth-child(2) { --reveal-delay: calc(35ms + var(--rex-row-step)); }
+  :is(.landing-steps li, .landing-footer-grid > *):nth-child(3) { --reveal-delay: calc(35ms + 2 * var(--rex-row-step)); }
+  .landing-footer-grid > :nth-child(4) { --reveal-delay: calc(35ms + 3 * var(--rex-row-step)); }
   @media (min-width: 1131px) {
-    .landing-plan-carousel > :nth-child(2) { --reveal-delay: 80ms; }
-    .landing-plan-carousel > :nth-child(3) { --reveal-delay: 125ms; }
-    .landing-plan-carousel > :nth-child(4) { --reveal-delay: 170ms; }
+    .landing-plan-carousel > :nth-child(2) { --reveal-delay: calc(35ms + var(--rex-row-step)); }
+    .landing-plan-carousel > :nth-child(3) { --reveal-delay: calc(35ms + 2 * var(--rex-row-step)); }
+    .landing-plan-carousel > :nth-child(4) { --reveal-delay: calc(35ms + 3 * var(--rex-row-step)); }
   }
 
   .landing [data-landing-reveal-state="visible"] .landing-step-number path {
@@ -53,39 +56,46 @@
     animation: report-transfer 650ms 85ms var(--rex-trace) both;
   }
   .landing-report-preview[data-landing-reveal-state="visible"]:not(:focus-within) .landing-report-detail tbody tr {
-    animation: report-line-resolve 300ms var(--row-arrival, 260ms) var(--landing-glide) both;
+    animation: report-line-resolve 220ms calc(220ms + var(--row-order, 0) * var(--rex-row-step)) var(--landing-ease) both;
   }
-  .landing-report-detail tbody tr:nth-child(2) { --row-arrival: 315ms; }
-  .landing-report-detail tbody tr:nth-child(3) { --row-arrival: 370ms; }
-  .landing-report-detail tbody tr:nth-child(n+4) { --row-arrival: 425ms; }
+  .landing-report-detail tbody tr:nth-child(2) { --row-order: 1; }
+  .landing-report-detail tbody tr:nth-child(3) { --row-order: 2; }
+  .landing-report-detail tbody tr:nth-child(n+4) { --row-order: 3; }
   @media (max-width: 720px) {
     .landing-report-preview[data-landing-reveal-state="visible"]:not(:focus-within) .landing-report-body::before { animation-name: report-transfer-vertical; }
   }
-  .landing-questions details[open] > p { animation: landing-answer 300ms var(--landing-glide) both; }
-  .landing-questions details:has(:focus-visible) > p { animation: none; }
-  @supports (interpolate-size: allow-keywords) and selector(::details-content) {
-    .landing-questions details::details-content {
-      interpolate-size: allow-keywords;
-      block-size: 0;
-      overflow: clip;
-      opacity: 0;
-      transition: block-size 300ms var(--landing-glide), opacity 240ms var(--landing-glide), content-visibility 300ms allow-discrete;
-    }
-    .landing-questions details[open]::details-content { block-size: auto; opacity: 1; }
-    .landing-questions details:has(:focus-visible)::details-content { transition: none; }
-    .landing-questions details[open] > p { animation: none; }
-  }
-
   [data-landing-motion] :is(.landing-estimate:not(.landing-estimate-skeleton), .landing-eligibility-result) {
-    transition: opacity 250ms var(--landing-glide), transform 310ms var(--landing-glide);
+    transition: opacity 220ms var(--landing-ease), transform 220ms var(--landing-ease);
     @starting-style { opacity: .78; transform: translateY(4px); }
   }
   .landing-plan-carousel .billing-plan-cycle {
-    transition: opacity 220ms var(--landing-glide), transform 240ms var(--landing-glide);
+    transition: opacity 220ms var(--landing-ease), transform 220ms var(--landing-ease);
     @starting-style { opacity: .4; transform: translateY(3px); }
   }
   .landing-pricing:has(.landing-cadence :focus-visible) .billing-plan-cycle { transition: none; }
-  .landing-volume input:active::-webkit-slider-thumb { scale: 1.2; }
+  .landing-volume input:active::-webkit-slider-thumb { scale: 1.12 1; transition: none; }
+  .landing-volume input:active::-moz-range-thumb { scale: 1.12 1; transition: none; }
+  .landing-file-zone[data-dragging="true"], .landing-file-zone[data-dragging="true"] > svg { transition: none; }
+
+  @supports selector(:active-view-transition-type(rex-pricing)) {
+    html:active-view-transition-type(rex-pricing) { view-transition-name: none; }
+    html:active-view-transition-type(rex-pricing)::view-transition { pointer-events: none; }
+    :active-view-transition-type(rex-pricing) .landing-cadence-indicator { view-transition-name: rex-billing-interval; transition: none; }
+    :active-view-transition-type(rex-pricing) .billing-plan[data-recommended] > .landing-plan-outline {
+      view-transition-name: rex-recommended-plan;
+    }
+    :active-view-transition-type(rex-pricing) .landing-plan-outline { transition: none; }
+    :active-view-transition-type(rex-pricing) .landing-plan-carousel .billing-plan-price {
+      view-transition-name: var(--plan-price-layout);
+      view-transition-class: rex-price;
+    }
+    ::view-transition-group(rex-billing-interval), ::view-transition-group(rex-recommended-plan), ::view-transition-group(.rex-price) {
+      animation-duration: 220ms;
+      animation-timing-function: var(--rex-move);
+    }
+    ::view-transition-old(.rex-price) { animation: rex-price-out 176ms ease-out both; }
+    ::view-transition-new(.rex-price) { animation: rex-price-in 220ms var(--rex-settle) both; }
+  }
 
   @media (hover: hover) and (pointer: fine) {
     .landing-nav a { position: relative; }
@@ -119,8 +129,13 @@
 
 @keyframes marketing-arrival { from { opacity: .84; transform: translateY(6px); } }
 @keyframes landing-scroll-arrival { from { opacity: 0; translate: 0 var(--reveal-distance); } }
+@keyframes landing-masked-arrival {
+  from { opacity: 0; translate: 0 var(--reveal-distance); clip-path: inset(-8px -12px 24% -12px); }
+  to { opacity: 1; translate: none; clip-path: inset(-8px -12px -8px -12px); }
+}
 @keyframes landing-ink-trace { from { stroke-dasharray: 1 2; stroke-dashoffset: var(--ink-start, 1); } to { stroke-dasharray: 1 2; stroke-dashoffset: 0; } }
-@keyframes landing-answer { from { opacity: .75; transform: translateY(-3px); } }
+@keyframes rex-price-out { to { opacity: 0; translate: 0 -3px; } }
+@keyframes rex-price-in { from { opacity: 0; translate: 0 3px; } }
 @keyframes report-transfer {
   from { opacity: 0; transform: scaleX(0); }
   55% { opacity: 1; }

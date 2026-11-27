@@ -58,8 +58,8 @@ export function AuthForm({ mode, referral, selection, initialEmail }: { mode: Au
             autoComplete={newPassword ? "new-password" : "current-password"} minLength={newPassword ? 12 : undefined}
             maxLength={128} required aria-invalid={!!state.fields?.password}
             aria-describedby={state.fields?.password ? "password-error" : undefined} />
-          <button type="button" className="icon-button" aria-label={visible ? "Ocultar senha" : "Mostrar senha"} onClick={() => setVisible(!visible)}>
-            {visible ? <EyeOff size={18} aria-hidden="true" /> : <Eye size={18} aria-hidden="true" />}
+          <button type="button" className="icon-button motion-icon-swap" data-swapped={visible} aria-label={visible ? "Ocultar senha" : "Mostrar senha"} onClick={() => setVisible(!visible)}>
+            <Eye size={18} aria-hidden="true" /><EyeOff size={18} aria-hidden="true" />
           </button>
         </div>
         {state.fields?.password && <p id="password-error" className="field-error">{state.fields.password}</p>}
@@ -76,9 +76,9 @@ export function AuthForm({ mode, referral, selection, initialEmail }: { mode: Au
       <label><input type="checkbox" name="remember_email" defaultChecked={!!initialEmail} /> Lembrar meu e-mail</label>
       {mode === "login" && <Link className="text-link" href="/recuperar-senha">Esqueci minha senha</Link>}
     </div>}
-    <button className="btn btn--primary auth-submit" type="submit" disabled={pending || !!state.success} aria-busy={pending}>
-      {pending ? <><span className="skeleton auth-submit-skeleton" aria-hidden="true" /><span className="sr-only">{label}</span></>
-        : <>{label}<ArrowRight size={18} aria-hidden="true" /></>}
+    <button className="btn btn--primary auth-submit" type="submit" disabled={pending || !!state.success} aria-busy={pending} aria-label={label}>
+      <span className="auth-submit-content" aria-hidden="true">{label}<ArrowRight size={18} /></span>
+      <span className="auth-submit-loader" aria-hidden="true"><span className="skeleton auth-submit-skeleton" /></span>
     </button>
     <p className={pending ? "sr-only" : state.success ? "form-success" : "field-error"} role="status">
       {pending ? loading : state.error || state.success}
