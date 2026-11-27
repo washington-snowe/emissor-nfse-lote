@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { ArrowRight, CircleCheck, KeyRound, Mail } from "lucide-react";
 import { releaseNoteCredits, type ReleaseState } from "./actions";
 
@@ -9,6 +9,13 @@ const initial: ReleaseState = { stage: "request" };
 export type CreditAccount = { id: string; email: string; remaining: number };
 
 export function ReleaseCreditForm({ accounts }: { accounts: CreditAccount[] }) {
+  const [draft, setDraft] = useState(0);
+  return <CreditRequest key={draft} accounts={accounts} focusAccount={draft > 0} onBack={() => setDraft(value => value + 1)} />;
+}
+
+function CreditRequest({ accounts, focusAccount, onBack }: {
+  accounts: CreditAccount[]; focusAccount: boolean; onBack: () => void;
+}) {
   const [state, submit, pending] = useActionState(releaseNoteCredits, initial);
   const confirming = state.stage === "confirm";
   return (
@@ -31,7 +38,7 @@ export function ReleaseCreditForm({ accounts }: { accounts: CreditAccount[] }) {
       </> : <>
         <label className="field">
           <span>Conta</span>
-          <select aria-label="Conta" name="tenant" defaultValue="" required disabled={!accounts.length}>
+          <select aria-label="Conta" name="tenant" defaultValue="" required disabled={!accounts.length} autoFocus={focusAccount}>
             <option value="" disabled>Selecione uma conta</option>
             {accounts.map((account) => <option key={account.id} value={account.id}>{account.email} · {account.remaining.toLocaleString("pt-BR")} créditos</option>)}
           </select>
@@ -47,10 +54,7 @@ export function ReleaseCreditForm({ accounts }: { accounts: CreditAccount[] }) {
           {pending ? (confirming ? "Confirmando…" : "Enviando código…") : confirming ? "Confirmar liberação" : "Enviar código por e-mail"}
           {confirming ? <KeyRound size={17} aria-hidden="true" /> : <ArrowRight size={17} aria-hidden="true" />}
         </button>
-        {confirming && <a className="text-link" href="#liberar-creditos" onClick={(event) => {
-          event.preventDefault();
-          window.location.reload();
-        }}>Voltar</a>}
+        {confirming && <button className="text-link" type="button" disabled={pending} onClick={onBack}>Voltar</button>}
       </div>
     </form>
   );

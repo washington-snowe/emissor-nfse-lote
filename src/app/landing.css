@@ -278,52 +278,15 @@ html:has(.landing :focus-visible) { scroll-behavior: auto; }
 .landing-steps p { color: var(--muted); max-width: 36ch; line-height: 1.4; text-wrap: pretty; }
 
 .landing-report-preview {
-  margin-top: var(--landing-content-gap);
+  margin: var(--landing-content-gap) auto 0;
   border: 1px solid var(--line);
   border-radius: var(--landing-card-radius);
   overflow: clip;
   background: var(--surface);
 }
-.landing-report-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 4px 12px;
-  padding: 14px clamp(16px, 2.4vw, 32px);
-  background: var(--ink);
-  color: var(--bg);
-}
-.landing-report-header h3 { font-size: var(--landing-subheading-size); font-weight: 540; line-height: 1.3; }
-.landing-report-header span { color: #d0d0d0; font-size: 14px; }
-.landing-report-body { position: relative; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
-.landing-report-body::before {
-  content: "";
-  position: absolute;
-  inset: 9px 20px auto;
-  height: 1px;
-  z-index: 1;
-  background: #767676;
-  opacity: 0;
-  transform-origin: left;
-  pointer-events: none;
-}
-.landing-report-summary,
-.landing-report-detail { min-width: 0; padding: clamp(16px, 2.4vw, 32px); }
-.landing-report-summary { background: var(--bg); }
-.landing-report-summary > p { display: flex; align-items: center; gap: 8px; margin: 0; font-weight: 550; line-height: 1.4; }
-.landing-report-summary svg { flex: none; }
-.landing-report-summary dl { margin: 10px 0 0; }
-.landing-report-summary dl > div { display: flex; align-items: baseline; justify-content: space-between; gap: 6px; padding: 7px 0; }
-.landing-report-summary dt, .landing-report-detail p span { color: var(--muted); font-size: 14px; line-height: 1.3; }
-.landing-report-summary dd { margin: 0; font-size: 18px; line-height: 1.3; font-weight: 550; white-space: nowrap; }
-.landing-report-detail p { display: grid; gap: 3px; margin: 0 0 9px; line-height: 1.3; }
-.landing-report-detail p strong { font-size: 17px; font-weight: 550; }
-.landing-report-detail table { width: 100%; border-collapse: collapse; text-align: left; }
-.landing-report-detail :is(th, td) { border-bottom: 1px solid var(--line); padding: 6px 0; }
-.landing-report-detail th { color: var(--muted); font-size: 14px; font-weight: 500; }
-.landing-report-detail :is(th, td):last-child { text-align: right; }
-.landing-report-actions { display: flex; justify-content: end; padding: 10px clamp(16px, 2.4vw, 32px) 14px; }
+.landing-panel-screenshot { display: block; width: 100%; height: auto; }
+.landing-report-actions { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px 20px; padding: 14px 20px; border-top: 1px solid var(--line); }
+.landing-report-actions > span { color: var(--muted); font-size: 13px; line-height: 1.4; }
 .landing-pricing { background-color: var(--bg); }
 .landing-pricing-head { display: grid; justify-items: center; gap: 14px; margin-bottom: clamp(17px, 2vw, 27px); text-align: center; }
 .landing-cadence {
@@ -464,8 +427,11 @@ html:has(.landing :focus-visible) { scroll-behavior: auto; }
   border-color: var(--ink);
   background: var(--plan-cta-bg, transparent);
   color: var(--plan-cta-ink, var(--ink));
+  transition: background-color 150ms var(--landing-ease), color 150ms var(--landing-ease), border-color 120ms var(--landing-ease), scale 90ms var(--landing-ease);
+
 }
-.landing-plan-carousel > .billing-plan[data-recommended] {
+.landing-plan-carousel > .billing-plan[data-recommended],
+.landing-plan-carousel > .billing-plan:has(.btn:focus-visible) {
   --plan-cta-bg: var(--ink);
   --plan-cta-ink: var(--surface);
 }
@@ -629,13 +595,12 @@ html:has(.landing :focus-visible) { scroll-behavior: auto; }
   .landing-file-zone:hover:not([data-dragging="true"], [data-busy="true"]) { background: var(--bg); border-color: var(--ink); }
   .landing-footer a:not(.brand):hover { color: var(--bg); text-decoration: underline; text-underline-offset: 4px; }
   .landing-plan-carousel > .billing-plan:not([data-recommended]):hover { border-color: #989898; }
-  .landing-plan-carousel:has(> .billing-plan:hover) > .billing-plan[data-recommended]:not(:hover) {
-    --plan-cta-bg: transparent;
-    --plan-cta-ink: var(--ink);
-  }
-  .landing-plan-carousel > .billing-plan:hover {
+  .landing-plan-carousel:not([data-carousel-motion]) > .billing-plan:not([data-recommended]):hover {
     --plan-cta-bg: var(--ink);
     --plan-cta-ink: var(--surface);
+  }
+  .landing-plan-carousel:not([data-carousel-motion]) > .billing-plan:not([data-recommended]):hover .btn:not(:focus-visible) {
+    transition-delay: 140ms, 140ms, 0ms, 0ms;
   }
   .landing main .btn--primary:not([aria-disabled="true"]):hover { background: #292929; }
   .landing main .btn--secondary:hover { background: var(--landing-soft); border-color: #989898; }
@@ -714,11 +679,6 @@ html:has(.landing :focus-visible) { scroll-behavior: auto; }
   .landing .landing-actions .btn { min-height: 46px; padding-inline: 14px; gap: 7px; }
   .landing-steps { --step-gap: 31px; grid-template-columns: minmax(0, 1fr); }
   .landing-step-arrow { top: calc(100% + 4px); left: 50%; width: 28px; height: 22px; transform: translateX(-50%) rotate(90deg); }
-  .landing-report-body { grid-template-columns: minmax(0, 1fr); }
-  .landing-report-body::before { inset: 10px auto 14px 7px; width: 1px; height: auto; transform-origin: top; }
-  .landing-report-summary dl { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
-  .landing-report-summary dl > div { display: grid; align-content: start; gap: 6px; padding: 8px 0 0; }
-  .landing-report-summary dd { font-size: clamp(14px, 4vw, 18px); }
   .landing-tutorials { --space-edge: 14px; }
   .landing-footer-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -750,3 +710,11 @@ html:has(.landing :focus-visible) { scroll-behavior: auto; }
   .landing-cadence-indicator { transition: none; }
   .landing :is(.btn, .icon-button):not(:disabled) { transition: none; }
 }
+
+@media (prefers-reduced-motion: reduce) and (hover: hover) and (pointer: fine) {
+  .landing .landing-plan-carousel:not([data-carousel-motion]) > .billing-plan:not([data-recommended]):hover .btn:not(:focus-visible) {
+    transition: background-color 0s 140ms, color 0s 140ms;
+  }
+}
+
+.landing .landing-plan-carousel .btn:focus-visible { transition: none; }

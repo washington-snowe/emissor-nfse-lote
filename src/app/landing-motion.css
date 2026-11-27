@@ -50,18 +50,6 @@
     animation: landing-ink-trace 460ms 100ms var(--rex-trace) backwards;
   }
 
-  .landing-report-preview[data-landing-reveal-state="visible"] .landing-report-body::before {
-    animation: report-transfer 650ms 85ms var(--rex-trace) both;
-  }
-  .landing-report-preview[data-landing-reveal-state="visible"] .landing-report-detail tbody tr {
-    animation: report-line-resolve 220ms calc(220ms + var(--row-order, 0) * var(--rex-row-step)) var(--landing-ease) both;
-  }
-  .landing-report-detail tbody tr:nth-child(2) { --row-order: 1; }
-  .landing-report-detail tbody tr:nth-child(3) { --row-order: 2; }
-  .landing-report-detail tbody tr:nth-child(n+4) { --row-order: 3; }
-  @media (max-width: 720px) {
-    .landing-report-preview[data-landing-reveal-state="visible"] .landing-report-body::before { animation-name: report-transfer-vertical; }
-  }
   [data-landing-motion] :is(.landing-estimate:not(.landing-estimate-skeleton), .landing-eligibility-result) {
     transition: opacity 220ms var(--landing-ease), transform 220ms var(--landing-ease);
     @starting-style { opacity: .78; transform: translateY(4px); }
@@ -134,14 +122,3 @@
 @keyframes landing-ink-trace { from { stroke-dasharray: 1 2; stroke-dashoffset: var(--ink-start, 1); } to { stroke-dasharray: 1 2; stroke-dashoffset: 0; } }
 @keyframes rex-price-out { to { opacity: 0; translate: 0 -3px; } }
 @keyframes rex-price-in { from { opacity: 0; translate: 0 3px; } }
-@keyframes report-transfer {
-  from { opacity: 0; transform: scaleX(0); }
-  55% { opacity: 1; }
-  to { opacity: 0; transform: scaleX(1); }
-}
-@keyframes report-transfer-vertical {
-  from { opacity: 0; transform: scaleY(0); }
-  55% { opacity: 1; }
-  to { opacity: 0; transform: scaleY(1); }
-}
-@keyframes report-line-resolve { from { opacity: .66; } }
