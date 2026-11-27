@@ -229,11 +229,6 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--action); }
 .page-back { display: inline-flex; align-items: center; gap: 7px; color: var(--muted); font-size: 14px; font-weight: 520; }
 .page-header > .page-back { margin: -10px 0 9px; }
 .page-back:hover { color: var(--ink); text-decoration: underline; }
-.page-tabs { display: flex; gap: 5px 18px; flex-wrap: wrap; border-bottom: 1px solid var(--line); margin-bottom: 22px; }
-.page-tabs a { min-height: 44px; padding: 10px 4px 8px; border-bottom: 2px solid transparent; color: var(--muted); font-size: 15px; }
-.page-tabs a[aria-current="page"] { border-color: var(--ink); color: var(--ink); font-weight: 550; }
-.page-tabs a:hover { color: var(--ink); }
-.page-tabs a:not([aria-current="page"]):hover { border-color: var(--edge); }
 .page-empty {
   padding: var(--surface-padding);
   border: 1px solid var(--line);
@@ -368,7 +363,6 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--action); }
   .workspace-context-link { font-size: 13px; }
   .page-header-copy { flex-basis: 100%; }
   .page-header-row { align-items: start; }
-  .page-tabs { gap: 0 11px; }
   .card.company-card { gap: 10px; }
   .report-totals { gap: 5px; grid-template-columns: repeat(auto-fit, minmax(min(115px, 100%), 1fr)); }
   .quick-review-dialog .report-totals { grid-template-columns: repeat(3, minmax(0,1fr)); }
@@ -739,3 +733,11 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--action); }
 :is(.overview-recent, .workspace-nav-children, .landing-mobile-nav) :is(li, a):nth-child(3), .invoice-list-row:nth-of-type(3) { --row-order: 2; }
 :is(.overview-recent, .workspace-nav-children, .landing-mobile-nav) :is(li, a):nth-child(n+4), .invoice-list-row:nth-of-type(n+4) { --row-order: 3; }
 @keyframes rex-row-in { from { opacity: .35; translate: 0 4px; } }
+
+/* The workspace stays mounted while only the page content changes. */
+.rex-workspace .page-header h1 { letter-spacing: -.035em; }
+.rex-workspace .save-notice { border: 1px solid var(--line); }
+.rex-workspace .save-notice[data-tone="warning"] { border-color: var(--rex-orange); }
+@media (min-width: 901px) {
+  .rex-workspace[data-sidebar="visible"] .workspace-bar-account { display: none; }
+}

@@ -3,7 +3,7 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { ArrowRight } from "lucide-react";
 import { getWorkspaceData } from "@/lib/workspace-data";
-import { preloadWorkspaceShell, WorkspaceShell } from "@/components/workspace";
+import { WorkspaceShell } from "@/components/workspace";
 import { PageHeader } from "@/components/page-header";
 import { workspaceDestination } from "@/lib/workspace-navigation";
 import type { OperationDisplay } from "@/components/fiscal-operation-list";
@@ -55,7 +55,6 @@ export default async function Dashboard({ searchParams }: {
   searchParams: Promise<{ status?: string; empresa?: string }>;
 }) {
   const { status, empresa } = await searchParams;
-  preloadWorkspaceShell();
   const workspace = await getWorkspaceData(empresa);
   const { selected } = workspace;
   const data = selected && loadOverview(workspace, selected.id);

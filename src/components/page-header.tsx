@@ -22,15 +22,6 @@ export function PageHeader({ title, description, back, actions }: {
   );
 }
 
-export function PageTabs({ label, items }: {
-  label: string;
-  items: readonly { href: string; label: string; current?: boolean }[];
-}) {
-  return <nav className="page-tabs" aria-label={label}>
-    {items.map(item => <Link key={item.href} href={item.href} aria-current={item.current ? "page" : undefined}>{item.label}</Link>)}
-  </nav>;
-}
-
 export function EmptyState({ icon, title, children, actions }: {
   icon: ReactNode; title: string; children?: ReactNode; actions?: ReactNode;
 }) {

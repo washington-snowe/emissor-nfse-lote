@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import {notFound} from "next/navigation";
 import { ReportPreview } from "@/components/report-preview";
-import { preloadWorkspaceShell, WorkspaceShell } from "@/components/workspace";
+import { WorkspaceShell } from "@/components/workspace";
 import { requireWorkspace } from "@/lib/tenancy-server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getWorkspaceData } from "@/lib/workspace-data";
@@ -16,7 +16,6 @@ export const maxDuration = 60;
 
 export default async function Imports({ searchParams }: { searchParams: Promise<{ empresa?: string;relatorio?:string }> }) {
   const { empresa,relatorio } = await searchParams;
-  preloadWorkspaceShell();
   const workspace = getWorkspaceData(relatorio ? undefined : empresa);
   const admin = relatorio ? null : createAdminClient();
   const capabilitiesRequest = admin ? admin.rpc("workflow_capabilities") : null;

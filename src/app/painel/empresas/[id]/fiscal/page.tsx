@@ -1,4 +1,4 @@
-import { PageHeader, PageTabs } from "@/components/page-header";
+import { PageHeader } from "@/components/page-header";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -30,18 +30,11 @@ export default async function FiscalConfiguration({ params, searchParams }: { pa
   const active = automatic ? secao === "avancado" ? "advanced" : "service" : section === "all" ? "companies" : section;
   const initial = current.data && parsed ? { ...current.data, configuration: parsed } : undefined;
   const fiscalUrl = `/painel/empresas/${id}/fiscal`;
-  const fullQuery = modo === "completo" ? "&modo=completo" : "";
   const available = Boolean(createAdminClient()) && !current.error;
   return <WorkspaceShell email={context.user.email} active={active} companyId={company.data.id}><div className="dashboard-content company-page">
     <PageHeader title={active === "advanced" ? "Configuração avançada" : active === "service" ? "Serviço e tributação" : "Configuração fiscal"} description={company.data.legal_name}
       back={{ href: `/painel/empresas/${company.data.id}`, label: "Cadastro da empresa" }}
       actions={!automatic && <Link className="btn btn--secondary" href={fiscalUrl}>Configuração automática</Link>} />
-    <PageTabs label="Configurações da empresa" items={[
-      { href: `/painel/empresas/${id}`, label: "Cadastro" },
-      { href: `${fiscalUrl}?secao=servico${fullQuery}`, label: "Serviço", current: active === "service" },
-      { href: `${fiscalUrl}?secao=avancado${fullQuery}`, label: "Avançado", current: active === "advanced" },
-      { href: `/painel/certificados?empresa=${id}`, label: "Certificado" },
-    ]} />
     {!parsed && !automatic && <p className="save-notice">Personalize os parâmetros aplicáveis à sua operação. Depois você poderá editar Serviço e Avançado separadamente.</p>}
     {!available ? <section className="dashboard-welcome"><h2>Configuração fiscal indisponível</h2><p>Não foi possível carregar os dados fiscais. Tente novamente em instantes.</p></section> :
       automatic ? <AutomaticAffiliateSummary companyId={company.data.id} regime={company.data.tax_regime} initial={initial} reason={setup?.reason}

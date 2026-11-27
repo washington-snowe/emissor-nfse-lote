@@ -4,7 +4,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
 import { getWorkspaceData } from "@/lib/workspace-data";
-import { preloadWorkspaceShell, WorkspaceShell } from "@/components/workspace";
+import { WorkspaceShell } from "@/components/workspace";
 
 export const metadata: Metadata = { title: "Importações salvas" };
 export const dynamic = "force-dynamic";
@@ -27,7 +27,6 @@ async function HistoryContent({ data }: { data: ReturnType<typeof loadHistory> }
 
 export default async function ImportHistory({ searchParams }: { searchParams: Promise<{ empresa?: string }> }) {
   const { empresa } = await searchParams;
-  preloadWorkspaceShell();
   const workspace = await getWorkspaceData(empresa);
   const { selected } = workspace;
   const importUrl = selected ? `/painel/importacoes?empresa=${selected.id}` : "/painel/importacoes";
