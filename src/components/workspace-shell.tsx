@@ -1,14 +1,14 @@
 "use client";
 
-import Link, { useLinkStatus } from "next/link";
-import { useRef, useState, useTransition } from "react";
+import Link from "next/link";
+import { useRef, useState, useSyncExternalStore, useTransition } from "react";
 import {
   ArrowRight, Building2, ChevronDown, CreditCard, FileStack, FileText, History, House,
   KeyRound, LogOut, Menu, MessageCircle, PanelLeftClose, PanelLeftOpen, Plus, Settings2, Share2, ShieldCheck, Ticket, Upload, UserRound, X,
 } from "lucide-react";
 import { Brand } from "@/components/brand";
 import { signOut } from "@/app/auth/actions";
-import { saveWorkspaceSidebar, selectWorkspaceCompany } from "@/app/painel/navigation-actions";
+import { selectWorkspaceCompany } from "@/app/painel/navigation-actions";
 import { chooseCompany, formatCompanyDocument, workspaceDestination, type NavigationCompany, type WorkspaceArea } from "@/lib/workspace-navigation";
 
 const sections = [
@@ -30,29 +30,56 @@ const sections = [
   ] },
 ] as const;
 
-function NavigationStatus() {
-  const { pending } = useLinkStatus();
-  return <span className="workspace-link-progress" data-pending={pending} role="status">
-    {pending && <span className="sr-only">Carregando página…</span>}
-  </span>;
+const sidebarKey = "rex-sidebar-collapsed";
+const sidebarListeners = new Set<() => void>();
+let compactSidebarPreference: boolean | undefined;
+
+function sidebarSnapshot() {
+  if (compactSidebarPreference === undefined) {
+    try { compactSidebarPreference = window.localStorage.getItem(sidebarKey) === "1"; }
+    catch { compactSidebarPreference = false; }
+  }
+  return compactSidebarPreference;
 }
 
-export function WorkspaceShell({ email, name, active = "overview", companies = [], companyId, canAdmin = false, compactSidebar = false, support, children }: {
+function subscribeSidebar(listener: () => void) {
+  sidebarListeners.add(listener);
+  function onStorage(event: StorageEvent) {
+    if (event.key === sidebarKey || event.key === null) {
+      compactSidebarPreference = undefined;
+      listener();
+    }
+  }
+  window.addEventListener("storage", onStorage);
+  return () => {
+    sidebarListeners.delete(listener);
+    window.removeEventListener("storage", onStorage);
+  };
+}
+
+function toggleSidebar() {
+  compactSidebarPreference = !sidebarSnapshot();
+  try { window.localStorage.setItem(sidebarKey, compactSidebarPreference ? "1" : "0"); }
+  catch { /* The in-memory state still follows navigation in this tab. */ }
+  sidebarListeners.forEach(listener => listener());
+}
+
+export function WorkspaceShell({ email, name, active = "overview", companies = [], companyId, canAdmin = false, support, children }: {
   canAdmin?: boolean; email?: string; name?: string; active?: WorkspaceArea; companies?: NavigationCompany[]; companyId?: string;
-  compactSidebar?: boolean; support?: { href: string; label: string }; children: React.ReactNode;
+  support?: { href: string; label: string }; children: React.ReactNode;
 }) {
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState("");
-  const [savingSidebar, toggleSidebar] = useTransition();
+  const compactSidebar = useSyncExternalStore(subscribeSidebar, sidebarSnapshot, () => false);
   const drawer = useRef<HTMLDialogElement>(null);
   const drawerTrigger = useRef<HTMLButtonElement>(null);
   const selected = chooseCompany(companies, companyId);
   const displayName = name || email?.split("@")[0] || "Minha conta";
   const navigate = (area: WorkspaceArea, label: string, Icon: typeof House) => {
     const current = active === area || (active === "emailTest" && area === "invoices");
-    return <Link key={area} href={workspaceDestination(area, selected?.id)} prefetch={false}
+    return <Link key={area} href={workspaceDestination(area, selected?.id)} prefetch={area === "overview" || area === "invoices" ? null : false}
       className={`workspace-nav-link${current ? " is-current" : ""}`} aria-current={current ? "page" : undefined}>
-      <Icon size={18} strokeWidth={1.8} aria-hidden="true" /><span>{label}</span><NavigationStatus />
+      <Icon size={18} strokeWidth={1.8} aria-hidden="true" /><span>{label}</span>
     </Link>;
   };
   const navigation = <nav aria-label="Navegação principal" className="workspace-navigation">
@@ -92,11 +119,7 @@ export function WorkspaceShell({ email, name, active = "overview", companies = [
             <Menu size={20} aria-hidden="true" />
           </button>
           <button className="icon-button workspace-sidebar-toggle" type="button" aria-controls="workspace-sidebar" aria-expanded={!compactSidebar}
-            aria-label={compactSidebar ? "Mostrar navegação" : "Recolher navegação"} disabled={savingSidebar}
-            onClick={() => toggleSidebar(async () => {
-              try { setError(""); await saveWorkspaceSidebar(!compactSidebar); }
-              catch { setError("Não foi possível salvar a preferência de navegação."); }
-            })}>
+            aria-label={compactSidebar ? "Mostrar navegação" : "Recolher navegação"} onClick={toggleSidebar}>
             {compactSidebar ? <PanelLeftOpen size={18} aria-hidden="true" /> : <PanelLeftClose size={18} aria-hidden="true" />}
           </button>
           <div className="workspace-context">

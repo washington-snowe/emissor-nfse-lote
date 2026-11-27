@@ -659,24 +659,9 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--action); }
   .invoice-list-summary .fiscal-status { grid-column: 1; grid-row: 2; }
 }
 
-.workspace-link-progress {
-  position: absolute;
-  inset-inline-end: 15px;
-  inline-size: 9px;
-  block-size: 9px;
-  border-radius: 50%;
-  background: currentColor;
-  opacity: 0;
-  pointer-events: none;
-}
-.workspace-link-progress[data-pending="true"] { opacity: .6; }
+.workspace-experience .workspace-nav-link:active { background: var(--wash); color: var(--ink); }
 
 @media (prefers-reduced-motion: no-preference) {
-  .workspace-link-progress {
-    transition: opacity 120ms ease;
-    transition-delay: 100ms;
-  }
-  .workspace-link-progress[data-pending="true"] { animation: nav-progress 850ms ease-in-out infinite alternate; }
   .workspace-navigation :is(.workspace-nav-link, .workspace-nav-group > summary),
   .workspace-account-actions :is(a, button),
   .invoice-list-summary {
@@ -699,5 +684,4 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--action); }
     }
   }
 }
-@keyframes nav-progress { from { scale: .55; } }
 @keyframes nav-disclosure { from { opacity: .62; } }

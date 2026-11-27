@@ -5,7 +5,7 @@ import { FileText } from "lucide-react";
 import { EmptyState, PageHeader } from "@/components/page-header";
 import { attachEmailStatuses } from "@/lib/email/display";
 import { getWorkspaceData } from "@/lib/workspace-data";
-import { WorkspaceShell } from "@/components/workspace";
+import { preloadWorkspaceShell, WorkspaceShell } from "@/components/workspace";
 import { workspaceDestination } from "@/lib/workspace-navigation";
 import { FiscalOperationList, type OperationDisplay } from "@/components/fiscal-operation-list";
 import { FiscalRefresh } from "@/components/fiscal-refresh";
@@ -48,6 +48,7 @@ async function NotesContent({ data, companyId, page }: { data: ReturnType<typeof
 
 export default async function Invoices({ searchParams }: { searchParams: Promise<{ pagina?: string; empresa?: string }> }) {
   const { pagina, empresa } = await searchParams;
+  preloadWorkspaceShell();
   const workspace = await getWorkspaceData(empresa);
   const { selected } = workspace;
   const page = pagina && /^[1-9]\d{0,2}$/.test(pagina) ? Number(pagina) : 1;

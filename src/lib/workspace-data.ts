@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { cache } from "react";
 import { cookies } from "next/headers";
 import { requireWorkspace } from "@/lib/tenancy-server";
-import { chooseCompany, COMPANY_COOKIE, SIDEBAR_COOKIE, type NavigationCompany } from "@/lib/workspace-navigation";
+import { chooseCompany, COMPANY_COOKIE, type NavigationCompany } from "@/lib/workspace-navigation";
 const loadWorkspaceData = cache(async () => {
   const { client, context } = await requireWorkspace();
   const [companies, store] = await Promise.all([
@@ -12,8 +12,7 @@ const loadWorkspaceData = cache(async () => {
   ]);
   if (companies.error) throw new Error("Companies unavailable");
   const owned = companies.data as NavigationCompany[];
-  return { client, context, companies: owned, selected: chooseCompany(owned, store.get(COMPANY_COOKIE)?.value),
-    compactSidebar: store.get(SIDEBAR_COOKIE)?.value === context.user.id };
+  return { client, context, companies: owned, selected: chooseCompany(owned, store.get(COMPANY_COOKIE)?.value) };
 });
 
 export const getWorkspaceProfile = cache(async () => {
