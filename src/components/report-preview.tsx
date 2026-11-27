@@ -154,7 +154,7 @@ export function ReportPreview({ companies, saveAction, initialCompanyId,automati
         </div>
         <p id="report-error" className="field-error" role="alert">{error}</p>
         <p className="report-privacy"><LockKeyhole size={16} aria-hidden="true" /> {automatic?"O CSV é salvo na sua conta para revisão. O envio das notas exige sua confirmação.":saveAction ? "A conferência é local. Ao salvar a importação, o original será enviado e armazenado de forma privada na sua conta." : "O arquivo é lido neste navegador e não é enviado nem salvo. Use “Limpar arquivo” para descartar a prévia."}</p>
-        {saved && <p className="save-notice" role="status">{saved.duplicate ? "Este arquivo já estava salvo nesta empresa." : "Importação salva. O processamento continua sem precisar manter esta página aberta."} <Link className="text-link" href={`/painel/importacoes/historico/${saved.id}`}>Abrir importação</Link></p>}
+        {saved && <p className="save-notice motion-feedback" data-tone="success" role="status">{saved.duplicate ? "Este arquivo já estava salvo nesta empresa." : "Importação salva. O processamento continua sem precisar manter esta página aberta."} <Link className="text-link" href={`/painel/importacoes/historico/${saved.id}`}>Abrir importação</Link></p>}
       </form>
 
       {preview && !automatic && <ReportResults preview={preview} companyName={selectedCompany?.legal_name ?? ""} headingRef={resultHeading} />}

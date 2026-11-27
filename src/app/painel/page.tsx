@@ -43,7 +43,7 @@ async function OverviewContent({ data, notes }: { data: ReturnType<typeof loadOv
       </div>
       {latest.error ? <p>As notas recentes estão temporariamente indisponíveis.</p> : recent.length ? <ul>
         {recent.map(note => <li key={note.id}>
-          <div><strong>{note.recipient.legalName}</strong><span>{operationStatus(note)}</span></div>
+          <div><strong>{note.recipient.legalName}</strong><span className="fiscal-status" data-status={note.status}>{operationStatus(note)}</span></div>
           <strong>{formatFiscalBrl(String(note.amount))}</strong>
         </li>)}
       </ul> : <p>As notas da empresa aparecerão aqui depois da primeira preparação.</p>}

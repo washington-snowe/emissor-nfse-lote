@@ -56,7 +56,7 @@ export default async function Certificates({ searchParams }: { searchParams: Pro
     <PageHeader title="Certificado A1" description={selected.legal_name} />
     <div className="company-list">{Boolean(certificates.data?.length) && <h2 className="list-title">Certificados da empresa</h2>}{certificates.data?.map(certificate => <article key={certificate.id} className="company-card certificate-card"><div>
       <p>Válido até {new Intl.DateTimeFormat("pt-BR",{dateStyle:"short",timeZone:"America/Sao_Paulo"}).format(new Date(certificate.valid_until))}</p>
-      <span className="small-status">{certificate.status === "active" ? new Date(certificate.valid_until).getTime()<=renderTime ? "Vencido" : "Armazenado com proteção" : certificate.status === "replaced" ? "Substituído para novas operações" : "Desativado nesta conta"}</span>
+      <span className="small-status" data-tone={certificate.status !== "active" ? undefined : Date.parse(certificate.valid_until) <= renderTime ? "danger" : "info"}>{certificate.status === "active" ? new Date(certificate.valid_until).getTime()<=renderTime ? "Vencido" : "Armazenado com proteção" : certificate.status === "replaced" ? "Substituído para novas operações" : "Desativado nesta conta"}</span>
     </div>{certificate.status === "active" && <div className="certificate-actions">{new Date(certificate.valid_until).getTime()>renderTime && <><AutomaticCertificateStatus verification={checkMap.get(certificate.id)} available={!checks.error}/></>}<CertificateDeactivate id={certificate.id} /></div>}</article>)}</div>
     {capabilities?.data?.vault !== true || capabilities?.data?.certificates !== true || certificates.error
       ? <p className="save-notice">O armazenamento protegido está temporariamente indisponível.</p>

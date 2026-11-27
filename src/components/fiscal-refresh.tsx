@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { ActionLabel } from "@/components/action-label";
 export function FiscalRefresh({ waiting }: { waiting: boolean }) {
   const router = useRouter(), [pending, start] = useTransition(), [round, setRound] = useState(0);
   useEffect(() => {
@@ -8,5 +9,7 @@ export function FiscalRefresh({ waiting }: { waiting: boolean }) {
     const timer = setTimeout(() => { if (document.visibilityState === "visible") { router.refresh(); setRound(value => value + 1); } }, 8000);
     return () => clearTimeout(timer);
   }, [waiting, round, router]);
-  return <button className="btn btn--secondary" disabled={pending} type="button" onClick={() => start(() => { setRound(0); router.refresh(); })}>{pending ? "Atualizando…" : "Atualizar histórico"}</button>;
+  return <button className="btn btn--secondary" disabled={pending} aria-busy={pending} type="button" onClick={() => start(() => { setRound(0); router.refresh(); })}>
+    <ActionLabel pending={pending} idle="Atualizar histórico" busy="Atualizando…" />
+  </button>;
 }

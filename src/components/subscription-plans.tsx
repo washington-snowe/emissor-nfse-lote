@@ -3,6 +3,7 @@
 import { useActionState, useState } from "react";
 import { cadenceLabels, MINIMUM_USAGE_CHARGE_CENTS, plans, money, planPrice, upgradeEligible, type Cadence, type StoredCadence } from "@/lib/billing/catalog";
 import { openBilling } from "@/app/painel/conta/assinatura/actions";
+import { ActionLabel } from "@/components/action-label";
 import { PlanCard, PlanIntervalToggle } from "@/components/plan-card";
 import type { PlanSelection } from "@/lib/billing/plan-selection";
 
@@ -14,8 +15,8 @@ function BillingButton({ plan, cadence, request, ready, manage = false, label }:
     <input type="hidden" name="request_id" value={request} />
     {plan && <input type="hidden" name="plan" value={plan} />}
     {cadence && <input type="hidden" name="cadence" value={cadence} />}
-    <button className="btn btn--secondary" disabled={!ready || pending}>
-      {pending ? "Abrindo…" : label ?? (manage ? "Gerenciar na Stripe" : "Escolher plano")}
+    <button className="btn btn--secondary" disabled={!ready || pending} aria-busy={pending}>
+      <ActionLabel pending={pending} idle={label ?? (manage ? "Gerenciar na Stripe" : "Escolher plano")} busy="Abrindo…" />
     </button>
     {state.error && <p className="field-error" role="alert">{state.error}</p>}
   </form>;

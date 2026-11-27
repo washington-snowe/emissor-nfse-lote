@@ -1,0 +1,147 @@
+.rex-workspace {
+  --rex-content-width: 1160px;
+  --rex-content-edge: 32px;
+  --rex-content-gap: 24px;
+  --rex-section-space: 32px;
+  --surface-padding: 20px;
+  --control-height: 40px;
+  --r-lg: 16px;
+  --line: #e5e5e5;
+  --edge: #c9c9c9;
+  --muted: #616161;
+  --status-success-bg: #edf7f0;
+  --status-success-ink: #24643b;
+  --status-info-bg: #eff4fc;
+  --status-info-ink: #365c91;
+  --status-warning-bg: #fff6e8;
+  --status-warning-ink: #86551c;
+  --status-danger-bg: #fcefed;
+  --status-danger-ink: #9d3d36;
+  font-size: 14px;
+}
+.rex-workspace .page-header h1 { font-size: 30px; line-height: 1.2; letter-spacing: -.03em; font-weight: 600; }
+.rex-workspace .page-header-copy > p { margin-top: 6px; font-size: 14px; line-height: 1.5; }
+.rex-workspace .page-header { margin-bottom: 24px; }
+.rex-workspace .page-header-row { gap: 16px; }
+.rex-workspace .page-header > .page-back { margin: 0 0 8px; }
+.rex-workspace .btn { padding: 9px 14px; min-height: 40px; font-size: 13px; line-height: 1.4; font-weight: 550; border-width: 1px; }
+.rex-workspace .btn--primary { background: #202020; border-color: #202020; color: #fff; }
+.rex-workspace .btn--secondary { background: #fff; border-color: #dedede; color: #303030; }
+.rex-workspace .btn svg { width: 16px; height: 16px; }
+.rex-workspace .icon-button { border-color: #dedede; background: #fff; }
+.rex-workspace .btn:disabled { opacity: .5; cursor: default; }
+.rex-workspace :is(.text-link, .page-back) { font-size: 13px; }
+.rex-workspace :is(.field-hint, .field-help, .field-error) { font-size: 13px; line-height: 1.5; }
+.rex-workspace .field label, .rex-workspace label.field > span { font-size: 13px; font-weight: 550; }
+.rex-workspace .field :is(input:not([type="checkbox"], [type="radio"]), select, textarea) { background-color: #fff; border-radius: 12px; }
+.rex-workspace .field input:read-only { background-color: #f8f8f8; }
+.rex-workspace :is(.form-grid, .report-form .form-grid) { gap: 16px; }
+.rex-workspace :is(.account-form .field + .field) { margin-top: 16px; }
+.rex-workspace .account-form .btn { margin-top: 16px; }
+.rex-workspace :is(.company-card h2, .account-section h2, .dashboard-welcome h2, .page-empty h2, .list-toolbar h2, .list-title) {
+  font-size: 18px; line-height: 1.35; font-weight: 600; letter-spacing: -.02em;
+}
+.rex-workspace :is(.company-card, .dashboard-welcome, .page-empty, .company-search, .company-review, .report-form, .fiscal-profile-form, .account-section, .mei-setup) { border-color: var(--line); box-shadow: none; }
+.rex-workspace :is(.company-card, .page-empty, .dashboard-welcome) { padding: 20px; }
+.rex-workspace :is(.dashboard-welcome, .page-empty) { max-width: 720px; }
+.rex-workspace .page-empty-icon { width: 40px; height: 40px; border-radius: 12px; }
+.rex-workspace .page-empty h2 { margin-top: 12px; }
+.rex-workspace .page-empty p { max-width: 55ch; line-height: 1.55; }
+.rex-workspace .dashboard-content > :is(.account-form, .copy-link, .fiscal-profile-form) { max-width: 760px; margin-top: 0; }
+.rex-workspace .company-list { margin-block: 16px; gap: 10px; }
+.rex-workspace .company-card p { font-size: 13px; line-height: 1.5; }
+.rex-workspace .company-symbol { width: 40px; height: 40px; border-radius: 12px; }
+.rex-workspace .report-form { padding: 20px; }
+.rex-workspace .report-upload-grid { gap: 16px; }
+.rex-workspace .report-upload-file .file-control { min-height: 154px; border-color: #c9c9c9; background: #fafafa; }
+.rex-workspace .report-totals { gap: 12px; }
+.rex-workspace .report-totals > div { padding: 14px 16px; background: #fafafa; }
+.rex-workspace .report-totals dd { font-size: 24px; font-weight: 600; }
+.rex-workspace :is(.report-table th, .report-table td) { padding: 12px; font-size: 13px; }
+.rex-workspace .account-section { margin-top: 20px; }
+.rex-workspace .account-section > h2 + p { margin-top: 6px; line-height: 1.5; }
+.rex-workspace .account-section:has(> .account-form) {
+  display: grid; grid-template-columns: minmax(160px, 230px) minmax(0, 1fr);
+  align-items: start; column-gap: 32px; row-gap: 6px;
+  padding: 24px 0; border: 0; border-top: 1px solid var(--line); border-radius: 0; background: transparent;
+}
+.rex-workspace .account-section:has(> .account-form) > :is(h2, p) { grid-column: 1; margin: 0; }
+.rex-workspace .account-section > .account-form { grid-column: 2; grid-row: 1 / span 3; width: 100%; margin: 0; max-width: 560px; }
+.rex-workspace .list-toolbar { margin-top: 20px; align-items: center; }
+.rex-workspace .fiscal-operation-list { border: 1px solid var(--line); border-radius: 12px; overflow: clip; background: #fff; }
+.rex-workspace .invoice-list-head { background: #fafafa; padding-block: 10px; font-size: 12px; font-weight: 500; }
+.rex-workspace .invoice-list-summary { min-height: 58px; }
+.rex-workspace .invoice-list-summary > strong:first-child { font-size: 14px; font-weight: 500; }
+.rex-workspace .invoice-list-row:last-child { border-bottom: 0; }
+.rex-workspace .invoice-list-row[open] { background: #fafafa; }
+.rex-workspace .invoice-list-details { padding: 4px 16px 16px; }
+.rex-workspace .invoice-email-status { padding: 12px 14px; border-radius: 12px; }
+.rex-workspace .overview-totals { gap: 12px 28px; padding-block: 16px; }
+.rex-workspace .overview-recent-heading h2 { font-size: 18px; }
+.rex-workspace .overview-recent li { align-items: center; padding-block: 14px; }
+.rex-workspace .overview-recent li span { justify-self: start; font-size: 12px; }
+.rex-workspace :is(.fiscal-status, .small-status) {
+  display: inline-flex; align-items: center; max-width: 100%; width: fit-content;
+  padding: 4px 8px; border: 0; border-radius: 6px; font-size: 12px; font-weight: 500; line-height: 1.4;
+  color: #5c5c5c; background: #f1f1f1;
+}
+.rex-workspace [data-status="authorized"],
+.rex-workspace [data-tone="success"] {
+  background: var(--status-success-bg); color: var(--status-success-ink);
+}
+.rex-workspace :is([data-status="preparing"], [data-status="sending"], [data-status="reconciling"], [data-tone="info"]) {
+  background: var(--status-info-bg); color: var(--status-info-ink);
+}
+.rex-workspace :is([data-status="queued"], [data-status="uncertain"], [data-status="blocked"], [data-status="intervention"], [data-tone="warning"]) {
+  background: var(--status-warning-bg); color: var(--status-warning-ink);
+}
+.rex-workspace :is([data-status="rejected"], [data-tone="danger"]) {
+  background: var(--status-danger-bg); color: var(--status-danger-ink);
+}
+.rex-workspace .save-notice { padding: 12px 14px; border-radius: 12px; line-height: 1.5; font-size: 13px; }
+.rex-workspace .save-notice[data-tone="success"] { border-color: #d8e9dd; color: var(--status-success-ink) !important; }
+.rex-workspace .save-notice[data-tone="warning"] { background: var(--status-warning-bg); border-color: #eddcc2; color: var(--status-warning-ink) !important; }
+.rex-workspace .billing-plan { gap: 12px; padding: 20px; }
+.rex-workspace .billing-plan-grid { gap: 12px; }
+.rex-workspace .billing-plan h3 { font-size: 17px; font-weight: 600; }
+.rex-workspace .billing-plan-price strong { font-size: 28px; }
+.rex-workspace .plan-card-heading { min-height: 40px; }
+.rex-workspace .plan-card-action .btn { width: 100%; }
+.rex-workspace .plan-interval { font-size: 13px; }
+.rex-workspace .workspace-nav-section { padding-block: 10px 6px; }
+.rex-workspace .workspace-nav-heading { padding-block: 0 4px; }
+.rex-workspace .workspace-nav-children { margin-bottom: 4px; padding-block: 2px; }
+.rex-workspace .workspace-nav-link::after { display: none; }
+.rex-workspace .workspace-nav-link.is-current { background: #eaeaea; color: #171717; }
+.rex-workspace .workspace-nav-link, .rex-workspace .workspace-nav-group > summary {
+  min-height: 34px; gap: 8px; margin: 0; padding: 7px 10px; border-radius: 8px; font-size: 13px; font-weight: 450;
+}
+.rex-workspace .workspace-nav-link.is-current { font-weight: 600; }
+.rex-workspace .workspace-nav-link svg, .rex-workspace .workspace-nav-group > summary svg { width: 16px; height: 16px; stroke-width: 1.7; }
+@media (hover: hover) and (pointer: fine) {
+  .rex-workspace .btn--primary:hover:not(:disabled) { background: #363636; border-color: #363636; }
+  .rex-workspace .btn--secondary:hover:not(:disabled) { background: #f5f5f5; border-color: #bfbfbf; }
+  .rex-workspace a.company-card:hover { border-color: #bfbfbf; background: #fafafa; }
+}
+@media (max-width: 900px) {
+  .rex-workspace { --rex-content-edge: 20px; --rex-section-space: 24px; --control-height: 44px; }
+  .rex-workspace .btn { min-height: 44px; }
+  .rex-workspace .workspace-nav-link, .rex-workspace .workspace-nav-group > summary { min-height: 44px; padding-block: 9px; }
+}
+@media (max-width: 680px) {
+  .rex-workspace .page-header h1 { font-size: 26px; }
+  .rex-workspace :is(.company-card, .page-empty, .dashboard-welcome, .account-section, .report-form) { padding: 16px; }
+  .rex-workspace .account-section:has(> .account-form) { display: block; padding: 20px 0; }
+  .rex-workspace .account-section > .account-form { margin-top: 16px; }
+  .rex-workspace .invoice-list-summary { padding: 12px; }
+  .rex-workspace .invoice-list-details { padding-inline: 12px; }
+  .rex-workspace .invoice-list-head { display: none; }
+  .rex-workspace .report-totals dd { font-size: 20px; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .rex-workspace .dashboard-content > :is(.page-header, .overview-totals, .overview-recent, .fiscal-operation-list) { transition: none; }
+  .rex-workspace :is(.overview-recent li, .invoice-list-row, .workspace-nav-children > a) { animation: none; }
+  .rex-workspace .btn { transition: background-color 140ms var(--rex-settle), border-color 140ms var(--rex-settle), color 140ms var(--rex-settle), scale 120ms var(--rex-settle); }
+  .rex-workspace .btn:active:not(:disabled) { scale: .97; }
+  .rex-workspace a.company-card { transition: background-color 140ms var(--rex-settle), border-color 140ms var(--rex-settle); }
+}

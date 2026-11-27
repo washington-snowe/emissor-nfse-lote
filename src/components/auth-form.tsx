@@ -80,7 +80,7 @@ export function AuthForm({ mode, referral, selection, initialEmail }: { mode: Au
       <span className="auth-submit-content" aria-hidden="true">{label}<ArrowRight size={18} /></span>
       <span className="auth-submit-loader" aria-hidden="true"><span className="skeleton auth-submit-skeleton" /></span>
     </button>
-    <p className={pending ? "sr-only" : state.success ? "form-success" : "field-error"} role="status">
+    <p key={state.error || state.success || "pending"} className={pending ? "sr-only" : state.success ? "form-success motion-feedback" : "field-error motion-feedback"} role="status">
       {pending ? loading : state.error || state.success}
     </p>
     <p className="auth-switch">
