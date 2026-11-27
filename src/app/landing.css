@@ -149,7 +149,7 @@ html:has(.landing :focus-visible) { scroll-behavior: auto; }
   transition: transform 280ms var(--landing-move);
 }
 .landing-header[data-scrolled="true"] .landing-nav { transform: translateX(calc(50cqi - 50%)); }
-.landing-nav:focus-within { transition: none; }
+.landing-nav:has(:focus-visible) { transition: none; }
 .landing-nav a { display: inline-flex; min-height: 44px; align-items: center; white-space: nowrap; }
 .landing-nav a:focus-visible { color: var(--masthead-control); text-decoration: underline; text-underline-offset: 6px; }
 .landing-menu-toggle, .landing-mobile-nav { display: none; }

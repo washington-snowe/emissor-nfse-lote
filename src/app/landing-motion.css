@@ -1,68 +1,66 @@
 @media (prefers-reduced-motion: no-preference) {
+  .landing { --landing-arrive: cubic-bezier(.2, .7, .26, 1); }
   .landing-hero-copy > :is(h1, .landing-hero-context, .landing-actions, .landing-hero-estimate) {
-    animation: marketing-arrival 420ms var(--landing-ease) both;
+    animation: marketing-arrival 460ms var(--landing-arrive) backwards;
   }
-  .landing-hero-copy > .landing-hero-context { animation-delay: 100ms; }
-  .landing-hero-copy > .landing-actions { animation-delay: 185ms; }
-  .landing-hero-copy > .landing-hero-estimate { animation-delay: 250ms; }
+  .landing-hero-copy > .landing-hero-context { animation-delay: 65ms; }
+  .landing-hero-copy > .landing-actions { animation-delay: 120ms; }
+  .landing-hero-copy > .landing-hero-estimate { animation-delay: 170ms; }
   .landing-hero-copy > :is(.landing-actions, .landing-hero-estimate):focus-within { animation: none; }
 
-  .landing [data-landing-reveal-state] {
-    --reveal-distance: 14px;
-    --reveal-delay: 35ms;
+  .landing [data-landing-reveal-state="visible"] {
+    --reveal-distance: 16px;
+    --reveal-duration: 500ms;
+    animation: landing-scroll-arrival var(--reveal-duration) var(--reveal-delay, 0ms) var(--landing-arrive) backwards;
   }
-  .landing [data-landing-reveal="row"] { --reveal-distance: 6px; }
-  .landing :is(.billing-plan, .landing-report-preview) { --reveal-distance: 0px; }
-  .landing [data-landing-reveal-state="pending"]:not(:focus-within) {
-    opacity: 0;
-    translate: 0 var(--reveal-distance);
+  .landing [data-landing-reveal="row"] { --reveal-distance: 8px; --reveal-duration: 370ms; }
+  .landing [data-landing-reveal="heading"][data-landing-reveal-state="visible"] { animation-name: landing-masked-arrival; }
+  .landing [data-landing-reveal="carousel"] { --reveal-distance: 0px; --reveal-duration: 420ms; }
+  @media (min-width: 721px) {
+    :is(.landing-steps li, .landing-tutorials-grid > *, .landing-footer-grid > *):nth-child(2) { --reveal-delay: var(--rex-row-step); }
+    :is(.landing-steps li, .landing-footer-grid > *):nth-child(3) { --reveal-delay: calc(2 * var(--rex-row-step)); }
+    .landing-footer-grid > :nth-child(4) { --reveal-delay: calc(3 * var(--rex-row-step)); }
   }
-  .landing [data-landing-reveal-state="visible"]:not(:focus-within) {
-    animation: landing-scroll-arrival 420ms var(--reveal-delay) var(--landing-ease) backwards;
-  }
-  .landing [data-landing-reveal="heading"][data-landing-reveal-state="visible"]:not(:focus-within) { animation-name: landing-masked-arrival; }
-  .landing .landing-plan-carousel[data-carousel-motion="dragging"] > .billing-plan[data-landing-reveal-state] {
-    opacity: 1;
-    animation: none;
-  }
-  :is(.landing-steps li, .landing-tutorials-grid > *, .landing-footer-grid > *):nth-child(2) { --reveal-delay: calc(35ms + var(--rex-row-step)); }
-  :is(.landing-steps li, .landing-footer-grid > *):nth-child(3) { --reveal-delay: calc(35ms + 2 * var(--rex-row-step)); }
-  .landing-footer-grid > :nth-child(4) { --reveal-delay: calc(35ms + 3 * var(--rex-row-step)); }
   @media (min-width: 1131px) {
-    .landing-plan-carousel > :nth-child(2) { --reveal-delay: calc(35ms + var(--rex-row-step)); }
-    .landing-plan-carousel > :nth-child(3) { --reveal-delay: calc(35ms + 2 * var(--rex-row-step)); }
-    .landing-plan-carousel > :nth-child(4) { --reveal-delay: calc(35ms + 3 * var(--rex-row-step)); }
+    .landing .landing-plan-carousel[data-landing-reveal-state="visible"] { animation: none; }
+    .landing-plan-carousel[data-landing-reveal-state="visible"] > .billing-plan {
+      --reveal-distance: 9px;
+      animation: landing-scroll-arrival 460ms calc(var(--plan-order, 0) * var(--rex-row-step)) var(--landing-arrive) backwards;
+    }
+    .landing-plan-carousel > :nth-child(2) { --plan-order: 1; }
+    .landing-plan-carousel > :nth-child(3) { --plan-order: 2; }
+    .landing-plan-carousel > :nth-child(4) { --plan-order: 3; }
   }
 
   .landing [data-landing-reveal-state="visible"] .landing-step-number path {
-    animation: landing-ink-trace 440ms calc(var(--reveal-delay) + 100ms) var(--rex-trace) backwards;
+    animation: landing-ink-trace 380ms calc(var(--reveal-delay, 0ms) + 80ms) var(--rex-trace) backwards;
   }
   .landing [data-landing-reveal-state="visible"] .landing-step-arrow path:first-child {
-    animation: landing-ink-trace 340ms calc(var(--reveal-delay) + 280ms) var(--rex-trace) backwards;
+    animation: landing-ink-trace 290ms calc(var(--reveal-delay, 0ms) + 130ms) var(--rex-trace) backwards;
   }
   .landing [data-landing-reveal-state="visible"] .landing-step-arrow path:last-child {
-    animation: landing-ink-trace 160ms calc(var(--reveal-delay) + 565ms) var(--rex-trace) backwards;
+    animation: landing-ink-trace 145ms calc(var(--reveal-delay, 0ms) + 370ms) var(--rex-trace) backwards;
   }
 
   .landing [data-landing-reveal-state="visible"] .landing-ink-word path {
-    animation: landing-ink-trace 610ms 190ms var(--rex-trace) backwards;
+    animation: landing-ink-trace 500ms 100ms var(--rex-trace) backwards;
   }
   .landing-simulator-head[data-landing-reveal-state="visible"] .landing-report-link path {
     --ink-start: .6;
-    animation: landing-ink-trace 550ms 200ms var(--rex-trace) backwards;
+    animation: landing-ink-trace 460ms 100ms var(--rex-trace) backwards;
   }
 
-  .landing-report-preview[data-landing-reveal-state="visible"]:not(:focus-within) .landing-report-body::before {
+  .landing-report-preview[data-landing-reveal-state="visible"] .landing-report-body::before {
     animation: report-transfer 650ms 85ms var(--rex-trace) both;
   }
-  .landing-report-preview[data-landing-reveal-state="visible"]:not(:focus-within) .landing-report-detail tbody tr {
+  .landing-report-preview[data-landing-reveal-state="visible"] .landing-report-detail tbody tr {
     animation: report-line-resolve 220ms calc(220ms + var(--row-order, 0) * var(--rex-row-step)) var(--landing-ease) both;
   }
   .landing-report-detail tbody tr:nth-child(2) { --row-order: 1; }
   .landing-report-detail tbody tr:nth-child(3) { --row-order: 2; }
   .landing-report-detail tbody tr:nth-child(n+4) { --row-order: 3; }
   @media (max-width: 720px) {
-    .landing-report-preview[data-landing-reveal-state="visible"]:not(:focus-within) .landing-report-body::before { animation-name: report-transfer-vertical; }
+    .landing-report-preview[data-landing-reveal-state="visible"] .landing-report-body::before { animation-name: report-transfer-vertical; }
   }
   [data-landing-motion] :is(.landing-estimate:not(.landing-estimate-skeleton), .landing-eligibility-result) {
     transition: opacity 220ms var(--landing-ease), transform 220ms var(--landing-ease);
@@ -127,11 +125,11 @@
   }
 }
 
-@keyframes marketing-arrival { from { opacity: .84; transform: translateY(6px); } }
-@keyframes landing-scroll-arrival { from { opacity: 0; translate: 0 var(--reveal-distance); } }
+@keyframes marketing-arrival { from { opacity: .8; translate: 0 7px; } }
+@keyframes landing-scroll-arrival { from { opacity: .15; translate: 0 var(--reveal-distance); } }
 @keyframes landing-masked-arrival {
-  from { opacity: 0; translate: 0 var(--reveal-distance); clip-path: inset(-8px -12px 24% -12px); }
-  to { opacity: 1; translate: none; clip-path: inset(-8px -12px -8px -12px); }
+  from { opacity: .2; translate: 0 var(--reveal-distance); clip-path: inset(-16px -12px 16% -12px); }
+  to { opacity: 1; translate: none; clip-path: inset(-16px -12px -16px -12px); }
 }
 @keyframes landing-ink-trace { from { stroke-dasharray: 1 2; stroke-dashoffset: var(--ink-start, 1); } to { stroke-dasharray: 1 2; stroke-dashoffset: 0; } }
 @keyframes rex-price-out { to { opacity: 0; translate: 0 -3px; } }

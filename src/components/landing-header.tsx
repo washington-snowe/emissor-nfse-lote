@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useSyncExternalStore } from "react";
+import { useEffect, useState } from "react";
 import { ArrowUpRight, Menu, X } from "lucide-react";
 import { Brand } from "@/components/brand";
 
@@ -12,35 +12,50 @@ const sections = [
   { href: "#simulador", label: "Simulador" },
 ];
 
-function subscribe(onChange: () => void) {
-  let frame = 0;
-  function schedule() {
-    if (frame) return;
-    frame = window.requestAnimationFrame(() => {
-      frame = 0;
-      onChange();
-    });
-  }
-  window.addEventListener("scroll", schedule, { passive: true });
-  window.addEventListener("resize", schedule);
-  return () => {
-    window.cancelAnimationFrame(frame);
-    window.removeEventListener("scroll", schedule);
-    window.removeEventListener("resize", schedule);
-  };
-}
-
-function getSnapshot() {
-  if (window.scrollY <= 24) return "top";
-
-  const title = document.getElementById("hero-heading");
-  const header = document.getElementById("landing-header");
-  if (title && header && title.getBoundingClientRect().bottom <= header.offsetHeight) return "dark";
-  return "scrolled";
-}
+type HeaderPosition = "top" | "scrolled" | "dark";
 
 export function LandingHeader() {
-  const position = useSyncExternalStore(subscribe, getSnapshot, () => "top");
+  const [position, setPosition] = useState<HeaderPosition>("top");
+
+  useEffect(() => {
+    const title = document.getElementById("hero-heading");
+    const header = document.getElementById("landing-header");
+    let darkAfter = Infinity;
+    let previous: HeaderPosition = "top";
+
+    function syncPosition() {
+      const y = window.scrollY;
+      const next = y <= 24 ? "top" : y >= darkAfter ? "dark" : "scrolled";
+      if (next === previous) return;
+      previous = next;
+      setPosition(next);
+    }
+
+    function measure() {
+      if (title && header) darkAfter = title.getBoundingClientRect().bottom + window.scrollY - header.offsetHeight;
+      syncPosition();
+    }
+
+    function finishIntro(event: AnimationEvent) {
+      if (event.target === title) measure();
+    }
+
+    const resize = window.ResizeObserver ? new ResizeObserver(measure) : undefined;
+    if (title) resize?.observe(title);
+    if (header) resize?.observe(header);
+    const frame = window.requestAnimationFrame(measure);
+    title?.addEventListener("animationend", finishIntro);
+    window.addEventListener("scroll", syncPosition, { passive: true });
+    window.addEventListener("resize", measure);
+    return () => {
+      resize?.disconnect();
+      window.cancelAnimationFrame(frame);
+      title?.removeEventListener("animationend", finishIntro);
+      window.removeEventListener("scroll", syncPosition);
+      window.removeEventListener("resize", measure);
+    };
+  }, []);
+
   const scrolled = position !== "top";
 
   return <header id="landing-header" className="site-masthead landing-header" data-scrolled={scrolled} data-theme={position === "dark" ? "dark" : "light"}>

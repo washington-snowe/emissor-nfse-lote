@@ -207,7 +207,7 @@ export function LandingPricing() {
             if (visible.last < plans.length) step(1, event.detail === 0 ? "instant" : "auto");
           }}><ArrowRight size={18} aria-hidden="true" /></button>
         </div>
-        <div id="landing-plan-carousel" className="landing-plan-carousel" ref={carousel} role="region" aria-label="Comparação dos planos"
+        <div id="landing-plan-carousel" className="landing-plan-carousel" data-landing-reveal="carousel" ref={carousel} role="region" aria-label="Comparação dos planos"
           onKeyDown={event => {
             if (event.target !== event.currentTarget) return;
             if (event.key === "ArrowLeft" || event.key === "ArrowRight") {
