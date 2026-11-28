@@ -24,7 +24,15 @@ criadas avaliações, estrelas, depoimentos, números de usuários ou garantias
 de elegibilidade fiscal. O Google decide quais formatos exibir nos resultados.
 
 A imagem social em `/opengraph-image` é gerada no build, com 1200 × 630 pixels.
-O favicon usa a marca real. O mascote principal tem prioridade alta de carga,
+O favicon usa a marca real, com PNG opaco de 96 × 96 pixels e
+`/favicon.ico` com 16, 32 e 48 pixels. Ambos são anunciados no HTML raiz,
+acessíveis a Googlebot e Googlebot-Image. Para regenerar os arquivos a partir
+do mascote existente, execute `node scripts/prepare-favicon.mjs`.
+A exibição na busca depende de novo rastreamento e da decisão do Google:
+<https://developers.google.com/search/docs/appearance/favicon-in-search?hl=pt-br>.
+Depois de alterar o ícone, solicite novo rastreamento da página inicial no
+Search Console. Mantenha as URLs dos ícones estáveis.
+O mascote principal tem prioridade alta de carga,
 e a captura desktop do painel usa imagens responsivas para reduzir a
 transferência em telas pequenas. O conteúdo dos guias é estático; a landing
 e seus textos/planos/FAQ são entregues no HTML inicial, acessíveis sem JavaScript.

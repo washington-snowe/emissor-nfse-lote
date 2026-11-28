@@ -14,7 +14,10 @@ export const metadata: Metadata = {
   },
   description:
     "Importe seu relatório da Shopee, revise os dados e emita NFS-e em lote pelo Rex.",
-  icons: { icon: [{ url: "/brand/rex-favicon.png", type: "image/png" }] },
+  icons: { icon: [
+    { url: "/favicon.ico", type: "image/x-icon", sizes: "16x16 32x32 48x48" },
+    { url: "/brand/rex-favicon.png", type: "image/png", sizes: "96x96" },
+  ] },
   robots: { index: false, follow: false },
   other: { "page-type": "software", "site-kind": "software" },
 };

@@ -50,6 +50,26 @@ assert.equal(graph.find(item => item["@type"] === "SoftwareApplication").offers.
 assert.match(home, /Qual relatório preciso importar\?/);
 assert.match(home, /href="\/guias"/);
 assert.doesNotMatch(home, /icon\.svg/);
+assert.match(home, /<link rel="icon"[^>]*href="\/favicon\.ico"/);
+assert.match(home, /<link rel="icon"[^>]*href="\/brand\/rex-favicon\.png"[^>]*sizes="96x96"/);
+for (const agent of ["Googlebot", "Googlebot-Image/1.0"]) {
+  for (const path of ["/favicon.ico", "/brand/rex-favicon.png"]) {
+    const response = await fetch(new URL(path, origin), { headers: { "User-Agent": agent }, redirect: "manual", signal: AbortSignal.timeout(15000) });
+    assert.equal(response.status, 200, `${agent} ${path}`);
+    assert.ok(!response.headers.get("x-robots-tag")?.includes("noindex"));
+    const bytes = Buffer.from(await response.arrayBuffer());
+    if (path.endsWith(".png")) {
+      assert.match(response.headers.get("content-type") ?? "", /image\/png/);
+      assert.equal(bytes.readUInt32BE(16), 96);
+      assert.equal(bytes.readUInt32BE(20), 96);
+    } else {
+      assert.match(response.headers.get("content-type") ?? "", /image\/(?:x-icon|vnd.microsoft.icon)/);
+      assert.equal(bytes.readUInt16LE(2), 1);
+      assert.equal(bytes.readUInt16LE(4), 3);
+      assert.deepEqual([bytes[6], bytes[22], bytes[38]], [16, 32, 48]);
+    }
+  }
+}
 
 for (const path of ["/entrar", "/criar-conta", "/recuperar-senha", "/painel", "/painel/admin", "/api/jobs", "/prototipo"]) {
   const response = await get(path);
