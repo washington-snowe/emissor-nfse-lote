@@ -1,9 +1,9 @@
 import Link from "next/link";
-import type { Metadata } from "next";
 import { MINIMUM_USAGE_CHARGE_CENTS, money } from "@/lib/billing/catalog";
 import { getPublicContact } from "@/lib/public-contact";
+import { publicMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = { title: "Termos de uso" };
+export const metadata = publicMetadata("/termos-de-uso", "Termos de uso | RexNotas", "Conheça as condições de uso do RexNotas, os planos, as cobranças, a emissão de NFS-e e a entrega dos documentos fiscais.");
 
 export default function TermsPage() {
   const contact = getPublicContact();

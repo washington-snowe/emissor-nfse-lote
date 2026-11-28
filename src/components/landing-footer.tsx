@@ -19,6 +19,7 @@ export function LandingFooter() {
         <Link href="/#planos">Planos e preços</Link>
         <Link href="/#simulador">Simulador CSV</Link>
         <Link href="/#perguntas-frequentes">Dúvidas frequentes</Link>
+        <Link href="/guias">Guias para afiliados</Link>
       </nav>
       {contact && <div className="landing-footer-contact" data-landing-reveal="row">
         <h2>Contato</h2>

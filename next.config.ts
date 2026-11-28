@@ -22,6 +22,13 @@ const config: NextConfig = {
           },
         ],
       },
+      ...["/painel/:path*", "/prototipo/:path*", "/entrar", "/criar-conta", "/recuperar-senha/:path*", "/verificar-acesso", "/auth/:path*", "/api/:path*"].map(source => ({
+        source,
+        headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow, noarchive" }],
+      })),
+      ...(process.env.VERCEL_ENV && process.env.VERCEL_ENV !== "production" ? [{
+        source: "/(.*)", headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow, noarchive" }],
+      }] : []),
     ];
   },
 };

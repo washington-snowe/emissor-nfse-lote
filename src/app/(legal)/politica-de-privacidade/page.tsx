@@ -1,8 +1,8 @@
 import Link from "next/link";
-import type { Metadata } from "next";
 import { getPublicContact } from "@/lib/public-contact";
+import { publicMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = { title: "Política de privacidade" };
+export const metadata = publicMetadata("/politica-de-privacidade", "Política de privacidade | RexNotas", "Saiba como o RexNotas trata dados pessoais, relatórios, certificados e cookies, e como exercer seus direitos de privacidade.");
 
 export default function PrivacyPage() {
   const contact = getPublicContact();

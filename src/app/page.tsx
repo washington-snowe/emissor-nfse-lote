@@ -1,6 +1,5 @@
 import Image from "next/image";
 import Link from "next/link";
-import type { Metadata } from "next";
 import { ArrowDown, ArrowUpRight, ChevronDown } from "lucide-react";
 import { LandingEligibility } from "@/components/landing-eligibility";
 import { LandingFooter } from "@/components/landing-footer";
@@ -10,23 +9,11 @@ import { LandingPricing } from "@/components/landing-pricing";
 import { LandingReportPreview } from "@/components/landing-report-preview";
 import { money, plans } from "@/lib/billing/catalog";
 import { getPublicContact } from "@/lib/public-contact";
+import { homeTitle, homeDescription, homeStructuredData, jsonLd, publicMetadata } from "@/lib/seo";
 import "./landing.css";
 import "./landing-motion.css";
 
-const homeUrl = "https://www.rexnotas.com.br";
-const shareImage = `${homeUrl}/brand/rex-mascote.png`;
-export const metadata: Metadata = {
-  alternates: { canonical: homeUrl },
-  openGraph: {
-    type: "website",
-    url: homeUrl,
-    siteName: "Rex Notas",
-    title: "Rex Notas — NFS-e em lote para afiliados",
-    description: "Revise e emita NFS-e em lote a partir do relatório mensal de comissões da Shopee.",
-    images: [{ url: shareImage, alt: "Rex, o mascote do Rex Notas" }],
-  },
-  twitter: { card: "summary_large_image", images: [shareImage] },
-};
+export const metadata = publicMetadata("/", homeTitle, homeDescription);
 
 const steps = [
   { title: "Importe seu relatório", copy: "Selecione o CSV mensal de comissões por vendedor da Shopee." },
@@ -58,6 +45,7 @@ export default function Home() {
   const contact = getPublicContact();
 
   return <div className="landing" data-landing-motion>
+    <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLd(homeStructuredData()) }} />
     <LandingMotion />
     <LandingHeader />
     <main id="conteudo">
@@ -86,7 +74,7 @@ export default function Home() {
           <div className="landing-mascot">
             <div className="landing-mascot-art">
               <Image src="/brand/rex-mascote.png" width={1254} height={1254}
-                alt="Rex, o dinossauro de óculos escuros" sizes="(max-width: 720px) 94vw, (max-width: 1200px) 50vw, 710px" preload />
+                alt="Rex, o dinossauro de óculos escuros" sizes="(max-width: 720px) 94vw, (max-width: 1200px) 50vw, 710px" preload fetchPriority="high" />
               <svg className="landing-glasses" viewBox="0 0 627 627" aria-hidden="true">
                 <defs>
                   <clipPath id="rex-lenses">
@@ -106,6 +94,7 @@ export default function Home() {
       <section className="landing-flow" id="como-funciona" aria-labelledby="workflow-title">
         <div className="wrap">
           <h2 id="workflow-title" data-landing-reveal="heading">Emissão em três passos</h2>
+          <p className="landing-flow-intro">NFS-e para afiliados Shopee com CNPJ: do relatório mensal às notas fiscais, com revisão antes da emissão e entrega do XML e DANFS-e por e-mail.</p>
           <ol className="landing-steps">
             {steps.map(({ title, copy }, index) => <li key={title} data-landing-reveal="card">
               <span className="landing-step-number" aria-hidden="true">

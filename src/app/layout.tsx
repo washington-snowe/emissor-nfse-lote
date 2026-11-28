@@ -3,15 +3,18 @@ import "@fontsource-variable/outfit";
 import "@fontsource/dm-mono/400.css";
 import "./globals.css";
 import "./experience.css";
+import { siteOrigin, siteName } from "@/lib/seo";
 
 export const metadata: Metadata = {
+  metadataBase: new URL(siteOrigin),
+  applicationName: siteName,
   title: {
-    default: "Rex Notas — NFS-e em lote para afiliados",
-    template: "%s | Rex Notas",
+    default: "RexNotas — NFS-e em lote para afiliados Shopee",
+    template: "%s | RexNotas",
   },
   description:
     "Importe seu relatório da Shopee, revise os dados e emita NFS-e em lote pelo Rex.",
-  icons: { icon: "/brand/rex-favicon.png" },
+  icons: { icon: [{ url: "/brand/rex-favicon.png", type: "image/png" }] },
   robots: { index: false, follow: false },
   other: { "page-type": "software", "site-kind": "software" },
 };
